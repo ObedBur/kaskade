@@ -17,12 +17,12 @@ const config: Config = {
         serif: ["var(--font-serif)", "serif"],
       },
       colors: {
-        primary: "#FF6B00", // Ton orange
-        dark: "#1A1D21",    // Ton noir
+        primary: "#FF6B00",
+        dark: "#1A1D21",
         // Palette Luxe
-        chocolat: "#1C0D08",
-        ocre: "#C68642",
-        "off-white": "#FDFCFB",
+        chocolat: "#321B13",
+        ocre: "#BC9C6C",
+        "off-white": "#FCFBF7",
       }
     },
   },

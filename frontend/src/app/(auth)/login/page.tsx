@@ -9,7 +9,7 @@ export default function LoginPage() {
     <div className="flex flex-col min-h-screen bg-white font-sans overflow-hidden">
       <AuthHeader />
       
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-[1.2fr_1fr]">
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-[1.2fr_1fr] pt-24">
         <AuthHero />
         <LoginForm />
       </main>

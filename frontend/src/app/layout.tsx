@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google"; // Mise à jour vers Inter
+import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 // 1. Configuration des polices
@@ -81,9 +82,11 @@ export default function RootLayout({
         `}
       >
         {/* Wrapper principal */}
-        <div className="flex min-h-screen flex-col">
-           {children}
-        </div>
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+             {children}
+          </div>
+        </AuthProvider>
         <Toaster position="top-right" richColors />
       </body>
     </html>

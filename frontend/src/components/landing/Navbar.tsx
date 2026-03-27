@@ -1,27 +1,55 @@
 "use client";
+
 import Link from "next/link";
-import Logo from "@/components/Logo";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Navbar() {
+  const { isAuthenticated, logout, user } = useAuth();
+
   return (
-    <header className="fixed top-0 w-full z-50 bg-white/60 backdrop-blur-xl border-b border-slate-200/50">
-      <nav className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-        <Link href="/">
-          <Logo className="text-xl" />
+    <header className="fixed top-0 w-full z-[100] bg-off-white/80 backdrop-blur-md border-b border-ocre/10">
+      <nav className="arcture-container py-5 flex justify-between items-center">
+        
+        {/* Arcture Brand Block */}
+        <Link href="/" className="flex items-center gap-2 group">
+           <span className="text-2xl md:text-3xl font-black font-sans uppercase tracking-tighter text-chocolat group-hover:text-ocre transition-colors">
+            Kaskade.
+           </span>
         </Link>
-        <div className="hidden md:flex items-center gap-10">
-          <Link className="text-[#1A73E8] font-semibold text-sm" href="#">Marketplace</Link>
-          <Link className="text-[#475569] hover:text-[#1A73E8] transition-colors font-semibold text-sm" href="#">Services</Link>
-          <Link className="text-[#475569] hover:text-[#1A73E8] transition-colors font-semibold text-sm" href="#">Process</Link>
-          <Link className="text-[#475569] hover:text-[#1A73E8] transition-colors font-semibold text-sm" href="#">About</Link>
+        
+        {/* Arcture Desktop Nav - Gotham Scales */}
+        <div className="hidden lg:flex items-center gap-10 font-sans uppercase text-[10px] tracking-[0.2em] font-bold">
+          <Link className="text-ocre hover:text-chocolat transition-all" href="#">MARKETPLACE</Link>
+          <Link className="text-chocolat/60 hover:text-ocre transition-all" href="#">SERVICES</Link>
+          <Link className="text-chocolat/60 hover:text-ocre transition-all" href="#">PROCESS</Link>
+          <Link className="text-chocolat/60 hover:text-ocre transition-all" href="#">CONTACT</Link>
         </div>
-        <div className="flex items-center gap-6">
-          <Link href="/login" className="text-[#475569] hover:text-[#F97415] transition-colors font-bold text-sm">
-            Se connecter
-          </Link>
-          <button className="bg-[#1A73E8] text-white px-7 py-2.5 rounded-full text-sm font-bold shadow-lg shadow-[#1A73E8]/20 hover:shadow-[#1A73E8]/30 transition-all duration-200 active:scale-[0.97]">
-            Commencer
-          </button>
+        
+        {/* Arcture Auth Block */}
+        <div className="flex items-center gap-6 md:gap-8">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-4">
+              <span className="hidden md:block text-[9px] uppercase font-bold text-chocolat/40 tracking-[0.2em]">PROTOCOL ACTIVE: {user?.fullName.split(' ')[0]}</span>
+              <button 
+                onClick={logout}
+                className="btn-arcture py-2 px-6 !w-auto text-[9px] lowercase opacity-80 hover:opacity-100"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 md:gap-8">
+              <Link href="/login" className="text-chocolat/60 hover:text-ocre transition-all font-bold uppercase text-[10px] tracking-widest">
+                LOGIN
+              </Link>
+              <Link 
+                href="/register" 
+                className="btn-arcture !w-auto py-2.5 px-6 md:px-10"
+              >
+                JOIN THE ELITE
+              </Link>
+            </div>
+          )}
         </div>
       </nav>
     </header>

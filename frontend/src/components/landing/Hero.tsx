@@ -1,65 +1,115 @@
 "use client";
-import { motion } from "framer-motion";
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
+
+const HERO_IMAGES = [
+  "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=2087&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1600585154340-be6048805f77?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop"
+];
 
 export default function Hero() {
-    return (
-        <section className="relative pt-32 pb-24 md:pt-40 md:pb-48 overflow-hidden min-h-[90vh] flex items-center"
-            style={{ background: "radial-gradient(circle at 70% 50%, #F0F4FA 0%, #FDFCFB 60%, #FFFFFF 100%)" }}>
+    const [index, setIndex] = useState(0);
 
-            <div className="absolute right-0 top-0 w-full lg:w-[55%] h-full z-0 overflow-hidden">
-                <div className="relative w-full h-full" style={{ maskImage: "linear-gradient(to left, black 50%, transparent 100%)", WebkitMaskImage: "linear-gradient(to left, black 50%, transparent 100%)" }}>
-                    <img
-                        className="w-full h-full object-cover object-[center_top]"
-                        alt="Coiffeur professionnel"
-                        src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop"
-                    />
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+        }, 6000);
+        return () => clearInterval(timer);
+    }, []);
+
+    return (
+        <section className="relative pt-[120px] pb-24 md:pt-[160px] md:pb-48 min-h-[90vh] flex items-center bg-off-white overflow-hidden">
+            
+            {/* Arcture Visual Monolith Slider (Right relative to content) */}
+            <div className="absolute right-0 top-0 w-full lg:w-[60%] h-full z-0 overflow-hidden pointer-events-none">
+                <div 
+                    className="relative w-full h-full" 
+                    style={{ 
+                        maskImage: "linear-gradient(to right, transparent 0%, black 40%)", 
+                        WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 40%)" 
+                    }}
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.img
+                            key={index}
+                            initial={{ opacity: 0, scale: 1.1, filter: "grayscale(100%)" }}
+                            animate={{ opacity: 1, scale: 1, filter: "grayscale(10%)" }}
+                            exit={{ opacity: 0, scale: 1.05 }}
+                            transition={{ duration: 1.5, ease: "easeInOut" }}
+                            className="w-full h-full object-cover"
+                            src={HERO_IMAGES[index]}
+                            alt={`Kaskade Talent ${index + 1}`}
+                        />
+                    </AnimatePresence>
+                    
+                    {/* Architectural Overlay Pattern (Luxe) */}
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none z-10"></div>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-8 w-full z-10 relative">
-                <div className="max-w-3xl">
-                    <motion.h1 
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="text-5xl md:text-[84px] font-extrabold tracking-tight leading-[0.95] mb-8 text-[#0F172A]"
+            {/* Arcture Grid Layout */}
+            <div className="arcture-container relative z-10 w-full">
+                <div className="max-w-[900px]">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
                     >
-                        Simplifiez votre quotidien.<br />
-                        <span className="text-[#1A73E8]">L'excellence locale à portée de clic.</span>
-                    </motion.h1>
+                        {/* H1 follows Gotham Bold Arcture Scale */}
+                        <h1 className="mb-8 md:mb-12 text-chocolat uppercase leading-none">
+                            L'EXCELLENCE <br />
+                            <span className="text-ocre italic lowercase serif">à votre mesure.</span>
+                        </h1>
+                    </motion.div>
 
                     <motion.p 
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                        className="text-[#475569] text-xl md:text-2xl font-medium mb-12 max-w-xl leading-relaxed"
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="text-chocolat/85 max-w-[600px] mb-12 md:mb-16 border-l border-ocre pl-6 md:pl-8"
                     >
-                        La référence premium pour connecter talents locaux et clients exigeants.
+                        Découvrez une marketplace sélective où le talent local rencontre des standards d'exclusivité mondiaux au sein de notre écosystème.
                     </motion.p>
 
-                    {/* Search Component */}
+                    {/* Arcture Search Box */}
                     <motion.div 
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-                        className="max-w-2xl bg-white rounded-full p-2 shadow-2xl shadow-blue-900/10 border border-slate-100 flex items-center group focus-within:ring-4 focus-within:ring-[#1A73E8]/5 transition-all"
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                        className="max-w-[700px] bg-white shadow-2xl flex flex-col md:flex-row items-stretch md:items-center group p-1"
                     >
-                        <div className="flex-1 flex items-center px-6">
-                            <Search className="text-slate-400 mr-3 w-5 h-5" />
-                            <input className="w-full bg-transparent border-none focus:ring-0 text-[#0F172A] placeholder:text-slate-400 font-medium py-4 text-lg" placeholder="De quel service avez-vous besoin ?" type="text" />
+                        <div className="flex-1 flex items-center px-6 py-4 border-b md:border-b-0 md:border-r border-ocre/10">
+                            <Search className="text-ocre mr-4 w-5 h-5" />
+                            <input 
+                                className="w-full bg-transparent border-none focus:ring-0 text-chocolat placeholder:text-chocolat/25 font-bold text-xs uppercase tracking-[0.1em]" 
+                                placeholder="QUEL SERVICE RECHERCHEZ-VOUS ?" 
+                                type="text" 
+                            />
                         </div>
                         <button 
                             onClick={() => {
-                                import("sonner").then(({ toast }) => {
-                                    toast.success("Recherche lancée avec succès ! (Test)");
-                                });
+                                toast.success("Protocole de recherche lancé.");
                             }}
-                            className="bg-[#1A73E8] text-white px-10 py-4 rounded-full font-bold text-lg active:scale-0.95 shadow-lg shadow-[#1A73E8]/20 hover:bg-blue-700 transition-all"
+                            className="btn-arcture h-full py-6 px-12"
                         >
-                            Rechercher
+                            EXPLORER
                         </button>
                     </motion.div>
+
+                    {/* Arcture Slide indicator */}
+                    <div className="mt-16 flex gap-3">
+                        {HERO_IMAGES.map((_, i) => (
+                            <div 
+                                key={i} 
+                                className={`h-[2px] transition-all duration-1000 ${i === index ? 'bg-ocre w-16' : 'bg-ocre/20 w-8'}`}
+                            ></div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

@@ -14,7 +14,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <main className="bg-[#FDFCFB] min-h-screen text-[#0F172A] font-sans selection:bg-[#1A73E8]/10 overflow-x-hidden">
+    <main className="bg-off-white min-h-screen text-chocolat font-sans selection:bg-ocre/20 overflow-x-hidden">
       <AnimatePresence mode="wait">
         {loading ? (
           <SplashScreen key="splash" finishLoading={() => setLoading(false)} />
@@ -36,20 +36,24 @@ export default function Home() {
 
             <Process />
 
-            {/* Final CTA Section */}
-            <section className="py-32 px-8">
-              <div className="max-w-7xl mx-auto bg-[#0A192F] rounded-[3rem] p-12 md:p-32 text-center text-white overflow-hidden relative shadow-2xl">
-                <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[600px] h-[600px] bg-[#1A73E8]/20 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px]"></div>
+            {/* Arcture Final CTA Section */}
+            <section className="py-48 px-4 md:px-8 bg-off-white">
+              <div className="arcture-container bg-chocolat rounded-sm p-16 md:p-32 lg:p-40 text-center text-white overflow-hidden relative shadow-[0_30px_100px_rgba(50,27,19,0.15)]">
+                <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[600px] h-[600px] bg-ocre/20 rounded-full blur-[160px] opacity-40"></div>
+                <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px] bg-ocre/10 rounded-full blur-[160px] opacity-40"></div>
+                
                 <div className="relative z-10">
-                  <h2 className="text-5xl md:text-7xl font-extrabold mb-10 max-w-4xl mx-auto leading-tight">Prêt à transformer votre quotidien ?</h2>
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-                    <button className="bg-white text-slate-900 px-12 py-5 rounded-full font-bold text-xl active:scale-0.95 shadow-xl transition-all">
-                      Créer mon compte
+                  <span className="text-ocre font-bold tracking-[0.4em] text-[10px] uppercase mb-12 block">READY TO START?</span>
+                  <h2 className="text-off-white mb-20 max-w-5xl mx-auto leading-none uppercase">
+                    REDÉFINISSEZ <br/> <span className="text-ocre italic lowercase serif">votre quotidien.</span>
+                  </h2>
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-10">
+                    <button className="btn-arcture py-6 px-16 bg-white text-chocolat hover:bg-ocre hover:text-chocolat w-full md:w-auto">
+                      REJOINDRE L'ÉCOSYSTÈME
                     </button>
-                    <button className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 text-white px-10 py-5 rounded-full font-bold hover:bg-white/20 transition-all active:scale-0.95">
-                      <Phone className="w-5 h-5" />
-                      Nous contacter
+                    <button className="flex items-center justify-center gap-4 bg-transparent border border-ocre/30 text-ocre px-12 py-6 rounded-md font-bold hover:bg-ocre/10 transition-all uppercase tracking-[0.2em] text-[11px] w-full md:w-auto group">
+                      <Phone className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      CONTACT ÉLITE
                     </button>
                   </div>
                 </div>

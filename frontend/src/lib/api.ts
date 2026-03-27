@@ -8,11 +8,9 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Interceptor pour gérer les erreurs globales
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Vous pouvez ajouter ici une logique pour gérer 401 (non autorisé) etc.
     return Promise.reject(error);
   }
 );

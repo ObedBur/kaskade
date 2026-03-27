@@ -1,63 +1,90 @@
+"use client";
+
 import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function CategoryBento() {
+  const categories = [
+    {
+        title: "INGÉNIERIE & TECH.",
+        desc: "45 experts certifiés accessibles via notre protocole.",
+        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop",
+        colSpan: "lg:col-span-2 lg:row-span-2",
+        type: "Architecture Intérieure"
+    },
+    {
+        title: "MAISON & CONFORT.",
+        desc: "Services de prestige pour résidences d'exception.",
+        image: "https://images.unsplash.com/photo-1600585154340-be6048805f77?q=80&w=2070&auto=format&fit=crop",
+        colSpan: "lg:col-span-2 lg:row-span-1",
+        type: "Artisanat d'Élite"
+    },
+    {
+        title: "BIEN-ÊTRE.",
+        desc: "Coaching de vie",
+        image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=2020&auto=format&fit=crop",
+        colSpan: "lg:col-span-1 lg:row-span-1",
+        type: "Maison & Style"
+    },
+    {
+        title: "ATELIER.",
+        desc: "Artisanat local",
+        image: "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?q=80&w=2070&auto=format&fit=crop",
+        colSpan: "lg:col-span-1 lg:row-span-1",
+        type: "Tech Innov"
+    }
+  ];
+
   return (
-    <section className="py-32 px-8 bg-[#F8FAFC]">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
-          <div>
-            <span className="text-[#1A73E8] font-bold tracking-[0.2em] text-xs uppercase mb-4 block">Découvrir</span>
-            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Nos catégories premium</h2>
+    <section className="py-24 md:py-32 bg-off-white">
+      <div className="arcture-container">
+        
+        {/* Arcture Section Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 md:mb-24 gap-10">
+          <div className="max-w-[700px]">
+            <span className="text-ocre font-bold tracking-[0.25em] text-[10px] uppercase mb-6 block">PORTFOLIO SÉLECTIF</span>
+            <h2 className="text-chocolat leading-none uppercase">
+                ÉCOSYSTÈME <br/> <span className="text-ocre italic lowercase serif">sélectif.</span>
+            </h2>
           </div>
-          <button className="flex items-center gap-2 text-[#0F172A] font-bold group border-b-2 border-transparent hover:border-[#1A73E8] transition-all pb-1">
-            Voir tous les services <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+          <button className="group flex items-center justify-between gap-6 border-b border-ocre/30 text-chocolat pb-4 uppercase text-[10px] font-bold tracking-widest hover:border-chocolat transition-all w-full md:w-auto">
+            DÉCOUVRIR LA COLLECTION <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-2" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-auto md:grid-rows-2 gap-6 h-auto md:h-[750px]">
-          {/* Large Card: Repair & Tech */}
-          <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[32px] shadow-xl hover:shadow-2xl transition-all duration-500 min-h-[400px]">
-            <img className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRZet1gaIZIB_sb72MIh6t0Ul_nZY36OQu7JxYlinwurMqsAZ9LoRNC1R-YMdP6vagjOXpRglY9AqU230iQlSSN2CJgr1x08qU7vpt0lwkNekOTm4lKrO2m112vA_Ye0zN20nr2rz_5bf_kSyUfDHzwmw7pENRtF3bIqkj3W2vbXyp3V9iFl3u8NtDX6KLjrTBaxYjKXaIuT9Uv7Ok25pRXebt1kbGKCn81r2GqXcA76cJ3-iy1z6_aj9YrzvBWqjrtAXIUj_2BrI" alt="Repair" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 60%)" }}></div>
-            <div className="absolute top-8 left-8">
-              <span className="bg-white/70 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full text-[10px] font-bold text-[#0F172A] uppercase tracking-widest">Expertise Tech</span>
-            </div>
-            <div className="absolute bottom-0 left-0 p-10 w-full">
-              <h3 className="text-3xl md:text-4xl font-bold text-white mb-2">Réparation & Tech</h3>
-              <p className="text-slate-200 text-lg">45 experts hautement qualifiés à proximité</p>
-            </div>
-          </div>
-
-          {/* Medium Card: House Maintenance */}
-          <div className="md:col-span-2 md:row-span-1 relative group overflow-hidden rounded-[32px] shadow-lg hover:shadow-xl transition-all duration-500 min-h-[300px]">
-            <img className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk85WeV6qg_jMrN_TgxOJyvXS0IrYZT7c5nS_5oKZ8bDsUmr8CB9UXKkchJT1ivEu2NxDXpeorojrg89AOLBIzwbemgtjbZOM3ozrzttKK4LXaW38b5BaxecWU2ye3qIqyEwqlJgb743O6dn0N2vjF10_vFmVkF7LfhL9cllSrafo5lkrCOon0E88S2tMCKhlcAJU530Tx8ltb2U4Oa6WoIRLyZxN4gZ-dfX-CD3vlonY6m9lpixnjGhqoe2AAYEqVbSkdBDX6oTE" alt="House" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 60%)" }}></div>
-            <div className="absolute top-6 left-6">
-              <span className="bg-white/70 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full text-[10px] font-bold text-[#0F172A] uppercase tracking-widest">Maison & Confort</span>
-            </div>
-            <div className="absolute bottom-0 left-0 p-8 w-full">
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Entretien Maison</h3>
-              <p className="text-slate-200 text-lg">Services premium pour votre intérieur</p>
-            </div>
-          </div>
-
-          <div className="md:col-span-1 md:row-span-1 relative group overflow-hidden rounded-[32px] min-h-[300px]">
-            <img className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXBzV3AQ4bXBq5IHRw0PF59dbhcXP2dc-k0G5iBe6s-8IOvgyBJdasDQKCiFV_YBWEoDDtM92tb7Tqp66e68mP3gDSuNKsKaKq_Kxw2W4D_CjiRZOkOfy1YWRYUH0wnqawfUt6lmFtAr4oaq4nnQMvzRB8yJMV6s5_Cin_Uc6AHgLTfposNNxjQxqxLUGUJyY_faWo2RBxxuDoDtddFWRQLLszmxbqUDsULUdDjRSKvBHwhoZU2Q6PK9dY6xWCGOKZzU3CEC0RL4s" alt="Wellness" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 60%)" }}></div>
-            <div className="absolute bottom-0 left-0 p-6 w-full">
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-1">Bien-être</h3>
-              <p className="text-slate-200 text-sm">Coaching & Soins</p>
-            </div>
-          </div>
-
-          <div className="md:col-span-1 md:row-span-1 relative group overflow-hidden rounded-[32px] min-h-[300px]">
-            <img className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVYpZQxtOpX5R2D1TJwi-wvy6FzeLHnL2b0fllWBYuoSlXow1CWM8oPaBSSS6PF7v6d-JhT1FH7Y_e9dDqoWuldr79pVNszn-Xt6o6X8fP0keXRtmo49vTXkMcDO4hJ5N7tpvoxwSVeViuOnoEvN8HPFomvKYs1VuURzhMylaj2jFx2eomE_hnA7noImZA4vY3thALQfauurahSfKcyTLHb-TtCeLVrYj8C2pVDqaBMLTQWUe4nbL0-a6ErqjN13luIoGydOo9FAo" alt="Pets" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 60%)" }}></div>
-            <div className="absolute bottom-0 left-0 p-6 w-full">
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-1">Animaux</h3>
-              <p className="text-slate-200 text-sm">Toilettage de luxe</p>
-            </div>
-          </div>
+        {/* Bento Grid: 1 col on mobile, 2 on tablet, 4 on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10 auto-rows-[350px] md:auto-rows-[400px]">
+          {categories.map((cat, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.98 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1, duration: 0.8 }}
+              className={`relative group overflow-hidden rounded-sm border border-ocre/5 shadow-2xl transition-all duration-700 ${cat.colSpan}`}
+            >
+              <img 
+                className="absolute inset-0 w-full h-full object-cover grayscale opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-1000" 
+                src={cat.image} 
+                alt={cat.title} 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-chocolat/90 via-chocolat/20 to-transparent"></div>
+              
+              <div className="absolute top-8 left-8">
+                <span className="bg-ocre text-chocolat px-4 py-2 text-[9px] font-bold uppercase tracking-[0.2em] shadow-lg">
+                    {cat.type}
+                </span>
+              </div>
+              
+              <div className="absolute bottom-0 left-0 p-10 md:p-12 w-full">
+                <h3 className="text-2xl md:text-3xl font-bold text-off-white mb-3 uppercase tracking-tighter">
+                    {cat.title}
+                </h3>
+                <p className="text-ocre/80 text-sm font-medium tracking-wide leading-relaxed">
+                    {cat.desc}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
