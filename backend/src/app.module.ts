@@ -12,6 +12,7 @@ import { MailModule } from './mail/mail.module';
 import { RedisModule } from './redis/redis.module';
 import { RequestsModule } from './requests/requests.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     RedisModule,
     RequestsModule,
     NotificationsModule,
+    AdminModule,
   ],
   providers: [
     {
