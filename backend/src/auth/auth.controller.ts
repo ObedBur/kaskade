@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -17,6 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateUserDto } from '../users/dto/update-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -85,5 +87,15 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 900000 } })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  async updateMe(
+    @CurrentUser('sub') userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.authService.updateMe(userId, updateUserDto);
   }
 }

@@ -24,7 +24,7 @@ Content-Type: application/json
   "password": "{{password}}",
   "phone": "0970000000",
   "role": "CLIENT",
-  "city": "Goma"
+  "quartier": "Goma"
 }
 
 ### -------------------------------------------------------------------------
@@ -113,9 +113,36 @@ POST {{authUrl}}/logout
 Authorization: Bearer {{refreshToken}}
 
 ### -------------------------------------------------------------------------
+### 🛡️ TEST D'ERREUR : MAUVAIS MOT DE PASSE
+### -------------------------------------------------------------------------
+# @name loginFailed
+POST {{authUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "WrongPassword123"
+}
+
+### -------------------------------------------------------------------------
+### 🛡️ TEST D'ERREUR : OTP INVALIDE
+### -------------------------------------------------------------------------
+# @name verifyOtpFailed
+POST {{authUrl}}/verify-otp
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "otp": "000000"
+}
+
+### -------------------------------------------------------------------------
 ### 🛡️ TEST DE RATE LIMITING (BRUTE FORCE PROTECTION)
 ### -------------------------------------------------------------------------
-# Envoyez ceci rapidement pour tester la limite (429 Too Many Requests)
+# Envoyez rapidement plusieurs fois pour tester la limite (429 Too Many Requests)
+POST {{authUrl}}/login
+Content-Type: application/json
+
 {
   "email": "{{email}}",
   "password": "WrongPassword123"
@@ -146,3 +173,88 @@ Content-Type: application/json
   "token": "{{resetToken}}",
   "newPassword": "NewPassword@123!"
 }
+
+### -------------------------------------------------------------------------
+### 🧪 ÉTAPE 12 : MISE À JOUR DU PROFIL (UPDATE ME)
+### -------------------------------------------------------------------------
+# @name updateProfile
+PATCH {{authUrl}}/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Obed Burindi Updated",
+  "phone": "0971111111"
+}
+
+### -------------------------------------------------------------------------
+### 📊 TABLEAU DE SYNTHÈSE DES TESTS
+### -------------------------------------------------------------------------
+# 
+# ✅ FLUX D'AUTHENTIFICATION COMPLET :
+#
+# 1. ✅ Inscription (register)
+#    POST /auth/register
+#    → Crée un utilisateur non vérifié
+#    → Envoie un OTP par email via Brevo
+#
+# 2. ✅ Vérification OTP (verify-otp)
+#    POST /auth/verify-otp
+#    → Valide le code OTP
+#    → Marque l'utilisateur comme vérifié
+#    → Supprime l'OTP de Redis
+#
+# 3. ✅ Connexion (login)
+#    POST /auth/login
+#    → Génère access token (15 min)
+#    → Génère refresh token (7 jours)
+#    → Stocke le refresh token en DB
+#
+# 4. ✅ Profil utilisateur (get profile)
+#    GET /auth/me
+#    → Requiert access token
+#    → Retourne les données de l'utilisateur
+#
+# 5. ✅ Mise à jour du profil (update profile)
+#    PATCH /auth/me
+#    → Requiert access token
+#    → Modifie fullName, phone, etc.
+#
+# 6. ✅ Rafraîchissement des tokens (refresh)
+#    POST /auth/refresh
+#    → Requiert refresh token
+#    → Génère un nouveau access token
+#
+# 7. ✅ Déconnexion (logout)
+#    POST /auth/logout
+#    → Supprime le refresh token en DB
+#    → Invalide la session
+#
+# 8. ✅ Mot de passe oublié (forgot-password)
+#    POST /auth/forgot-password
+#    → Génère un token de réinitialisation
+#    → Envoie un email avec lien
+#
+# 9. ✅ Réinitialisation du mot de passe (reset-password)
+#    POST /auth/reset-password
+#    → Valide le token de réinitialisation
+#    → Modifie le mot de passe
+#    → Invalide le token
+#
+# 10. ✅ Renvoi d'OTP (resend-otp)
+#     POST /auth/resend-otp
+#     → Génère un nouvel OTP
+#     → L'envoie par email
+#     → Remplace l'ancien OTP dans Redis
+#
+# 🔐 SÉCURITÉ IMPLÉMENTÉE :
+# - Rate limiting : 5 req/15min sur login & register
+# - Rate limiting : 3 req/15min sur forgot-password
+# - Hachage bcryptjs des mots de passe
+# - JWT avec expiration
+# - Tokens stockés en Redis (refresh)
+# - OTP temporaires (10 min) en Redis
+# - Tokens de réinitialisation uniques
+# - Protection CORS + HTTPS recommended
+
+### =========================================================================

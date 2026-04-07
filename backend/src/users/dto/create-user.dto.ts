@@ -7,7 +7,7 @@ import {
   MinLength,
   Matches,
 } from 'class-validator';
-import { Role } from '@prisma/client';
+import { Role, Status } from '@prisma/client';
 
 export class CreateUserDto {
   @IsEmail({}, { message: "L'adresse email fournie n'est pas valide." })
@@ -43,7 +43,15 @@ export class CreateUserDto {
   @IsOptional()
   role?: Role;
 
-  @IsString({ message: 'La ville doit être une chaîne de caractères.' })
+  @IsString({ message: 'Le quartier doit être une chaîne de caractères.' })
+  @IsNotEmpty({ message: 'Le quartier est obligatoire.' })
+  quartier: string;
+
+  @IsString({ message: 'Le métier doit être une chaîne de caractères.' })
   @IsOptional()
-  city?: string;
+  metier?: string;
+
+  @IsString({ message: 'L\'expérience doit être une chaîne de caractères.' })
+  @IsOptional()
+  experience?: string;
 }

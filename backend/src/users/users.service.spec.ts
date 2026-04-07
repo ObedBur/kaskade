@@ -44,7 +44,7 @@ describe('UsersService', () => {
         phone: '123456789',
         password: 'pwd',
         role: Role.CLIENT,
-        city: 'Goma',
+        quartier: 'Goma',
       };
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...dtoWithoutPassword } = dto;
@@ -115,6 +115,40 @@ describe('UsersService', () => {
       expect(result.email).toBe('new@test.com');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.user.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('findByEmail', () => {
+    it('should return a user by email', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: '1', email: 'test@test.com' });
+      const result = await service.findByEmail('test@test.com');
+      expect(result!.email).toBe('test@test.com');
+      expect(mockPrismaService.user.findFirst).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateByEmail', () => {
+    it('should update user via email lookup', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: '1', email: 'test@test.com' });
+      mockPrismaService.user.update.mockResolvedValue({ id: '1', isVerified: true });
+      
+      const result = await service.updateByEmail('test@test.com', { isVerified: true });
+      expect(result.isVerified).toBe(true);
+      expect(mockPrismaService.user.update).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if email not found', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+      await expect(service.updateByEmail('ghost@test.com', { isVerified: true })).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateRefreshToken', () => {
+    it('should update refresh token', async () => {
+      mockPrismaService.user.update.mockResolvedValue({ id: '1', refreshToken: 'xyz' });
+      const result = await service.updateRefreshToken('1', 'xyz');
+      expect(result.refreshToken).toBe('xyz');
+      expect(mockPrismaService.user.update).toHaveBeenCalled();
     });
   });
 

@@ -47,7 +47,7 @@ describe('UsersController', () => {
         phone: '123456789',
         password: 'pwd',
         role: Role.CLIENT,
-        city: 'Goma',
+        quartier: 'Goma',
         isActive: true,
         isVerified: false,
       };
@@ -77,6 +77,25 @@ describe('UsersController', () => {
       expect(result).toEqual({ id: '1' });
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(service.findOneSafe).toHaveBeenCalledWith('1');
+    });
+  });
+
+  describe('update', () => {
+    it('should update a user', async () => {
+      const dto = { fullName: 'Updated Name' };
+      mockUsersService.update.mockResolvedValue({ id: '1', ...dto });
+      const result = await controller.update('1', dto);
+      expect(result.fullName).toBe('Updated Name');
+      expect(mockUsersService.update).toHaveBeenCalledWith('1', dto);
+    });
+  });
+
+  describe('remove', () => {
+    it('should remove a user', async () => {
+      mockUsersService.remove.mockResolvedValue({ id: '1', deletedAt: new Date() });
+      const result = await controller.remove('1');
+      expect(result).toHaveProperty('deletedAt');
+      expect(mockUsersService.remove).toHaveBeenCalledWith('1');
     });
   });
 });

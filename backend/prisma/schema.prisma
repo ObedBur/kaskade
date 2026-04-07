@@ -10,145 +10,39 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   password      String
-  fullName      String
-  phone         String    @unique
+  fullName      String    
+  phone         String    @unique 
+  
+  quartier      String    
+  
   role          Role      @default(CLIENT)
-  city          String    @default("Goma")
-  isVerified    Boolean   @default(false)
+  status        Status    @default(DISPONIBLE) 
+  isPremium     Boolean   @default(false)    
+  
+  metier        String?   
+  experience    String?   @db.Text 
+  
+  isVerified    Boolean   @default(false) 
   isActive      Boolean   @default(true)
-  refreshToken  String?
-
+  refreshToken  String?   
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  // Relations
-  services         Service[]       @relation("ProviderServices")
-  clientRequests   Request[]       @relation("ClientRequests")
-  providerRequests Request[]       @relation("ProviderRequests")
-  adminRequests    Request[]       @relation("AdminRequests")
-  reviews          ServiceReview[]
-  notifications    Notification[]
+  @@index([email])
+  @@index([phone])
+  @@index([quartier]) 
 }
 
-// ─────────────────────────────────────────────
-// NOTIFICATIONS
-// ─────────────────────────────────────────────
-model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String
-  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
-  isRead    Boolean  @default(false)
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  link      String?  // Lien optionnel (ex: /demandes/id)
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-// ─────────────────────────────────────────────
-// SERVICE
-// ─────────────────────────────────────────────
-model Service {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  category    String
-  price       Float
-  image       String?
-  isActive    Boolean   @default(true)
-
-  providerId  String
-  provider    User      @relation("ProviderServices", fields: [providerId], references: [id])
-
-  requests    Request[]
-  reviews     ServiceReview[]
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-// ─────────────────────────────────────────────
-// REQUEST (Flux principal Client -> Admin -> Prestataire)
-// ─────────────────────────────────────────────
-model Request {
-  id           String        @id @default(uuid())
-  status       RequestStatus @default(PENDING)
-  message      String?       // Message initial du client
-
-  // Planning
-  scheduledAt  DateTime?     // Date/heure du rendez-vous
-  expiresAt    DateTime?     // Expiration automatique de la demande
-
-  // Séquestre
-  escrowAmount Float?        // Montant bloqué en séquestre (en $)
-  isPaid       Boolean       @default(false)
-
-  // Clés étrangères
-  clientId     String
-  client       User          @relation("ClientRequests", fields: [clientId], references: [id])
-
-  providerId   String?
-  provider     User?         @relation("ProviderRequests", fields: [providerId], references: [id])
-
-  adminId      String?       // Admin qui a approuvé/rejeté
-  admin        User?         @relation("AdminRequests", fields: [adminId], references: [id])
-
-  serviceId    String
-  service      Service       @relation(fields: [serviceId], references: [id])
-
-  review       ServiceReview?
-
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  @@index([clientId])
-  @@index([providerId])
-  @@index([status])
-  @@index([expiresAt])
-}
-
-// ─────────────────────────────────────────────
-// AVIS / REVIEWS
-// ─────────────────────────────────────────────
-model ServiceReview {
-  id         String   @id @default(uuid())
-  rating     Int      // 1 à 5
-  comment    String?
-
-  requestId  String   @unique
-  request    Request  @relation(fields: [requestId], references: [id])
-
-  authorId   String
-  author     User     @relation(fields: [authorId], references: [id])
-
-  serviceId  String
-  service    Service  @relation(fields: [serviceId], references: [id])
-
-  createdAt  DateTime @default(now())
-}
-
-// ─────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────
 enum Role {
   CLIENT
   PROVIDER
   ADMIN
 }
 
-enum RequestStatus {
-  PENDING     // Demande créée, en attente de validation admin
-  APPROVED    // Approuvée par l'admin, en attente du prestataire
-  SCHEDULED   // Prestataire a fixé la date du rendez-vous
-  CONFIRMED   // Client a confirmé le rendez-vous + paiement séquestre
-  COMPLETED   // Prestation terminée et validée par le client
-  REJECTED    // Rejetée par admin ou prestataire
-  EXPIRED     // Délai d'expiration dépassé (géré par un cron job)
+enum Status {
+  DISPONIBLE    
+  EN_MISSION    
+  INDISPONIBLE  
 }
