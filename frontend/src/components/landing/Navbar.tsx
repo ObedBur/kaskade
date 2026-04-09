@@ -56,10 +56,10 @@ export default function Navbar() {
 
           {/* Actions */}
         <div className="flex items-center gap-3 md:gap-6">
-          <button className="relative p-2 text-white/60 hover:text-ocre transition-colors">
+          <Link href="/notifications" className="relative p-2 text-white/60 hover:text-ocre transition-colors">
             <Bell className="h-5 w-5" />
             <span className="absolute top-2 right-2 w-2 h-2 bg-ocre border-2 border-chocolat rounded-full"></span>
-          </button>
+          </Link>
           
           {isAuthenticated && user ? (
             <div className="hidden sm:flex items-center gap-4">

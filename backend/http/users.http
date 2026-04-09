@@ -6,19 +6,45 @@
 ### ============================================================
 
 @baseUrl = http://localhost:4000/api/v1
-@adminToken = REPLACE_WITH_ADMIN_ACCESS_TOKEN
-@clientToken = REPLACE_WITH_CLIENT_ACCESS_TOKEN
 
-# ─── IDs (remplir après création/lecture) ────────────────────
-@userId = REPLACE_WITH_USER_ID
+### ------------------------------------------------------------
+### AUTH PRE-REQUIS (Capture Auto)
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "obedburindi@gmail.com",
+  "password": "password123"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+
+# ─── IDs à capturer ────────────────────
+@userId = {{createUser.response.body.id}}
 
 
 ### ============================================================
 ### U.1 - ADMIN : Créer un utilisateur directement (sans OTP)
 ### Utile pour créer un admin ou un user de test rapidement
-### Retour attendu : 201 Created + { id, email, role }
-### Copier l'ID retourné dans @userId
-### ============================================================
+### 
+# @name createUser
 POST {{baseUrl}}/users
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json

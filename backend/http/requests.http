@@ -1,177 +1,137 @@
 ### ============================================================
-### KASKADE - Module Requests (Demandes de Service)
-### Workflow : CLIENT crée → ADMIN approuve (avec prix) → PROVIDER accepte
+### VARIABLES GLOBALES & CAPTURE
 ### ============================================================
-### Prérequis : auth.http + services.http exécutés
-### ============================================================
-
 @baseUrl = http://localhost:4000/api/v1
-@clientToken = REPLACE_WITH_CLIENT_ACCESS_TOKEN
-@adminToken = REPLACE_WITH_ADMIN_ACCESS_TOKEN
-@providerToken = REPLACE_WITH_PROVIDER_ACCESS_TOKEN
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@providerToken = {{loginProvider.response.body.tokens.accessToken}}
 
-# ─── IDs (remplir après création) ────────────────────────────
-@serviceId = REPLACE_WITH_SERVICE_ID
-@requestId = REPLACE_WITH_REQUEST_ID
+### ------------------------------------------------------------
+### AUTH PRE-REQUIS
+### ------------------------------------------------------------
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "obedburindi@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginProvider
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "provider@gmail.com",
+  "password": "password123"
+}
 
 
-### ============================================================
-### 3.1 - CLIENT : Créer une demande de service
-### Retour attendu : 201 + { id, status: "PENDING", clientId, serviceId }
-### Copier l'ID retourné dans @requestId
-### ============================================================
+### ------------------------------------------------------------
+### 1. SERVICES (ADMIN)
+### ------------------------------------------------------------
+
+# @name listServices
+GET {{baseUrl}}/services
+Authorization: Bearer {{clientToken}}
+
+###
+
+# @name createService
+POST {{baseUrl}}/services
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Plomberie d'Urgence",
+  "category": "PLOMBERIE",
+  "description": "Réparation de fuites et débouchage rapide.",
+  "price": 25000
+}
+
+@serviceId = {{createService.response.body.id}}
+
+
+### ------------------------------------------------------------
+### 2. REQUEST WORKFLOW (CLIENT)
+### ------------------------------------------------------------
+
+# @name createRequest
 POST {{baseUrl}}/requests
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "serviceId": "{{serviceId}}",
-  "description": "J'ai une fuite sous l'évier de cuisine, besoin d'intervention urgente.",
-  "address": "12 rue des Fleurs, 75001 Paris",
-  "scheduledAt": "2026-04-20T09:00:00Z"
+  "serviceId": "REPLACE_WITH_VALID_SERVICE_ID",
+  "description": "Ma douche fuit au rez-de-chaussée.",
+  "address": "123 Avenue de la Paix, Goma",
+  "scheduledAt": "2026-05-10T14:00:00Z"
 }
 
+@requestId = {{createRequest.response.body.id}}
 
-### ============================================================
-### 3.2 - CLIENT : Voir ses propres demandes
-### Retour attendu : 200 + [ { id, status: "PENDING", service: {...} } ]
-### ============================================================
-GET {{baseUrl}}/requests
+###
+
+# @name getMyRequests
+GET {{baseUrl}}/requests/my
 Authorization: Bearer {{clientToken}}
 
 
-### ============================================================
-### 3.3 - CLIENT : Voir le détail d'une demande
-### Retour attendu : 200 + { id, status, description, service, ... }
-### ============================================================
-GET {{baseUrl}}/requests/{{requestId}}
-Authorization: Bearer {{clientToken}}
+### ------------------------------------------------------------
+### 3. ADMIN ACTIONS (APPROVAL)
+### ------------------------------------------------------------
 
-
-### ============================================================
-### 3.4 - CLIENT : Modifier sa demande (PENDING seulement)
-### Retour attendu : 200 + { ...request, address: "nouvelle adresse" }
-### ============================================================
-PATCH {{baseUrl}}/requests/{{requestId}}
-Authorization: Bearer {{clientToken}}
-Content-Type: application/json
-
-{
-  "address": "25 avenue de la Victoire, 75009 Paris",
-  "scheduledAt": "2026-04-22T14:00:00Z"
-}
-
-
-### ============================================================
-### 3.5 - ADMIN : Voir toutes les demandes
-### Retour attendu : 200 + [ { ...request, client: { fullName, email } } ]
-### ============================================================
+# @name adminListRequests
 GET {{baseUrl}}/admin/requests
 Authorization: Bearer {{adminToken}}
 
+###
 
-### ============================================================
-### 3.6 - ADMIN : Voir le détail d'une demande
-### ============================================================
-GET {{baseUrl}}/admin/requests/{{requestId}}
-Authorization: Bearer {{adminToken}}
-
-
-### ============================================================
-### 3.7 - ADMIN : Approuver la demande AVEC un devis (price obligatoire)
-### Retour attendu : 200 + { status: "APPROVED", price: 150 }
-### ============================================================
+# @name adminApproveRequest
 PATCH {{baseUrl}}/admin/requests/{{requestId}}/approve
 Authorization: Bearer {{adminToken}}
-Content-Type: application/json
-
-{
-  "price": 150.00
-}
 
 
-### ============================================================
-### 3.8 - CAS D'ERREUR : Approuver sans prix
-### Retour attendu : 400 Bad Request (validation @IsPositive())
-### ============================================================
-PATCH {{baseUrl}}/admin/requests/{{requestId}}/approve
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
+### ------------------------------------------------------------
+### 4. PROVIDER ACTIONS
+### ------------------------------------------------------------
 
-{}
-
-
-### ============================================================
-### 3.9 - CAS D'ERREUR : Approuver une demande déjà APPROVED
-### Retour attendu : 400 Bad Request "Seules les demandes en attente..."
-### ============================================================
-PATCH {{baseUrl}}/admin/requests/{{requestId}}/approve
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
-
-{
-  "price": 200.00
-}
-
-
-### ============================================================
-### 3.10 - CLIENT : Mock Payment (Acompte 50% simulé)
-### REQUIS : La demande doit être IN_PROGRESS (PROVIDER a accepté)
-### Fait passer le statut de IN_PROGRESS → PAID
-### Retour attendu : 200 + { message, price: 150, deposit: 75 }
-### ============================================================
-PATCH {{baseUrl}}/requests/{{requestId}}/mock-payment
-Authorization: Bearer {{clientToken}}
-
-
-### ============================================================
-### 3.11 - CAS D'ERREUR : Payer sans PROVIDER assigné (statut APPROVED)
-### Retour attendu : 400 Bad Request "la mission est en cours..."
-### ============================================================
-PATCH {{baseUrl}}/requests/{{requestId}}/mock-payment
-Authorization: Bearer {{clientToken}}
-
-
-### ============================================================
-### 3.11 - ADMIN : Rejeter une demande PENDING
-### Retour attendu : 200 + { status: "REJECTED" }
-### ============================================================
-PATCH {{baseUrl}}/admin/requests/{{requestId}}/reject
-Authorization: Bearer {{adminToken}}
-
-
-### ============================================================
-### 3.12 - CLIENT : Annuler sa propre demande (PENDING seulement)
-### Retour attendu : 200 OK
-### ============================================================
-DELETE {{baseUrl}}/requests/{{requestId}}
-Authorization: Bearer {{clientToken}}
-
-
-### ============================================================
-### 3.13 - CAS D'ERREUR : CLIENT modifie une demande non PENDING
-### Retour attendu : 400 Bad Request
-### ============================================================
-PATCH {{baseUrl}}/requests/{{requestId}}
-Authorization: Bearer {{clientToken}}
-Content-Type: application/json
-
-{
-  "address": "Tentative de modification interdite"
-}
-
-
-### ============================================================
-### 3.14 - CAS D'ERREUR : PROVIDER essaie de créer une demande
-### Retour attendu : 403 Forbidden
-### ============================================================
-POST {{baseUrl}}/requests
+# @name providerAvailableRequests
+GET {{baseUrl}}/providers/available-requests
 Authorization: Bearer {{providerToken}}
-Content-Type: application/json
 
-{
-  "serviceId": "{{serviceId}}",
-  "description": "Accès interdit pour un PROVIDER",
-  "address": "Quelque part",
-  "scheduledAt": "2026-05-01T10:00:00Z"
-}
+###
+
+# @name providerAcceptRequest
+PATCH {{baseUrl}}/providers/requests/{{requestId}}/accept
+Authorization: Bearer {{providerToken}}
+
+
+### ------------------------------------------------------------
+### 5. COMPLETION & PAYMENTS
+### ------------------------------------------------------------
+
+# @name mockDeposit
+PATCH {{baseUrl}}/requests/{{requestId}}/mock-deposit
+Authorization: Bearer {{clientToken}}
+
+###
+
+# @name providerCompleteRequest
+PATCH {{baseUrl}}/providers/requests/{{requestId}}/complete
+Authorization: Bearer {{providerToken}}

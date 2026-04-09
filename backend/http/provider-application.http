@@ -6,18 +6,43 @@
 ### ============================================================
 
 @baseUrl = http://localhost:4000/api/v1
-@clientToken = REPLACE_WITH_CLIENT_ACCESS_TOKEN
-@adminToken = REPLACE_WITH_ADMIN_ACCESS_TOKEN
 
-# ─── IDs (remplir au fur et à mesure des retours) ────────────
-@applicationId = REPLACE_WITH_APPLICATION_ID
+### ------------------------------------------------------------
+### AUTH PRE-REQUIS (Capture Auto)
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "obedburindi@gmail.com",
+  "password": "Password123"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+
+# ─── IDs à capturer ────────────────────
+@applicationId = {{applyProvider.response.body.id}}
 
 
 ### ============================================================
 ### 1.1 - Soumettre une candidature prestataire (CLIENT)
-### Retour attendu : 201 Created + { id, status: "PENDING" }
-### Copier l'ID retourné dans @applicationId
-### ============================================================
+# @name applyProvider
 POST {{baseUrl}}/providers/apply
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json

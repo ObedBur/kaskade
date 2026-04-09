@@ -7,13 +7,51 @@
 ### ============================================================
 
 @baseUrl = http://localhost:4000/api/v1
-@providerToken = REPLACE_WITH_PROVIDER_ACCESS_TOKEN
-@adminToken = REPLACE_WITH_ADMIN_ACCESS_TOKEN
-@clientToken = REPLACE_WITH_CLIENT_ACCESS_TOKEN
 
-# ─── IDs ─────────────────────────────────────────────────────
+### ------------------------------------------------------------
+### AUTH PRE-REQUIS (Capture Auto)
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "obedburindi@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginProvider
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "provider@gmail.com",
+  "password": "password123"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+@providerToken = {{loginProvider.response.body.tokens.accessToken}}
+
+# ─── IDs à capturer ────────────────────
 @requestId = REPLACE_WITH_APPROVED_REQUEST_ID
-@providerId = REPLACE_WITH_PROVIDER_USER_ID
+@providerId = {{loginProvider.response.body.user.id}}
 
 
 ### ============================================================
