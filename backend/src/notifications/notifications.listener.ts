@@ -45,22 +45,13 @@ export class NotificationsListener {
     serviceId?: string;
     providerAppId?: string;
   }>) {
-    await this.notificationsService.createManyNotifications(data);
+    const notifications = await this.notificationsService.createManyNotifications(data);
 
-    // Push temps réel vers chaque destinataire
-    for (const item of data) {
-      this.notificationsGateway.sendToUser(item.userId, {
-        title: item.title,
-        message: item.message,
-        type: item.type,
-        requestId: item.requestId || null,
-        serviceId: item.serviceId || null,
-        providerAppId: item.providerAppId || null,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      });
+    // Push temps réel vers chaque destinataire (avec l'objet DB complet, incluant l'ID)
+    for (const notification of notifications) {
+      this.notificationsGateway.sendToUser(notification.userId, notification);
     }
-    return data.length;
+    return notifications.length;
   }
 
   // ─── AUTHENTIFICATION ───────────────────────────────────────────────────
@@ -264,6 +255,7 @@ export class NotificationsListener {
         title: 'Demande annulée',
         message: `Le client (ID: ${payload.clientId}) a annulé sa demande (ID: ${payload.requestId}).`,
         type: NotificationType.REQUEST_CANCELLED,
+        requestId: payload.requestId,
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {

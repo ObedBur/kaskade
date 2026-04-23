@@ -112,6 +112,10 @@ export class ServicesService {
     // Récupérer le service actuel
     const currentService = await this.prisma.service.findUnique({ where: { id } });
 
+    if (!currentService) {
+      throw new NotFoundException(`Service introuvable.`);
+    }
+
     // Vérifier unicité nom+catégorie si l'un ou l'autre change
     if (updateServiceDto.name || updateServiceDto.category) {
       const existing = await this.prisma.service.findFirst({

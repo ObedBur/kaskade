@@ -22,6 +22,7 @@ model User {
   metier        String?   
   experience    String?   @db.Text 
   bio           String?   @db.Text 
+  avatarUrl     String?   
   
   isVerified    Boolean   @default(false) 
   isActive      Boolean   @default(true)

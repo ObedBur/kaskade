@@ -71,6 +71,15 @@ export default function Navbar() {
                   Mode Prestataire
                 </button>
               )}
+
+              {user.role === 'CLIENT' && (
+                <Link
+                  href="/devenir-prestataire"
+                  className="bg-white/5 border border-ocre/20 hover:bg-ocre/10 text-ocre px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Devenir Prestataire
+                </Link>
+              )}
               
               <Link href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} className="flex items-center gap-3 cursor-pointer group">
                 <div className="flex flex-col items-end hidden md:flex">

@@ -11,6 +11,8 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  quartier?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {

@@ -41,14 +41,14 @@ export class AdminDashboardService {
     // Additional "Important" Data
     const topQuartier = await this.prisma.user.groupBy({
       by: ['quartier'],
-      where: { quartier: { not: null } },
+      where: { quartier: { not: '' } },
       _count: { _all: true },
       orderBy: { _count: { quartier: 'desc' } },
       take: 1,
     });
 
     const usersWithRequests = await this.prisma.user.count({
-      where: { requests: { some: {} } },
+      where: { clientRequests: { some: {} } },
     });
 
     return {

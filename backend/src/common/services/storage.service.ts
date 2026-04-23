@@ -45,7 +45,7 @@ export class StorageService {
     this.logger.warn(
       `getSignedUrl not implemented yet for key: ${imageKey}`,
     );
-    return this.getPublicUrl(imageKey);
+    return this.getPublicUrl(imageKey)!;
   }
 
   /**
@@ -63,7 +63,7 @@ export class StorageService {
       imageKey.toLowerCase().endsWith(ext),
     );
 
-    return imageKey && imageKey.length > 0 && hasValidExtension;
+    return Boolean(imageKey && imageKey.length > 0 && hasValidExtension);
   }
 
   /**

@@ -11,7 +11,6 @@ const adapter = new PrismaPg({ connectionString });
 // Passez l'adaptateur au constructeur (obligatoire en v7)
 const prisma = new PrismaClient({ adapter });
 
-const CATEGORIES = ["ÉLECTRICITÉ", "MÉNAGE", "ARCHITECTURE", "TECH", "BIEN-ÊTRE", "PLOMBERIE"];
 
 const CATEGORY_IMAGES: Record<string, string[]> = {
   "ÉLECTRICITÉ": ["1621905230536-3e974249a002", "1581092921461-7d13c1f0163a"],
@@ -79,23 +78,6 @@ async function main() {
   console.log(`✅ Client: ${client.email}`);
 
   console.log('✅ Seed des utilisateurs terminé avec succès!');
-
-  console.log(' Début du seed des services...');
-  
-  // Seed basic services for each category
-  for (const category of CATEGORIES) {
-    await prisma.service.create({
-      data: {
-        category,
-        name: `Service standard - ${category}`, // placeholder name
-        description: `Description pour les services de type ${category}`,
-        price: 50.0,
-        isActive: true,
-      }
-    });
-  }
-
-  console.log('✅ Seed des services terminé avec succès!');
 }
 
 main()

@@ -41,13 +41,25 @@ export class ProvidersService {
       throw new BadRequestException('Vous avez déjà une candidature en attente.');
     }
 
-    // 4. Créer la demande
-    const application = await this.prisma.providerApplication.create({
-      data: {
-        userId,
-        motivation: applyProviderDto.motivation,
-      },
-    });
+    // 4. Créer la demande et mettre à jour le profil utilisateur (Transaction)
+    const [application] = await this.prisma.$transaction([
+      this.prisma.providerApplication.create({
+        data: {
+          userId,
+          motivation: applyProviderDto.motivation,
+        },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          metier: applyProviderDto.metier,
+          experience: applyProviderDto.experience,
+          bio: applyProviderDto.bio,
+          avatarUrl: applyProviderDto.avatarUrl,
+          ...(applyProviderDto.quartier && { quartier: applyProviderDto.quartier }),
+        },
+      }),
+    ]);
 
     this.logger.log(`Nouvelle candidature prestataire: ${user.email} (ID: ${userId})`);
     this.eventEmitter.emit('provider.applied', { userId, applicationId: application.id });

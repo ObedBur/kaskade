@@ -51,7 +51,7 @@ describe('ServicesService', () => {
   describe('create', () => {
     it('throws ConflictException if service exists', async () => {
       prisma.service.findFirst.mockResolvedValue({ id: '1' });
-      await expect(service.create({ name: 'test', category: 'cat' })).rejects.toThrow(ConflictException);
+      await expect(service.create({ name: 'test', category: 'cat', price: 100 })).rejects.toThrow(ConflictException);
       expect(prisma.service.findFirst).toHaveBeenCalledWith({
         where: {
           name: { equals: 'test', mode: 'insensitive' },
@@ -63,7 +63,7 @@ describe('ServicesService', () => {
     it('throws BadRequestException if imageKey is invalid', async () => {
       prisma.service.findFirst.mockResolvedValue(null);
       storageService.isValidImageKey.mockReturnValue(false);
-      await expect(service.create({ name: 'test2', category: 'cat', imageKey: 'invalid.txt' })).rejects.toThrow(BadRequestException);
+      await expect(service.create({ name: 'test2', category: 'cat', price: 100, imageKey: 'invalid.txt' })).rejects.toThrow(BadRequestException);
     });
 
     it('creates service and emits event if not exists', async () => {

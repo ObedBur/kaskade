@@ -48,7 +48,7 @@ describe('ServicesControllers', () => {
 
   describe('AdminServicesController (Admin)', () => {
     it('create should call service', async () => {
-      const dto: CreateServiceDto = { name: 'n', category: 'c' };
+      const dto: CreateServiceDto = { name: 'n', category: 'c', price: 100 };
       mockServicesService.create.mockResolvedValue({ id: '1' });
       await expect(adminController.create(dto)).resolves.toEqual({ id: '1' });
       expect(mockServicesService.create).toHaveBeenCalledWith(dto);

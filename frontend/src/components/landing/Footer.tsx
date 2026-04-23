@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="w-full bg-chocolat text-off-white rounded-t-3xl md:rounded-t-[4rem] mt-24 pt-24 pb-12 overflow-hidden relative shadow-2xl">
@@ -20,7 +22,7 @@ export default function Footer() {
           <div>
             <h5 className="font-serif font-black mb-10 text-[10px] uppercase tracking-[0.4em] text-ocre opacity-80">Réseau.</h5>
             <ul className="space-y-5 text-off-white/50 font-sans uppercase text-[10px] tracking-widest font-bold">
-              <li><a className="hover:text-ocre transition-all" href="#">Devenir Expert</a></li>
+              <li><Link className="hover:text-ocre transition-all" href="/devenir-prestataire">Devenir Expert</Link></li>
               <li><a className="hover:text-ocre transition-all" href="#">Nos Services</a></li>
               <li><a className="hover:text-ocre transition-all" href="#">Marketplace</a></li>
             </ul>

@@ -2,15 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { NotificationType } from './notification-type.enum';
 
 const mockPrismaService = {
   notification: {
     create: jest.fn(),
-    createMany: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
+    count: jest.fn(),
+    delete: jest.fn(),
   },
 };
 
@@ -37,32 +39,48 @@ describe('NotificationsService', () => {
 
   describe('createNotification', () => {
     it('should create a notification', async () => {
-      const data = { userId: 'u1', title: 't', message: 'm', type: 'type' };
-      prisma.notification.create.mockResolvedValue({ id: '1', ...data });
+      const data = { userId: 'u1', title: 't', message: 'm', type: NotificationType.AUTH_WELCOME };
+      const expected = { id: '1', ...data };
+      prisma.notification.create.mockResolvedValue(expected);
       const res = await service.createNotification(data);
-      expect(res).toEqual({ id: '1', ...data });
-      expect(prisma.notification.create).toHaveBeenCalledWith({ data });
+      expect(res).toEqual(expected);
+      expect(prisma.notification.create).toHaveBeenCalledWith({
+        data: {
+          userId: data.userId,
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          requestId: undefined,
+          serviceId: undefined,
+          providerAppId: undefined,
+        },
+      });
     });
   });
 
   describe('createManyNotifications', () => {
-    it('should create many notifications', async () => {
-      const data = [{ userId: 'u1', title: 't', message: 'm', type: 'type' }];
-      prisma.notification.createMany.mockResolvedValue({ count: 1 });
+    it('should create many notifications individually and return them', async () => {
+      const data = [{ userId: 'u1', title: 't', message: 'm', type: NotificationType.AUTH_WELCOME }];
+      const created = { id: 'n1', ...data[0] };
+      prisma.notification.create.mockResolvedValue(created);
       const res = await service.createManyNotifications(data);
-      expect(res).toEqual({ count: 1 });
-      expect(prisma.notification.createMany).toHaveBeenCalledWith({ data });
+      expect(res).toEqual([created]);
+      expect(prisma.notification.create).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('findAllForUser', () => {
-    it('should return all notifications for a user', async () => {
+    it('should return paginated notifications for a user', async () => {
       prisma.notification.findMany.mockResolvedValue([]);
+      prisma.notification.count.mockResolvedValue(0);
       const res = await service.findAllForUser('u1');
-      expect(res).toEqual([]);
+      expect(res).toEqual({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
       expect(prisma.notification.findMany).toHaveBeenCalledWith({
         where: { userId: 'u1' },
+        include: { request: true, service: true, providerApp: true },
         orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 20,
       });
     });
   });

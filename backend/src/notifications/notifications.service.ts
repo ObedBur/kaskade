@@ -35,22 +35,25 @@ export class NotificationsService {
     return notification;
   }
 
-  // Création massive avec support des relations
+  // Création massive avec support des relations — retourne les objets créés (avec IDs)
   async createManyNotifications(data: CreateNotificationPayload[]) {
-    const count = data.length;
-    const result = await this.prisma.notification.createMany({
-      data: data.map(d => ({
-        userId: d.userId,
-        title: d.title,
-        message: d.message,
-        type: d.type,
-        requestId: d.requestId,
-        serviceId: d.serviceId,
-        providerAppId: d.providerAppId,
-      })),
-    });
-    this.logger.log(`${count} notifications créées en masse.`);
-    return result;
+    const notifications = await Promise.all(
+      data.map(d =>
+        this.prisma.notification.create({
+          data: {
+            userId: d.userId,
+            title: d.title,
+            message: d.message,
+            type: d.type,
+            requestId: d.requestId,
+            serviceId: d.serviceId,
+            providerAppId: d.providerAppId,
+          },
+        }),
+      ),
+    );
+    this.logger.log(`${notifications.length} notifications créées en masse.`);
+    return notifications;
   }
 
   // Lister les notifications d'un utilisateur avec relations et pagination

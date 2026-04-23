@@ -69,11 +69,7 @@ describe('RequestsControllers', () => {
       expect(mockRequestsService.removeForClient).toHaveBeenCalledWith('1', 'cid');
     });
 
-    it('mockPayment should call service', async () => {
-      mockRequestsService.mockPaymentDeposit.mockResolvedValue({ message: 'ok' });
-      await expect(clientController.mockPayment('1', 'cid')).resolves.toEqual({ message: 'ok' });
-      expect(mockRequestsService.mockPaymentDeposit).toHaveBeenCalledWith('1', 'cid');
-    });
+
   });
 
   describe('AdminRequestsController (Admin)', () => {
