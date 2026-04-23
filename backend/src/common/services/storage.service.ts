@@ -13,13 +13,13 @@ export class StorageService {
   constructor(private configService: ConfigService) {
     this.cdnBaseUrl =
       this.configService.get('CDN_BASE_URL') ||
-      'https://cdn.kaskade.com/services';
+      (process.env.BACKEND_URL || 'http://localhost:4000') + '/uploads/services';
   }
 
   /**
    * Génère l'URL publique pour une image basée sur imageKey
-   * @param imageKey - Clé de l'image (ex: "service-123-abc.jpg")
-   * @returns URL complète (ex: "https://cdn.kaskade.com/services/service-123-abc.jpg")
+   * @param imageKey 
+   * @returns
    */
   getPublicUrl(imageKey: string | null): string | null {
     if (!imageKey) {
@@ -33,8 +33,8 @@ export class StorageService {
    * Placeholder pour les URLs signées (future implémentation)
    * Utile pour AWS S3 ou accès privés
    * @param imageKey
-   * @param expirySeconds - Durée de validité
-   * @returns Promise<string> URL signée
+   * @param expirySeconds 
+   * @returns 
    */
   async getSignedUrl(
     imageKey: string,
@@ -50,8 +50,8 @@ export class StorageService {
 
   /**
    * Valide le format de la clé image
-   * @param imageKey - Clé à valider
-   * @returns true si valide
+   * @param imageKey 
+   * @returns 
    */
   isValidImageKey(imageKey: string): boolean {
     // Exemples de validations:
@@ -68,8 +68,8 @@ export class StorageService {
 
   /**
    * Extrait l'extension d'un imageKey
-   * @param imageKey - "service-123-abc.jpg"
-   * @returns ".jpg"
+   * @param imageKey 
+   * @returns 
    */
   getFileExtension(imageKey: string): string {
     const parts = imageKey.split('.');

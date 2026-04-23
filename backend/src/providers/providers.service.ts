@@ -166,6 +166,10 @@ export class ProvidersService {
             role: true,
             isVerified: true,
             createdAt: true,
+            metier: true,
+            experience: true,
+            bio: true,
+            avatarUrl: true,
           },
         },
       },
@@ -369,6 +373,62 @@ export class ProvidersService {
     return this.prisma.user.update({
       where: { id: providerId },
       data: updateProfileDto,
+    });
+  }
+
+  async getDashboardStats(providerId: string) {
+    const [revenueData, pendingCount, completedCount, activeRequest] = await Promise.all([
+      // Total revenue (assuming price is fixed when approved/accepted)
+      this.prisma.request.aggregate({
+        where: {
+          providerId,
+          status: { in: [RequestStatus.COMPLETED, RequestStatus.AWAITING_FINAL] },
+        },
+        _sum: { price: true },
+      }),
+      // Pending missions count (assigned and in progress)
+      this.prisma.request.count({
+        where: {
+          providerId,
+          status: { in: [RequestStatus.ACCEPTED, RequestStatus.IN_PROGRESS] },
+        },
+      }),
+      // Completed missions count
+      this.prisma.request.count({
+        where: {
+          providerId,
+          status: RequestStatus.COMPLETED,
+        },
+      }),
+      // Active mission (Focus Principal)
+      this.prisma.request.findFirst({
+        where: {
+          providerId,
+          status: { in: [RequestStatus.ACCEPTED, RequestStatus.IN_PROGRESS] },
+        },
+        include: { service: true, client: { select: { fullName: true, quartier: true } } },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      totalRevenue: revenueData._sum.price || 0,
+      pendingMissions: pendingCount,
+      completedMissions: completedCount,
+      activeRequest: activeRequest,
+    };
+  }
+
+  async getMyMissions(providerId: string) {
+    return this.prisma.request.findMany({
+      where: { providerId },
+      include: {
+        service: true,
+        client: {
+          select: { id: true, fullName: true, phone: true, email: true, quartier: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

@@ -8,11 +8,11 @@ import ServiceCard from "./ServiceCard";
 
 export interface Service {
   id: string;
-  title: string;
+  name: string;
   category: string;
   description: string;
   price: number;
-  image: string | null;
+  imageUrl: string | null;
   provider?: {
     id: string;
     fullName: string;

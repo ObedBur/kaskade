@@ -30,6 +30,16 @@ export class ProviderController {
     return this.providersService.findAvailableRequests(providerId);
   }
 
+  @Get('dashboard-stats')
+  getDashboardStats(@CurrentUser('id') providerId: string) {
+    return this.providersService.getDashboardStats(providerId);
+  }
+
+  @Get('my-missions')
+  getMyMissions(@CurrentUser('id') providerId: string) {
+    return this.providersService.getMyMissions(providerId);
+  }
+
   @Patch('requests/:id/accept')
   acceptRequest(
     @Param('id') requestId: string,

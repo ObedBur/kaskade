@@ -31,7 +31,9 @@ export default function AdminNotificationsPage() {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data);
+      // Handle both paginated response { data: [] } and direct array
+      const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
+      setNotifications(data);
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {

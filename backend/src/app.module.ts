@@ -16,6 +16,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { RequestsModule } from './requests/requests.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
+import { AdminFinancialsModule } from './admin/financials/admin-financials.module';
+import { UploadsModule } from './uploads/uploads.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -42,12 +44,14 @@ import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
     NotificationsModule,
     PaymentsModule,
     AdminDashboardModule,
+    AdminFinancialsModule,
+    UploadsModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerBehindProxyGuard, // Utilise notre guard avec gestion de proxy
+      useClass: ThrottlerBehindProxyGuard,
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -30,7 +30,18 @@ export default function AdminRequestsPage() {
     const fetchRequests = async () => {
       try {
         const res = await api.get('/admin/requests');
-        setRequests(res.data.requests || []);
+        const data = Array.isArray(res.data) ? res.data : (res.data.requests || []);
+        
+        const mapped: RequestItem[] = data.map((r: any) => ({
+          id: r.id,
+          client: r.client?.fullName || 'Inconnu',
+          service: r.service?.name || 'Service supprimé',
+          amount: r.price ? `${r.price.toLocaleString()} FC` : 'Non fixé',
+          status: r.status,
+          date: new Date(r.createdAt).toLocaleDateString('fr-FR')
+        }));
+        
+        setRequests(mapped);
       } catch (err) {
         console.error(err);
         setError("Impossible de charger les demandes. L'API Backend est-elle prête ?");
@@ -49,17 +60,20 @@ export default function AdminRequestsPage() {
   
   const handleStatusChange = async (requestId: string, nextStatus: string) => {
     try {
-      await api.patch(`/requests/${requestId}/status`, { status: nextStatus });
+      if (nextStatus === 'APPROVED') {
+        await api.patch(`/admin/requests/${requestId}/approve`);
+        toast.success("Demande approuvée avec succès ! ✅");
+      } else {
+        await api.patch(`/admin/requests/${requestId}/reject`);
+        toast.success("Demande rejetée.");
+      }
       
       // Mettre à jour l'état local pour un retour immédiat
       setRequests(prev => prev.map(req => 
         req.id === requestId 
-          ? { ...req, status: nextStatus === 'APPROVED' ? 'VÉRIFIÉ' : 'REJETÉ' } 
+          ? { ...req, status: nextStatus === 'APPROVED' ? 'APPROVED' : 'REJECTED' } 
           : req
       ));
-      
-      const isApproved = nextStatus === 'APPROVED';
-      toast.success(isApproved ? "Demande approuvée avec succès ! ✅" : "Demande rejetée.");
     } catch (err) {
       console.error(err);
       toast.error("Une erreur est survenue lors du changement de statut.");

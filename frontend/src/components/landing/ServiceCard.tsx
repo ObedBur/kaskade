@@ -53,7 +53,7 @@ function RequestConfirmationModal({ service, onClose }: { service: Service; onCl
             </h3>
             <p className="text-chocolat/60 text-sm leading-relaxed mb-5">
               Votre demande pour{" "}
-              <span className="font-bold text-chocolat">{service.title}</span>{" "}
+              <span className="font-bold text-chocolat">{service.name}</span>{" "}
               a bien été reçue. Nos administrateurs l&apos;examinent déjà.
             </p>
 
@@ -116,7 +116,9 @@ export default function ServiceCardBento({ service }: { service: Service }) {
     try {
       await api.post('/requests', {
         serviceId: service.id,
-        message: `Demande pour le service: ${service.title}`
+        description: `Demande pour le service: ${service.name}`,
+        address: user?.quartier || "Adresse à préciser",
+        scheduledAt: new Date(Date.now() + 86400000).toISOString() // Demain par défaut
       });
 
       // Toast court sur la bannière
@@ -151,8 +153,8 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         {/* Zone Image arrondie */}
         <div className="relative h-48 w-full rounded-xl overflow-hidden mb-5">
           <Image
-            src={service.image || FALLBACK_IMAGE}
-            alt={service.title}
+            src={service.imageUrl || FALLBACK_IMAGE}
+            alt={service.name}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
@@ -183,7 +185,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
           {/* Titre & Note */}
           <div className="flex justify-between items-start gap-3 mb-3">
             <h3 className="text-lg font-extrabold text-chocolat leading-snug flex-1 line-clamp-2">
-              {service.title}
+              {service.name}
             </h3>
             <div className="flex items-center gap-1.5 bg-ocre/10 text-ocre px-2.5 py-1 rounded-full shrink-0">
               <Star className="w-3.5 h-3.5 text-ocre" />

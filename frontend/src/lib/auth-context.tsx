@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export type UserRole = 'CLIENT' | 'PROVIDER' | 'ADMIN';
 export type UserMode = 'CLIENT' | 'PROVIDER' | 'ADMIN';
@@ -11,8 +11,13 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  phone?: string;
   quartier?: string;
   avatarUrl?: string;
+  bio?: string;
+  metier?: string;
+  experience?: string;
+  specialties?: string[];
 }
 
 interface AuthContextType {
@@ -23,6 +28,7 @@ interface AuthContextType {
   login: (tokens: { accessToken: string; refreshToken: string }, user: AuthUser) => void;
   logout: () => void;
   switchMode: (newMode: 'CLIENT' | 'PROVIDER') => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -35,40 +41,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Hydrate from localStorage on mount
-  useEffect(() => {
+  const refreshUser = useCallback(async () => {
     try {
-      const storedToken = localStorage.getItem('kaskade_access_token');
-      const storedUser = localStorage.getItem('kaskade_user');
-      const storedMode = localStorage.getItem('kaskade_user_mode');
+      const token = localStorage.getItem('kaskade_access_token');
+      if (!token) return;
 
-      if (storedToken && storedUser) {
-        setAccessToken(storedToken);
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setUserMode((storedMode as UserMode) || parsedUser.role);
+      // 1. Récupérer les infos fraîches du profil
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const userData = await res.json();
+        const storedUser = JSON.parse(localStorage.getItem('kaskade_user') || '{}');
+        
+        // 2. Si le rôle a changé (ex: CLIENT -> PROVIDER), on rafraîchit le token
+        if (userData.role !== storedUser.role) {
+          const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/refresh`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${localStorage.getItem('kaskade_refresh_token')}` 
+            }
+          });
+
+          if (refreshRes.ok) {
+            const tokens = await refreshRes.json();
+            localStorage.setItem('kaskade_access_token', tokens.accessToken);
+            localStorage.setItem('kaskade_refresh_token', tokens.refreshToken);
+            setAccessToken(tokens.accessToken);
+          }
+        }
+
+        // 3. Mettre à jour l'état local
+        localStorage.setItem('kaskade_user', JSON.stringify(userData));
+        setUser(userData);
+        // On ne change pas le mode si l'utilisateur est déjà en train de l'utiliser, 
+        // sauf s'il n'avait pas de mode défini.
+        if (!localStorage.getItem('kaskade_user_mode')) {
+          localStorage.setItem('kaskade_user_mode', userData.role);
+          setUserMode(userData.role);
+        }
       }
-    } catch (e) {
-      // Corrupt data — clear it
-      localStorage.removeItem('kaskade_access_token');
-      localStorage.removeItem('kaskade_user');
-      localStorage.removeItem('kaskade_user_mode');
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.error("Erreur lors de la synchronisation du profil:", err);
     }
   }, []);
+
+  // Hydrate from localStorage on mount + Sync with server
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const storedToken = localStorage.getItem('kaskade_access_token');
+        const storedUser = localStorage.getItem('kaskade_user');
+        const storedMode = localStorage.getItem('kaskade_user_mode');
+
+        if (storedToken && storedUser) {
+          setAccessToken(storedToken);
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setUserMode((storedMode as UserMode) || parsedUser.role);
+          
+          // Lancer une synchro silencieuse en arrière-plan
+          refreshUser();
+        }
+      } catch (e) {
+        localStorage.removeItem('kaskade_access_token');
+        localStorage.removeItem('kaskade_user');
+        localStorage.removeItem('kaskade_user_mode');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initAuth();
+  }, [refreshUser]);
 
   const login = useCallback((tokens: { accessToken: string; refreshToken: string }, userData: AuthUser) => {
     localStorage.setItem('kaskade_access_token', tokens.accessToken);
     localStorage.setItem('kaskade_refresh_token', tokens.refreshToken);
     localStorage.setItem('kaskade_user', JSON.stringify(userData));
-    localStorage.setItem('kaskade_user_mode', userData.role); // Default mode = role
+    localStorage.setItem('kaskade_user_mode', userData.role);
     
     setAccessToken(tokens.accessToken);
     setUser(userData);
     setUserMode(userData.role);
     
-    // Redirection intelligente en fonction du rôle
     if (userData.role === 'ADMIN') {
       router.push('/admin/dashboard');
     } else if (userData.role === 'PROVIDER') {
@@ -92,8 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const switchMode = useCallback((newMode: 'CLIENT' | 'PROVIDER') => {
     if (!user) return;
     
-    // Seul un PROVIDER a le droit de switcher de mode. Et un ADMIN dans le futur si besoin.
-    if (user.role === 'PROVIDER') {
+    if (user.role === 'PROVIDER' || user.role === 'ADMIN') {
       setUserMode(newMode);
       localStorage.setItem('kaskade_user_mode', newMode);
       
@@ -114,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       logout,
       switchMode,
+      refreshUser,
       isAuthenticated: !!accessToken,
     }}>
       {children}

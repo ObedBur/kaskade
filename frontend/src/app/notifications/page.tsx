@@ -34,7 +34,8 @@ export default function ClientNotificationsPage() {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data);
+      const result = res.data;
+      setNotifications(Array.isArray(result) ? result : result.data ?? []);
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {

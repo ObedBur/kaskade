@@ -27,7 +27,10 @@ export class CreateServiceDto {
 
   @IsString()
   @IsOptional()
-  imageKey?: string; // Clé du CDN (ex: "service-123-abc.jpg")
+  imageKey?: string;
+
+  @IsOptional()
+  isActive?: boolean;
 }
 
 /**
@@ -41,14 +44,12 @@ export class ServiceResponseDto {
   description: string | null;
   price: number;
   isActive: boolean;
-  imageUrl: string | null; // ← Généré dynamiquement du imageKey
+  imageUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-/**
- * UpdateServiceDto - Permet de modifier imageKey
- */
+
 export class UpdateServiceDto {
   @IsString()
   @IsOptional()
@@ -70,7 +71,7 @@ export class UpdateServiceDto {
 
   @IsString()
   @IsOptional()
-  imageKey?: string; // Peut changer l'image
+  imageKey?: string;
 
   @IsOptional()
   isActive?: boolean;

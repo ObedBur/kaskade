@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useAuth } from "@/lib/auth-context";
+import api from "@/lib/api";
 
 export default function DashboardLayout({
   children,
@@ -27,14 +28,36 @@ export default function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Protection de la route : Seul un utilisateur (rôle = Provider) en MODE = Provider peut accéder à ce dashboard
-  const { user, switchMode } = useRequireAuth(undefined, ['PROVIDER'], '/mes-demandes');
-  const { logout } = useAuth();
+  const { user, userMode, isLoading: authLoading } = useRequireAuth(undefined, ['PROVIDER'], '/mes-demandes');
+  const { logout, switchMode } = useAuth();
+
+  const [availableCount, setAvailableCount] = React.useState(0);
+  const [unreadNotifs, setUnreadNotifs] = React.useState(0);
+
+  React.useEffect(() => {
+    if (user) {
+      const fetchCounts = async () => {
+        try {
+          const [reqsRes, notifsRes] = await Promise.all([
+            api.get("/provider/requests"),
+            api.get("/notifications")
+          ]);
+          setAvailableCount(reqsRes.data.length);
+          const notifs = notifsRes.data.data || notifsRes.data;
+          setUnreadNotifs(notifs.filter((n: any) => !n.isRead).length);
+        } catch (err) {
+          console.error("Error fetching sidebar counts:", err);
+        }
+      };
+      fetchCounts();
+    }
+  }, [user, pathname]); // Re-fetch on path change to sync counts
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Missions Disponibles", href: "/dashboard/missions", icon: Briefcase },
+    { name: "Missions Disponibles", href: "/dashboard/missions", icon: Briefcase, badge: availableCount },
     { name: "Mes Missions", href: "/dashboard/mes-missions", icon: ClipboardList },
-    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
+    { name: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: unreadNotifs },
     { name: "Profil", href: "/dashboard/profil", icon: User },
     { name: "Paramètres", href: "/dashboard/parametres", icon: Settings },
   ];
@@ -76,9 +99,9 @@ export default function DashboardLayout({
                 <span className={`text-[11px] font-bold uppercase tracking-widest ${isActive ? "text-white" : ""}`}>
                   {item.name}
                 </span>
-                {item.name === "Missions Disponibles" && (
+                {item.badge !== undefined && item.badge > 0 && (
                   <span className={`ml-auto text-[10px] px-2 py-0.5 font-bold ${isActive ? "bg-[#BC9C6C] text-[#321B13]" : "bg-[#BC9C6C]/20 text-[#321B13]"} rounded-full`}>
-                    3
+                    {item.badge}
                   </span>
                 )}
               </Link>
