@@ -10,7 +10,7 @@ export default function Features() {
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-ocre/10 to-transparent rounded-full blur-3xl -z-10 translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-t from-chocolat/5 to-transparent rounded-full blur-3xl -z-10 -translate-x-1/4 translate-y-1/4 pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="arcture-container">
         
         {/* En-tête : Typographie forte à fort contraste */}
         <div className="mb-20 flex flex-col items-start max-w-3xl relative z-10">

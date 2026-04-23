@@ -28,7 +28,7 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 w-full z-50 bg-chocolat border-b border-white/5 font-sans">
       {/* --- TOP BAR --- */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+      <div className="arcture-container h-16 flex items-center justify-between">
         
         {/* Logo (Style Kaskade avec couleurs brand) */}
         <Link href="/" className="flex items-center gap-2 group">

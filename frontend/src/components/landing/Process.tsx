@@ -63,7 +63,7 @@ export default function Process() {
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#2C1E16]/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-[90rem] mx-auto px-6 lg:px-12 relative z-10">
+      <div className="arcture-container relative z-10">
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
 

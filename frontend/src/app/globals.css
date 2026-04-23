@@ -11,8 +11,9 @@
   --ocre: #BC9C6C;
   
   /* Arcture Typography Scale */
-  --font-h1-mobile: 2rem; /* 32px */
-  --font-h1-desktop: 4rem; /* 64px */
+  --font-h1-mobile: 2.25rem; /* 36px */
+  --font-h1-tablet: 3rem; /* 48px */
+  --font-h1-desktop: 4.5rem; /* 72px */
 }
 
 * {
@@ -53,14 +54,23 @@ body {
     font-weight: 400;
   }
 
+  @media (min-width: 481px) {
+    h1 {
+      font-size: var(--font-h1-tablet);
+    }
+    h2 {
+      font-size: 2.5rem;
+    }
+  }
+
   @media (min-width: 1025px) {
     h1 {
         font-size: var(--font-h1-desktop);
-        letter-spacing: -0.03em;
+        letter-spacing: -0.04em;
     }
     
     h2 {
-        font-size: 3rem; /* 48px */
+        font-size: 3.5rem; /* 56px */
         letter-spacing: -0.03em;
     }
   }
@@ -72,14 +82,31 @@ body {
   max-width: 1440px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem; /* 16px mobile */
-  padding-right: 1rem;
+  padding-left: 1.25rem; /* 20px mobile */
+  padding-right: 1.25rem;
 }
 
+/* Tablets / Mobile (Landscape) : 481px à 768px */
 @media (min-width: 481px) {
   .arcture-container {
-    padding-left: 2rem; /* 32px tablet+ */
-    padding-right: 2rem;
+    padding-left: 2.5rem; /* 40px tablet */
+    padding-right: 2.5rem;
+  }
+}
+
+/* Laptops / Petits écrans : 769px à 1024px */
+@media (min-width: 769px) {
+  .arcture-container {
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
+/* Desktops (HD) : 1025px à 1200px (and above) */
+@media (min-width: 1025px) {
+  .arcture-container {
+    padding-left: 6rem;
+    padding-right: 6rem;
   }
 }
 
