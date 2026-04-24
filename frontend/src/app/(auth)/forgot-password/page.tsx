@@ -29,8 +29,8 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center p-6 selection:bg-[#BC9C6C] selection:text-white">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center px-4 py-6 min-[480px]:px-8 selection:bg-[#BC9C6C] selection:text-white">
+      <div className="w-full mx-auto max-w-md lg:max-w-[450px] min-[1440px]:max-w-[500px]">
         
         {/* LOGO MINIMALISTE */}
         <div className="mb-16 text-center">
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-transparent border-b border-[#321B13]/20 py-3 text-sm font-bold text-[#321B13] placeholder-[#321B13]/30 focus:outline-none focus:border-[#BC9C6C] transition-colors"
+                    className="w-full min-h-[44px] bg-transparent border-b border-[#321B13]/20 py-3 text-sm font-bold text-[#321B13] placeholder-[#321B13]/30 focus:outline-none focus:border-[#BC9C6C] transition-colors"
                     placeholder="votre@email.com"
                   />
                 </div>

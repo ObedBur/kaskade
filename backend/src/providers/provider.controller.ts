@@ -25,11 +25,6 @@ export class ProviderController {
 
   // ─── DEMANDES / MISSIONS ──────────────────────────────────────────────────
 
-  @Get('requests')
-  findAvailableRequests(@CurrentUser('id') providerId: string) {
-    return this.providersService.findAvailableRequests(providerId);
-  }
-
   @Get('dashboard-stats')
   getDashboardStats(@CurrentUser('id') providerId: string) {
     return this.providersService.getDashboardStats(providerId);
@@ -38,6 +33,11 @@ export class ProviderController {
   @Get('my-missions')
   getMyMissions(@CurrentUser('id') providerId: string) {
     return this.providersService.getMyMissions(providerId);
+  }
+
+  @Get('requests')
+  findAvailableRequests(@CurrentUser('id') providerId: string) {
+    return this.providersService.findAvailableRequests(providerId);
   }
 
   @Patch('requests/:id/accept')

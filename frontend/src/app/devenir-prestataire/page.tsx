@@ -23,7 +23,7 @@ export default function DevenirPrestatairePage() {
 
       <Navbar />
 
-      <section className="relative z-10 pt-32 pb-24 md:pt-48 md:pb-48 px-6 md:px-12">
+      <section className="relative z-10 pt-32 pb-24 md:pt-48 md:pb-48 px-4 min-[480px]:px-8 min-[1440px]:p-12">
         <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
           
           {/* Colonne de gauche : Titre & Info */}

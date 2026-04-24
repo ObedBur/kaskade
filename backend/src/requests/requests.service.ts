@@ -22,22 +22,51 @@ export class RequestsService {
 
   // ─── CLIENT ───────────────────────────────────────────────────────────────
 
-  async create(clientId: string, createRequestDto: CreateRequestDto) {
-    // Vérifier que le service existe et est actif
+  async create(clientId: string, createRequestDto: any) {
+    const { serviceId, phoneNumber, operator, ...requestData } = createRequestDto;
+
+    // 1. Vérifier que le service existe (Source de vérité)
     const service = await this.prisma.service.findUnique({
-      where: { id: createRequestDto.serviceId },
+      where: { id: serviceId },
     });
 
     if (!service || !service.isActive) {
-      throw new BadRequestException('Le service spécifié est introuvable ou inactif.');
+      this.logger.error(`TENTATIVE COMMANDE : Service ${serviceId} introuvable.`);
+      throw new BadRequestException('Le service spécifié est introuvable.');
     }
 
+    // 2. Calcul STRICT et Côté Serveur de l'acompte (50%)
+    // Le frontend n'a plus le droit de dire "j'ai payé X", c'est le serveur qui dicte.
+    const requiredDeposit = service.price * 0.5;
+
+    // 3. MOCK SÉCURISÉ : Simulation de l'appel API Mobile Money (Airtel, Orange)
+    // Dans la vraie vie, ici on ferait un appel axios vers FlexPay/Maxicash
+    // et on s'arrêterait là en attendant le Webhook.
+    this.logger.log(`[PAIEMENT INITIÉ] Demande de ${requiredDeposit}$ via ${operator || 'MOBILE MONEY'} pour le numéro ${phoneNumber}`);
+    
+    // -> Attente simulée du Webhook de confirmation (2 secondes)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // -> Arrivée du Webhook (Simulation) : L'opérateur confirme que le solde était suffisant
+    this.logger.log(`[WEBHOOK REÇU] Paiement de ${requiredDeposit}$ confirmé par l'opérateur.`);
+
+    // 4. Création de la demande uniquement APRÈS confirmation du paiement serveur
     const request = await this.prisma.request.create({
-      data: { ...createRequestDto, clientId },
+      data: { 
+        ...requestData,
+        serviceId,
+        clientId, 
+        price: service.price, // Prix total figé
+        status: RequestStatus.PENDING 
+      },
       include: { service: true, client: true },
     });
 
-    this.logger.log(`Nouvelle demande de service créée par ${request.client.email}: ${request.service.name} (ID: ${request.id})`);
+    this.logger.log(
+      `COMMANDE VALIDÉE : Demande ID ${request.id} créée suite au paiement de ${requiredDeposit}$.`
+    );
+    
+    // 5. Déclenchement des notifications temps réel
     this.eventEmitter.emit('request.created', { requestId: request.id, clientId });
 
     return request;

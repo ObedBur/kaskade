@@ -152,7 +152,7 @@ export default function DevenirPrestataireForm() {
   }
 
   return (
-    <div className="max-w-2xl w-full mx-auto">
+    <div className="w-full mx-auto max-w-[450px] md:max-w-2xl min-[1440px]:max-w-[600px]">
       <header className="mb-12">
         <motion.span
           initial={{ opacity: 0, y: 10 }}
@@ -295,7 +295,7 @@ export default function DevenirPrestataireForm() {
               <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ocre/40" />
               <input
                 {...register('metier')}
-                className={`w-full bg-white border border-ocre/10 rounded-sm py-4 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none ${errors.metier ? 'border-red-500 bg-red-50/5' : ''}`}
+                className={`w-full min-h-[44px] bg-white border border-ocre/10 rounded-sm py-3 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none ${errors.metier ? 'border-red-500 bg-red-50/5' : ''}`}
                 placeholder="Ex: Architecte d'intérieur"
                 disabled={isLoading}
               />
@@ -312,7 +312,7 @@ export default function DevenirPrestataireForm() {
               <History className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ocre/40" />
               <input
                 {...register('experience')}
-                className={`w-full bg-white border border-ocre/10 rounded-sm py-4 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none ${errors.experience ? 'border-red-500 bg-red-50/5' : ''}`}
+                className={`w-full min-h-[44px] bg-white border border-ocre/10 rounded-sm py-3 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none ${errors.experience ? 'border-red-500 bg-red-50/5' : ''}`}
                 placeholder="Ex: 5 ans"
                 disabled={isLoading}
               />
@@ -331,7 +331,7 @@ export default function DevenirPrestataireForm() {
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ocre/40" />
               <input
                 {...register('quartier')}
-                className={`w-full bg-white border border-ocre/10 rounded-sm py-4 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none ${errors.quartier ? 'border-red-500 bg-red-50/5' : ''}`}
+                className={`w-full min-h-[44px] bg-white border border-ocre/10 rounded-sm py-3 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none ${errors.quartier ? 'border-red-500 bg-red-50/5' : ''}`}
                 placeholder="Ex: Himbi"
                 disabled={isLoading}
               />
@@ -348,7 +348,7 @@ export default function DevenirPrestataireForm() {
               <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ocre/40" />
               <input
                 {...register('bio')}
-                className="w-full bg-white border border-ocre/10 rounded-sm py-4 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none"
+                className="w-full min-h-[44px] bg-white border border-ocre/10 rounded-sm py-3 pl-12 pr-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none"
                 placeholder="Un mot sur vous..."
                 disabled={isLoading}
               />
@@ -367,7 +367,7 @@ export default function DevenirPrestataireForm() {
           <textarea
             {...register('motivation')}
             rows={4}
-            className={`w-full bg-white border border-ocre/10 rounded-sm p-5 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none resize-none ${errors.motivation ? 'border-red-500 bg-red-50/5' : ''}`}
+            className={`w-full min-h-[44px] bg-white border border-ocre/10 rounded-sm p-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none resize-none ${errors.motivation ? 'border-red-500 bg-red-50/5' : ''}`}
             placeholder="Décrivez ce qui fait de vous un expert d'exception..."
             disabled={isLoading}
           />

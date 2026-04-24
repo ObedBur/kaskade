@@ -68,8 +68,8 @@ export default function RegisterForm() {
   if (isAuthLoading) return null;
 
   return (
-    <section className="flex flex-col justify-center px-4 md:px-8 py-8 md:py-12 bg-off-white">
-      <div className="max-w-xl w-full mx-auto">
+    <section className="flex flex-col justify-center px-4 min-[480px]:px-8 py-8 md:py-12 bg-off-white min-[1440px]:p-12">
+      <div className="w-full mx-auto max-w-[450px] min-[1440px]:max-w-[500px]">
         <header className="mb-8 md:mb-10 text-center md:text-left">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
@@ -110,7 +110,7 @@ export default function RegisterForm() {
               </label>
               <input
                 {...register('fullName')}
-                className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.fullName ? 'border-red-500 bg-red-50/10' : ''
+                className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.fullName ? 'border-red-500 bg-red-50/10' : ''
                   }`}
                 placeholder="Service Yetu"
                 type="text"
@@ -131,7 +131,7 @@ export default function RegisterForm() {
               </label>
               <input
                 {...register('phone')}
-                className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.phone ? 'border-red-500 bg-red-50/10' : ''
+                className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.phone ? 'border-red-500 bg-red-50/10' : ''
                   }`}
                 placeholder="+243 974926485"
                 type="tel"
@@ -153,7 +153,7 @@ export default function RegisterForm() {
             </label>
             <input
               {...register('quartier')}
-              className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.quartier ? 'border-red-500 bg-red-50/10' : ''
+              className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.quartier ? 'border-red-500 bg-red-50/10' : ''
                 }`}
               placeholder="Ex:Himbi , Virunga ..."
               type="text"
@@ -174,7 +174,7 @@ export default function RegisterForm() {
             </label>
             <input
               {...register('email')}
-              className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.email ? 'border-red-500 bg-red-50/10' : ''
+              className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.email ? 'border-red-500 bg-red-50/10' : ''
                 }`}
               placeholder="votre@email.com"
               type="email"
@@ -197,7 +197,7 @@ export default function RegisterForm() {
               <div className="relative">
                 <input
                   {...register('password')}
-                  className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 pr-12 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.password ? 'border-red-500 bg-red-50/10' : ''
+                  className={`w-full min-h-[44px] py-3 px-4 pr-12 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.password ? 'border-red-500 bg-red-50/10' : ''
                     }`}
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
@@ -227,7 +227,7 @@ export default function RegisterForm() {
               <div className="relative">
                 <input
                   {...register('confirmPassword')}
-                  className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 pr-12 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.confirmPassword ? 'border-red-500 bg-red-50/10' : ''
+                  className={`w-full min-h-[44px] py-3 px-4 pr-12 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.confirmPassword ? 'border-red-500 bg-red-50/10' : ''
                     }`}
                   placeholder="••••••••"
                   type={showConfirmPassword ? "text" : "password"}

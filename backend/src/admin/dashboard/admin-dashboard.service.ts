@@ -27,16 +27,28 @@ export class AdminDashboardService {
       this.prisma.service.count({ where: { isActive: true } }),
     ]);
 
-    // Revenue estimation (only completed or in progress with fixed prices)
-    const paidRequests = await this.prisma.request.findMany({
+    // Calcul du Chiffre d'Affaires (Adapté au nouveau flux de paiement immédiat)
+    // 1. Les missions non-terminées ont généré 50% (l'acompte a été payé à la création)
+    const activeRequests = await this.prisma.request.findMany({
       where: {
-        status: { in: [RequestStatus.IN_PROGRESS, RequestStatus.COMPLETED, RequestStatus.AWAITING_FINAL] },
+        status: { in: [RequestStatus.PENDING, RequestStatus.APPROVED, RequestStatus.ACCEPTED, RequestStatus.IN_PROGRESS, RequestStatus.AWAITING_FINAL] },
         price: { not: null },
       },
       select: { price: true },
     });
 
-    const totalRevenue = paidRequests.reduce((sum, req) => sum + (req.price || 0), 0);
+    // 2. Les missions terminées ont généré 100% (Acompte + Solde Final)
+    const completedPaidRequests = await this.prisma.request.findMany({
+      where: {
+        status: RequestStatus.COMPLETED,
+        price: { not: null },
+      },
+      select: { price: true },
+    });
+
+    const activeRevenue = activeRequests.reduce((sum, req) => sum + ((req.price || 0) * 0.5), 0);
+    const completedRevenue = completedPaidRequests.reduce((sum, req) => sum + (req.price || 0), 0);
+    const totalRevenue = activeRevenue + completedRevenue;
 
     // Additional "Important" Data
     const topQuartier = await this.prisma.user.groupBy({

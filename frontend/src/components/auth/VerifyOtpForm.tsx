@@ -73,7 +73,7 @@ export default function VerifyOtpForm() {
   if (isAuthLoading) return null;
 
   return (
-    <div className="max-w-md w-full">
+    <div className="w-full mx-auto max-w-[450px] min-[1440px]:max-w-[500px]">
       <motion.h2 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -90,7 +90,7 @@ export default function VerifyOtpForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8 md:space-y-12">
-        <div className="flex gap-2 md:gap-4 justify-between">
+        <div className="flex gap-1 min-[480px]:gap-2 sm:gap-4 justify-between">
           {otp.map((data, index) => (
             <input
               key={index}
@@ -103,7 +103,7 @@ export default function VerifyOtpForm() {
               value={data}
               onChange={(e) => handleChange(e.target, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
-              className="w-full h-12 md:h-20 text-center text-xl md:text-3xl font-light bg-white rounded-lg md:rounded-xl border border-chocolat/10 text-chocolat focus:ring-2 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none"
+              className="w-full h-12 sm:h-16 lg:h-20 text-center text-xl md:text-3xl font-light bg-white rounded-lg md:rounded-xl border border-chocolat/10 text-chocolat focus:ring-2 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none"
               placeholder="·"
             />
           ))}

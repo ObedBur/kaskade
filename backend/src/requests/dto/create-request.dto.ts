@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsDateString, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsUUID, IsNumber, IsBoolean, IsOptional } from 'class-validator';
 
 export class CreateRequestDto {
   @IsUUID()
@@ -16,4 +16,12 @@ export class CreateRequestDto {
   @IsDateString()
   @IsNotEmpty()
   scheduledAt: string;
+
+  @IsString()
+  @IsOptional()
+  phoneNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  operator?: string;
 }

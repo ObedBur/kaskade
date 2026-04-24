@@ -52,7 +52,7 @@ export default function Home() {
             <Process />
 
             {/* Arcture Final CTA Section */}
-            <section className="py-48 px-4 md:px-8 bg-off-white">
+            <section className="py-48 px-4 min-[480px]:px-8 min-[1440px]:px-12 bg-off-white">
               <div className="arcture-container bg-chocolat rounded-sm p-16 md:p-32 lg:p-40 text-center text-white overflow-hidden relative shadow-[0_30px_100px_rgba(50,27,19,0.15)]">
                 <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[600px] h-[600px] bg-ocre/20 rounded-full blur-[160px] opacity-40"></div>
                 <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px] bg-ocre/10 rounded-full blur-[160px] opacity-40"></div>

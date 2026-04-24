@@ -188,21 +188,33 @@ export class NotificationsListener {
   @OnEvent('request.created')
   async handleRequestCreated(payload: { requestId: string; clientId: string }) {
     try {
+      // A. Notifier le Client pour confirmer la réception du paiement
+      await this.createAndPush({
+        userId: payload.clientId,
+        title: 'Paiement reçu',
+        message: 'Votre acompte a été validé. Un administrateur examine votre demande pour l\'assigner à un expert.',
+        type: NotificationType.REQUEST_CREATED,
+        requestId: payload.requestId,
+      });
+
+      //  Notifier les Admins (en précisant que c'est déjà payé)
       const admins = await this.getAdmins();
       const notifications = admins.map((admin) => ({
         userId: admin.id,
-        title: 'Nouvelle demande reçue',
-        message: `Une nouvelle demande (ID: ${payload.requestId}) nécessite votre approbation.`,
+        title: 'NOUVELLE DEMANDE PAYÉE',
+        message: `Une demande (ID: ${payload.requestId}) a été payée et attend votre approbation finale.`,
         type: NotificationType.REQUEST_CREATED,
         requestId: payload.requestId,
       }));
       await this.createManyAndPush(notifications);
+      
+      this.logger.log(`Notifications envoyées pour la nouvelle demande PAYÉE ${payload.requestId}`);
     } catch (error) {
       this.logger.error(`Erreur notification request.created: ${error.message}`, error.stack);
     }
   }
 
-  // 2. Admin approuve -> Les prestataires compatibles sont notifiés
+  //  Admin approuve -> Les prestataires concernés sont notifiés
   @OnEvent('request.approved')
   async handleRequestApproved(payload: { requestId: string; serviceId: string }) {
     try {

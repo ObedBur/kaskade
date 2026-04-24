@@ -47,8 +47,8 @@ export default function LoginForm() {
   if (isAuthLoading) return null;
 
   return (
-    <section className="flex flex-col justify-center px-4 md:px-8 py-8 md:py-12 bg-off-white">
-      <div className="max-w-sm w-full mx-auto">
+    <section className="flex flex-col justify-center px-4 min-[480px]:px-8 py-8 md:py-12 bg-off-white min-[1440px]:p-12">
+      <div className="w-full mx-auto max-w-[450px] min-[1440px]:max-w-[500px]">
         <header className="mb-8 md:mb-10 text-center md:text-left">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
@@ -87,7 +87,7 @@ export default function LoginForm() {
               </label>
               <input
                 {...register('email')}
-                className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.email ? 'border-red-500 bg-red-50/10' : ''
+                className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.email ? 'border-red-500 bg-red-50/10' : ''
                   }`}
                 placeholder="kaskade@gmail.com"
                 type="email"
@@ -117,7 +117,7 @@ export default function LoginForm() {
               <div className="relative">
                 <input
                   {...register('password')}
-                  className={`w-full bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] p-4 pr-12 text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.password ? 'border-red-500 bg-red-50/10' : ''
+                  className={`w-full min-h-[44px] py-3 px-4 pr-12 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.password ? 'border-red-500 bg-red-50/10' : ''
                     }`}
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}

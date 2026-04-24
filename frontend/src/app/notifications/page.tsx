@@ -100,7 +100,7 @@ export default function ClientNotificationsPage() {
     <div className="min-h-screen bg-[#FCFBF7]">
       <Navbar />
       
-      <main className="max-w-4xl mx-auto px-6 py-32">
+      <main className="max-w-4xl mx-auto px-4 min-[480px]:px-8 min-[1440px]:p-12 py-32">
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-gray-100 pb-8">

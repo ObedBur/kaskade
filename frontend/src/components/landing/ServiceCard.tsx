@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star, ShieldCheck, ArrowRight, Heart, CheckCircle, X, Clock, Sparkles } from "lucide-react";
+import { Star, ShieldCheck, ArrowRight, Heart, CheckCircle, X, CreditCard, Smartphone, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Service } from "@/components/landing/ServiceExplorer";
@@ -11,82 +11,119 @@ import { toast } from "sonner";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
-// ─── Notification In-App ───────────────────────────────────────────────────
-function RequestConfirmationModal({ service, onClose }: { service: Service; onClose: () => void }) {
+// ─── MODAL DE PAIEMENT MOBILE MONEY ─────────────────────────────────────────
+function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; onClose: () => void; onSuccess: (phone: string, op: string) => void }) {
+  const [method, setMethod] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const depositAmount = service.price * 0.5;
+
+  const handlePay = async () => {
+    if (!method || phoneNumber.length < 9) {
+      toast.error("Veuillez choisir un mode de paiement et entrer un numéro valide.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // On simule l'appel API de paiement Mobile Money
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      onSuccess(phoneNumber, method);
+    } catch (error) {
+      toast.error("Le paiement a échoué. Veuillez vérifier votre solde.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      >
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-chocolat/80 backdrop-blur-md">
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 300, damping: 28 }}
-          className="relative bg-white rounded-[28px] shadow-2xl max-w-sm w-full overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl"
         >
-          {/* Bande décorative top */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-ocre via-[#d4af37] to-ocre" />
-
-          <div className="p-7">
-            {/* Bouton fermer */}
-            <button
-              onClick={onClose}
-              className="absolute top-5 right-5 p-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors"
-            >
-              <X className="w-4 h-4 text-chocolat/60" />
+          {/* Header Modal */}
+          <div className="p-8 border-b border-zinc-100 flex justify-between items-center bg-[#FCFBF7]">
+            <div>
+              <h3 className="text-xl font-black text-chocolat uppercase tracking-tight">Paiement Acompte</h3>
+              <p className="text-[10px] font-bold text-ocre uppercase tracking-[0.2em] mt-1">Sécurisé par Kaskade Pay</p>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-zinc-200 rounded-full transition-colors">
+              <X className="w-5 h-5 text-chocolat" />
             </button>
+          </div>
 
-            {/* Icône succès */}
-            <div className="flex items-center justify-center w-14 h-14 bg-[#25D366]/10 rounded-2xl mb-5">
-              <CheckCircle className="w-8 h-8 text-[#25D366]" />
+          <div className="p-8 space-y-8">
+            {/* Montant */}
+            <div className="text-center py-6 bg-chocolat text-white rounded-2xl relative overflow-hidden">
+               <p className="text-[10px] uppercase tracking-[0.2em] opacity-50 font-bold mb-2">Montant à payer (50%)</p>
+               <p className="text-4xl font-black tracking-tighter">${depositAmount.toLocaleString()}</p>
+               <div className="absolute top-0 right-0 p-4 opacity-10">
+                 <CreditCard className="w-12 h-12" />
+               </div>
             </div>
 
-            {/* Contenu */}
-            <h3 className="text-xl font-black text-chocolat tracking-tight mb-2">
-              Demande envoyée !
-            </h3>
-            <p className="text-chocolat/60 text-sm leading-relaxed mb-5">
-              Votre demande pour{" "}
-              <span className="font-bold text-chocolat">{service.name}</span>{" "}
-              a bien été reçue. Nos administrateurs l&apos;examinent déjà.
-            </p>
-
-            {/* Timeline visuelle */}
-            <div className="flex flex-col gap-3 mb-6">
-              {[
-                { icon: CheckCircle, label: "Demande reçue", status: "done", color: "text-[#25D366]", bg: "bg-[#25D366]/10" },
-                { icon: Clock, label: "Vérification admin en cours", status: "active", color: "text-ocre", bg: "bg-ocre/10" },
-                { icon: Sparkles, label: "Mise en relation prestataire", status: "pending", color: "text-chocolat/30", bg: "bg-zinc-100" },
-              ].map((step, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full ${step.bg} flex items-center justify-center shrink-0`}>
-                    <step.icon className={`w-4 h-4 ${step.color}`} />
-                  </div>
-                  <span className={`text-xs font-semibold ${step.status === 'pending' ? 'text-chocolat/30' : 'text-chocolat/70'}`}>
-                    {step.label}
-                  </span>
-                  {step.status === 'active' && (
-                    <span className="ml-auto text-[10px] bg-ocre/10 text-ocre font-black uppercase tracking-wider px-2 py-0.5 rounded-full">En cours</span>
-                  )}
-                </div>
-              ))}
+            {/* Méthodes */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-widest">Choisir votre opérateur</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'AIRTEL', color: 'bg-red-600', label: 'Airtel' },
+                  { id: 'ORANGE', color: 'bg-orange-500', label: 'Orange' },
+                  { id: 'MPESA', color: 'bg-green-600', label: 'M-Pesa' }
+                ].map((op) => (
+                  <button
+                    key={op.id}
+                    onClick={() => setMethod(op.id as any)}
+                    className={`flex flex-col items-center gap-2 p-4 border-2 transition-all rounded-2xl ${method === op.id ? 'border-chocolat bg-chocolat/5' : 'border-zinc-100'}`}
+                  >
+                    <div className={`w-8 h-8 ${op.color} rounded-full flex items-center justify-center text-white text-[10px] font-black`}>
+                      {op.label[0]}
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest">{op.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* Numéro */}
+            <div className="space-y-3">
+               <label className="text-[10px] font-black text-chocolat/40 uppercase tracking-widest">Numéro Mobile Money</label>
+               <div className="relative">
+                 <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-chocolat/30" />
+                 <input 
+                   type="tel" 
+                   placeholder="08XXXXXXXX"
+                   value={phoneNumber}
+                   onChange={(e) => setPhoneNumber(e.target.value)}
+                   className="w-full bg-[#FCFBF7] border border-zinc-100 py-4 pl-12 pr-4 rounded-xl text-sm font-bold focus:outline-none focus:border-ocre transition-colors"
+                 />
+               </div>
+            </div>
+
+            {/* Bouton Payer */}
             <button
-              onClick={onClose}
-              className="w-full bg-chocolat text-white py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-ocre transition-colors"
+              onClick={handlePay}
+              disabled={isProcessing}
+              className="w-full bg-chocolat text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg shadow-chocolat/20"
             >
-              Parfait, merci !
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  TRAITEMENT...
+                </>
+              ) : (
+                <>CONFIRMER LE PAIEMENT (${depositAmount})</>
+              )}
             </button>
           </div>
         </motion.div>
-      </motion.div>
+      </div>
     </AnimatePresence>
   );
 }
@@ -95,40 +132,48 @@ function RequestConfirmationModal({ service, onClose }: { service: Service; onCl
 export default function ServiceCardBento({ service }: { service: Service }) {
   const [isLiked, setIsLiked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const { user, isAuthenticated } = useAuth();
 
-  const handleRequest = async (e: React.MouseEvent) => {
+  const handleRequestClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      toast.error("Connexion requise.");
+      toast.error("Veuillez vous connecter pour réserver.");
       return;
     }
 
     if (user?.role !== 'CLIENT') {
-      toast.error("Réservé aux clients.");
+      toast.error("Seuls les clients peuvent réserver des services.");
       return;
     }
 
+    setShowPayment(true);
+  };
+
+  const handlePaymentSuccess = async (phone: string, operator: string) => {
+    setShowPayment(false);
     setIsSubmitting(true);
+    
     try {
-      await api.post('/requests', {
+      console.log(`[PAIEMENT] Tentative de création de demande pour le service ${service.id}...`);
+      
+      const response = await api.post('/requests', {
         serviceId: service.id,
-        description: `Demande pour le service: ${service.name}`,
+        description: `Demande payée pour: ${service.name}`,
         address: user?.quartier || "Adresse à préciser",
-        scheduledAt: new Date(Date.now() + 86400000).toISOString() // Demain par défaut
+        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        phoneNumber: phone, 
+        operator: operator 
       });
 
-      // Toast court sur la bannière
-      toast.success("Demande envoyée ✅");
-
-      // Notification in-app détaillée
-      setShowConfirmation(true);
-
+      console.log(`[SUCCÈS] Demande ${response.data.id} créée avec succès après paiement.`);
+      toast.success("Paiement reçu ! Votre demande est maintenant prioritaire.");
+      
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || "Erreur lors de l'envoi.";
+      const errorMsg = error.response?.data?.message || "Erreur lors de la validation du paiement.";
+      console.error(`[ERREUR PAIEMENT] Échec de création de la demande:`, errorMsg);
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -137,10 +182,11 @@ export default function ServiceCardBento({ service }: { service: Service }) {
 
   return (
     <>
-      {showConfirmation && (
-        <RequestConfirmationModal
-          service={service}
-          onClose={() => setShowConfirmation(false)}
+      {showPayment && (
+        <MobileMoneyModal 
+          service={service} 
+          onClose={() => setShowPayment(false)} 
+          onSuccess={handlePaymentSuccess}
         />
       )}
 
@@ -150,7 +196,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         viewport={{ once: true }}
         className="group bg-[#F8F9FA] rounded-[32px] p-4 border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full hover:bg-white"
       >
-        {/* Zone Image arrondie */}
+        {/* Zone Image */}
         <div className="relative h-48 w-full rounded-xl overflow-hidden mb-5">
           <Image
             src={service.imageUrl || FALLBACK_IMAGE}
@@ -158,71 +204,44 @@ export default function ServiceCardBento({ service }: { service: Service }) {
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          
-          {/* Badge Catégorie flottant style verre */}
           <div className="absolute top-3 left-3 backdrop-blur-md bg-white/60 px-3 py-1 rounded-full border border-white/20">
             <span className="text-chocolat text-[10px] font-bold uppercase tracking-wider">
               {service.category}
             </span>
           </div>
-
-          {/* BOUTON LIKER */}
-          <button
-            onClick={() => setIsLiked(!isLiked)}
-            className="absolute top-3 right-3 backdrop-blur-md bg-white/60 p-2 rounded-full border border-white/20 hover:bg-white transition-all duration-300 active:scale-90 group/like"
-          >
-            <Heart
-              className={`w-4 h-4 transition-colors duration-300 ${isLiked
-                  ? "fill-red-500 text-red-500"
-                  : "text-chocolat/70 group-hover/like:text-red-500"
-                }`}
-            />
-          </button>
         </div>
 
         {/* Contenu */}
         <div className="px-2 flex flex-col flex-1">
-          {/* Titre & Note */}
           <div className="flex justify-between items-start gap-3 mb-3">
-            <h3 className="text-lg font-extrabold text-chocolat leading-snug flex-1 line-clamp-2">
+            <h3 className="text-lg font-extrabold text-chocolat leading-snug flex-1 line-clamp-2 uppercase">
               {service.name}
             </h3>
             <div className="flex items-center gap-1.5 bg-ocre/10 text-ocre px-2.5 py-1 rounded-full shrink-0">
-              <Star className="w-3.5 h-3.5 text-ocre" />
-              <span className="text-xs font-bold">{service._count?.reviews ?? 0} avis</span>
+              <span className="text-[10px] font-black">${service.price}</span>
             </div>
           </div>
 
-          {/* Description */}
           <p className="text-chocolat/70 text-sm leading-relaxed line-clamp-2 mb-5">
             {service.description}
           </p>
 
-          {/* Footer */}
-          <div className="mt-auto pt-4 border-t border-zinc-100 flex items-center justify-between relative min-h-[60px]">
-            <div className="flex items-center gap-2 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-x-2">
-              {service.provider?.isVerified && (
-                <div className="bg-[#25D366]/10 p-1 rounded-full">
-                  <ShieldCheck className="w-4 h-4 text-[#25D366]" />
-                </div>
-              )}
-              <span className="text-[11px] text-chocolat/60 font-semibold uppercase tracking-wider">
-                Expert Vérifié
-              </span>
+          <div className="mt-auto pt-4 border-t border-zinc-100 flex items-center justify-between">
+            <div className="flex flex-col">
+               <span className="text-[8px] font-black text-ocre uppercase tracking-widest mb-1">Acompte requis</span>
+               <span className="text-sm font-black text-chocolat">${(service.price * 0.5).toLocaleString()}</span>
             </div>
 
-            <div className="absolute right-0">
-              <button
-                onClick={handleRequest}
-                disabled={isSubmitting}
-                className={`flex items-center gap-0 group-hover:gap-3 bg-chocolat text-white p-3 px-3.5 rounded-full hover:bg-ocre hover:px-6 transition-all duration-500 overflow-hidden shadow-lg active:scale-95 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <span className="max-w-0 group-hover:max-w-[160px] opacity-0 group-hover:opacity-100 transition-all duration-500 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-                  {isSubmitting ? 'ENVOI...' : 'RÉSERVER'}
-                </span>
-                <ArrowRight className={`w-5 h-5 transition-transform duration-500 ${isSubmitting ? 'animate-pulse' : ''}`} />
-              </button>
-            </div>
+            <button
+              onClick={handleRequestClick}
+              disabled={isSubmitting}
+              className="flex items-center gap-3 bg-chocolat text-white py-3 px-6 rounded-full hover:bg-ocre hover:text-chocolat transition-all duration-500 shadow-lg active:scale-95 disabled:opacity-50"
+            >
+              <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                {isSubmitting ? 'ENVOI...' : 'RÉSERVER'}
+              </span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </motion.div>
