@@ -154,24 +154,46 @@ export class PaymentsService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-      const res = await fetch(`${this.mbiyoApiUrl}/collect`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.mbiyoSecretKey}`,
-          'X-Public-Key': this.mbiyoPublicKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mbiyoPayload),
-        signal: controller.signal,
-      });
+      let responseData: any;
+      let resOk = true;
+
+      // Si les clés d'API sont des placeholders (test local sans vraies clés), on simule la réponse
+      if (this.mbiyoPublicKey.includes('test_votre_cle')) {
+        this.logger.warn(`⚠️ Clés Mbiyo Pay de test détectées. Simulation de la collecte pour ${mbiyoPayload.phone}.`);
+        // Simuler un délai réseau
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        responseData = {
+          reference: `mock_ref_${Date.now()}`,
+          message: 'Collecte initiée avec succès (Mock)'
+        };
+
+        // Simuler le fait que le client valide sur son téléphone après 5 secondes
+        setTimeout(async () => {
+          this.logger.log(`⚠️ Simulation: Le client a validé sur son téléphone. Mise à jour PENDING -> SUCCESS.`);
+          await this.handleMbiyoCallback(responseData.reference, 'SUCCESS', 'mock_txn_' + Date.now());
+        }, 5000);
+
+      } else {
+        const res = await fetch(`${this.mbiyoApiUrl}/collect`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.mbiyoSecretKey}`,
+            'X-Public-Key': this.mbiyoPublicKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(mbiyoPayload),
+          signal: controller.signal,
+        });
+        
+        responseData = await res.json();
+        resOk = res.ok;
+
+        if (!resOk) {
+          throw new Error(responseData.message || `Erreur HTTP: ${res.status}`);
+        }
+      }
 
       clearTimeout(timeoutId);
-
-      const responseData = await res.json();
-
-      if (!res.ok) {
-        throw new Error(responseData.message || `Erreur HTTP: ${res.status}`);
-      }
 
       const mbiyoRef = responseData?.reference || responseData?.transaction_id;
 
