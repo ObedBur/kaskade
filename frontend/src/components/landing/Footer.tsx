@@ -41,10 +41,24 @@ export default function Footer() {
           {/* Infrastructure */}
           <div>
             <h5 className="font-serif font-black mb-10 text-[10px] uppercase tracking-[0.4em] text-ocre opacity-80">Infrastructure.</h5>
-            <div className="flex flex-col gap-4">
-              <div className="px-6 py-4 border border-ocre/20 bg-white/5 rounded-sm flex items-center gap-4 hover:border-ocre/50 transition-all group max-w-xs">
-                <div className="w-2 h-2 rounded-full bg-ocre animate-pulse"></div>
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-ocre">M-PESA INTÉGRÉ</span>
+            <div className="flex flex-col gap-3">
+              <div className="px-5 py-3 border border-ocre/20 bg-white/5 rounded-sm flex items-center gap-4 hover:border-ocre/50 transition-all group max-w-xs">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden p-1">
+                  <img src="/airtel.png" alt="Airtel" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-red-400 transition-colors">AIRTEL MONEY</span>
+              </div>
+              <div className="px-5 py-3 border border-ocre/20 bg-white/5 rounded-sm flex items-center gap-4 hover:border-orange-500/50 transition-all group max-w-xs">
+                <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center overflow-hidden p-1.5 border border-white/10">
+                  <img src="/orange.png" alt="Orange" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-orange-400 transition-colors">ORANGE MONEY</span>
+              </div>
+              <div className="px-5 py-3 border border-ocre/20 bg-white/5 rounded-sm flex items-center gap-4 hover:border-green-500/50 transition-all group max-w-xs">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden p-1">
+                  <img src="/m-pesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-green-400 transition-colors">M-PESA INTÉGRÉ</span>
               </div>
             </div>
           </div>

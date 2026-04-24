@@ -51,7 +51,7 @@ export default function ServiceExplorer() {
   }, []);
 
   return (
-    <section className="py-24 md:py-32 bg-white relative overflow-hidden font-sans border-y border-ocre/5">
+    <section className="py-16 md:py-20 bg-[#F5F3ED] relative overflow-hidden font-sans border-y border-ocre/10">
       
       {/* Éléments de structure (Glows Kaskade) */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ocre/5 rounded-full blur-[100px] -z-10 translate-x-1/4 -translate-y-1/4" />
@@ -146,7 +146,7 @@ export default function ServiceExplorer() {
             <p className="text-chocolat/50 font-bold">Aucun service disponible pour le moment.</p>
           </div>
         ) : (
-          <div className="mt-16 md:mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+          <div className="mt-12 md:mt-20 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
             {services.map((service) => (
               <ServiceCard key={service.id} service={service} />
             ))}

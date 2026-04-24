@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import SplashScreen from "../components/SplashScreen";
 import Navbar from "../components/landing/Navbar";
 import Hero from "../components/landing/Hero";
-import Features from "../components/landing/Features";
 import CategoryBento from "../components/landing/CategoryBento";
 import Process from "../components/landing/Process";
 import ServiceExplorer from "../components/landing/ServiceExplorer";
@@ -42,8 +41,6 @@ export default function Home() {
             <Navbar />
 
             <Hero />
-
-            <Features />
 
             <ServiceExplorer />
 

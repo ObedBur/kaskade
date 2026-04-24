@@ -66,6 +66,26 @@ model Service {
   @@index([category])
 }
 
+model Payment {
+  id              String   @id @default(uuid())
+  requestId       String
+  clientId        String
+  amount          Float
+  currency        String   @default("USD") 
+  operator        String   // AIRTEL, ORANGE, MPESA
+  phoneNumber     String   
+  
+  // Champs spécifiques Mbiyo Pay
+  mbiyoRef        String?  @unique // Référence de transaction retournée par Mbiyo
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  type            String   // DEPOSIT (Acompte 50%) ou FINAL (Solde 50%)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  request         Request  @relation(fields: [requestId], references: [id])
+}
+
 // Demande de service créée par un CLIENT
 model Request {
   id          String        @id @default(uuid())
@@ -89,6 +109,7 @@ model Request {
   client      User          @relation("ClientRequests", fields: [clientId], references: [id])
   provider    User?         @relation("ProviderRequests", fields: [providerId], references: [id])
   service     Service       @relation(fields: [serviceId], references: [id])
+  payments    Payment[]
   notifications Notification[]
 
   @@index([clientId])
