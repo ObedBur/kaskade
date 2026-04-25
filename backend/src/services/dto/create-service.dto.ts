@@ -23,7 +23,6 @@ export class CreateServiceDto {
 
   @IsNumber()
   @IsOptional()
-  @IsPositive()
   price?: number;
 
   @IsString()
@@ -72,7 +71,6 @@ export class UpdateServiceDto {
 
   @IsNumber()
   @IsOptional()
-  @IsPositive()
   price?: number;
 
   @IsString()
