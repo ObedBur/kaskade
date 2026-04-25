@@ -15,6 +15,14 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface ServiceCategory {
+  id: string;
+  name: string;
+  category: string;
+  imageUrl: string;
+  isActive: boolean;
+}
+
 interface AvailableMission {
   id: string;
   service: {
@@ -33,17 +41,23 @@ interface AvailableMission {
 
 export default function AvailableMissionsPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [missions, setMissions] = useState<AvailableMission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   const fetchAvailableMissions = async () => {
     try {
-      const res = await api.get("/provider/requests");
-      setMissions(res.data);
+      const [categoriesRes, missionsRes] = await Promise.all([
+        api.get("/services"),
+        api.get("/provider/requests"),
+      ]);
+      setCategories(categoriesRes.data);
+      setMissions(missionsRes.data);
     } catch (err) {
-      toast.error("Erreur lors du chargement des missions disponibles.");
+      toast.error("Erreur lors du chargement des données.");
     } finally {
       setLoading(false);
     }
@@ -68,10 +82,12 @@ export default function AvailableMissionsPage() {
     }
   };
 
-  const filteredMissions = missions.filter(m => 
-    m.service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.client.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMissions = missions.filter(m => {
+    const matchesSearch = m.service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.client.fullName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || m.service.id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (authLoading || loading) {
     return (
@@ -110,8 +126,86 @@ export default function AvailableMissionsPage() {
         />
       </div>
 
+      {/* CATEGORIES GRID */}
+      <section className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-[2px] bg-[#BC9C6C]"></div>
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#321B13]/40">Filtrer par catégorie</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {/* "Tous les services" card */}
+          <motion.button
+            onClick={() => setSelectedCategory(null)}
+            className={`relative overflow-hidden group transition-all ${
+              selectedCategory === null 
+                ? "ring-2 ring-[#BC9C6C]" 
+                : "hover:ring-2 hover:ring-[#BC9C6C]/50"
+            }`}
+          >
+            <div className="aspect-square bg-gradient-to-br from-[#BC9C6C]/20 to-[#321B13]/10 flex items-center justify-center p-6">
+              <div className="text-center">
+                <Briefcase className="w-8 h-8 mx-auto mb-2 text-[#BC9C6C]" />
+                <p className="text-xs font-black uppercase tracking-widest text-[#321B13]">
+                  Tous les services
+                </p>
+              </div>
+            </div>
+          </motion.button>
+
+          {/* Category cards */}
+          {categories.map((category, i) => (
+            <motion.button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className={`relative overflow-hidden group transition-all ${
+                selectedCategory === category.id 
+                  ? "ring-2 ring-[#BC9C6C]" 
+                  : "hover:ring-2 hover:ring-[#BC9C6C]/50"
+              }`}
+            >
+              {/* Image Background */}
+              <div className="aspect-square bg-gray-200 overflow-hidden">
+                <img
+                  src={category.imageUrl}
+                  alt={category.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#321B13]/80 via-[#321B13]/20 to-transparent"></div>
+              </div>
+
+              {/* Text */}
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-white">
+                  {category.name}
+                </p>
+                <p className="text-[8px] text-white/60 uppercase tracking-wider mt-1">
+                  {category.category}
+                </p>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </section>
+
       {/* MISSIONS GRID */}
-      <div className="grid grid-cols-1 gap-8">
+      <div className="space-y-8">
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-[2px] bg-[#BC9C6C]"></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#321B13]/40">Missions correspondantes</span>
+          </div>
+          <p className="text-sm text-[#321B13]/50">
+            {selectedCategory 
+              ? `Missions pour : ${categories.find(c => c.id === selectedCategory)?.name}` 
+              : "Toutes les missions disponibles"}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8">
         <AnimatePresence mode="popLayout">
           {filteredMissions.length > 0 ? (
             filteredMissions.map((mission, i) => (
@@ -200,6 +294,7 @@ export default function AvailableMissionsPage() {
             </div>
           )}
         </AnimatePresence>
+        </div>
       </div>
 
     </div>

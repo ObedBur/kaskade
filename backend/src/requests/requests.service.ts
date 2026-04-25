@@ -37,6 +37,9 @@ export class RequestsService {
 
     // 2. Calcul STRICT et Côté Serveur de l'acompte (50%)
     // Le frontend n'a plus le droit de dire "j'ai payé X", c'est le serveur qui dicte.
+    if (!service.price) {
+      throw new BadRequestException('Le prix du service n\'est pas défini.');
+    }
     const requiredDeposit = service.price * 0.5;
 
     // 3. MOCK SÉCURISÉ : Simulation de l'appel API Mobile Money (Airtel, Orange)

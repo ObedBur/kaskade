@@ -120,9 +120,11 @@ export class NotificationsListener {
   @OnEvent('service.created')
   async handleServiceCreated(payload: { serviceId: string; serviceName: string }) {
     try {
-      const clients = await this.prisma.user.findMany({ where: { role: 'CLIENT' } });
-      const notifications = clients.map((client) => ({
-        userId: client.id,
+      const users = await this.prisma.user.findMany({ 
+        where: { role: { in: ['CLIENT', 'PROVIDER'] } } 
+      });
+      const notifications = users.map((user) => ({
+        userId: user.id,
         title: 'Nouveau service disponible !',
         message: `Découvrez notre nouveau service dans le catalogue : ${payload.serviceName}.`,
         type: NotificationType.SERVICE_CREATED,
