@@ -31,10 +31,10 @@ export class ServicesService {
       name: service.name,
       category: service.category,
       description: service.description || null,
-      price: service.price,
-      currency: service.currency,
+      price: service.price || 0, // Retourne 0 si null pour le frontend
+      currency: service.currency || 'USD',
       isActive: service.isActive,
-      imageUrl: this.storageService.getPublicUrl(service.imageKey), // ← Génère URL depuis imageKey
+      imageUrl: this.storageService.getPublicUrl(service.imageKey),
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
     };
@@ -46,38 +46,41 @@ export class ServicesService {
   private validateImageKey(imageKey?: string): void {
     if (imageKey && !this.storageService.isValidImageKey(imageKey)) {
       throw new BadRequestException(
-        'Format imageKey invalide. Utilisez format: nom-uuid.extension (jpg, png, webp)',
+        'Format imageKey invalide.',
       );
     }
   }
 
   async create(createServiceDto: CreateServiceDto) {
-    // Valider imageKey si fourni
+    // 1. Validation de l'image
     this.validateImageKey(createServiceDto.imageKey);
 
-    // Empêcher les doublons (même nom + même catégorie)
+    // 2. Vérification d'unicité globale du nom (Kaskade Rule)
     const existing = await this.prisma.service.findFirst({
       where: {
         name: { equals: createServiceDto.name, mode: 'insensitive' },
-        category: { equals: createServiceDto.category, mode: 'insensitive' },
       },
     });
 
     if (existing) {
-      this.logger.warn(`Tentative de création d'un service existant: ${createServiceDto.name} (${createServiceDto.category})`);
       throw new ConflictException(
-        `Un service "${createServiceDto.name}" existe déjà dans la catégorie "${createServiceDto.category}".`,
+        `La catégorie "${createServiceDto.name}" existe déjà dans le système.`,
       );
     }
 
-    const newService = await this.prisma.service.create({
-      data: createServiceDto,
+    // 3. Création de la catégorie globale
+    const newCategory = await this.prisma.service.create({
+      data: {
+        ...createServiceDto,
+        price: createServiceDto.price || 0, // Valeur par défaut si non fourni
+        isActive: createServiceDto.isActive !== undefined ? createServiceDto.isActive : true, // Actif par défaut
+      },
     });
 
-    this.logger.log(`Nouveau service catalogue créé: ${newService.name} (Catégorie: ${newService.category}, ID: ${newService.id})`);
-    this.eventEmitter.emit('service.created', { serviceId: newService.id, serviceName: newService.name });
+    this.logger.log(`ADMIN : Nouvelle catégorie globale créée : ${newCategory.name}`);
+    this.eventEmitter.emit('service.created', { serviceId: newCategory.id, serviceName: newCategory.name });
 
-    return this.formatServiceResponse(newService);
+    return this.formatServiceResponse(newCategory);
   }
 
   async findAll() {

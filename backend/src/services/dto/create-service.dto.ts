@@ -22,8 +22,9 @@ export class CreateServiceDto {
   description?: string;
 
   @IsNumber()
+  @IsOptional()
   @IsPositive()
-  price: number;
+  price?: number;
 
   @IsString()
   @IsOptional()

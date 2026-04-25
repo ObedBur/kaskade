@@ -50,7 +50,7 @@ model Service {
   name        String    
   category    String    
   description String?   @db.Text
-  price       Float     
+  price       Float?    
   currency    String    @default("USD")
   isActive    Boolean   @default(true)
 

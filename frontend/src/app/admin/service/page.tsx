@@ -4,64 +4,76 @@ import React, { useEffect, useState } from "react";
 import {
   Plus,
   Search,
-  MoreVertical,
   Edit,
   Trash2,
   CheckCircle2,
   XCircle,
   Loader2,
-  Briefcase,
+  LayoutGrid,
   AlertTriangle,
   X,
   Save,
   Image as ImageIcon,
-  Upload
+  Upload,
+  Zap,
+  Hammer,
+  Scissors,
+  Droplets,
+  Paintbrush,
+  Home
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import { toast } from "sonner";
 
-interface Service {
+interface ServiceCategory {
   id: string;
   name: string;
   category: string;
   description: string;
-  price: number;
-  currency: string;
   isActive: boolean;
   imageKey?: string;
   createdAt: string;
 }
 
+const CATEGORY_EXAMPLES = [
+  { name: "Coiffure", icon: Scissors, desc: "Services liés aux cheveux et soins capillaires" },
+  { name: "Plomberie", icon: Droplets, desc: "Réparations, installations et dépannages sanitaires" },
+  { name: "Électricité", icon: Zap, desc: "Installation et maintenance électrique" },
+  { name: "Peinture", icon: Paintbrush, desc: "Peinture intérieure, extérieure et décoration" },
+  { name: "Ménage", icon: Home, desc: "Nettoyage professionnel et entretien" },
+  { name: "BTP / Construction", icon: Hammer, desc: "Travaux de bâtiment et rénovation" }
+];
+
 export default function AdminServicesPage() {
   const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
-  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
-    category: "",
+    category: "Général",
     description: "",
     price: 0,
-    currency: "FC",
+    currency: "USD",
     isActive: true,
     imageKey: ""
   });
 
-  const fetchServices = async () => {
+  const fetchCategories = async () => {
     try {
       const res = await api.get("/admin/services");
-      setServices(res.data);
+      setCategories(res.data);
     } catch (error) {
-      console.error("Error fetching services:", error);
-      toast.error("Impossible de charger les services.");
+      console.error("Error fetching categories:", error);
+      toast.error("Impossible de charger les catégories.");
     } finally {
       setLoading(false);
     }
@@ -69,37 +81,45 @@ export default function AdminServicesPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchServices();
+      fetchCategories();
     }
   }, [isAuthenticated]);
 
-  const handleOpenModal = (service?: Service) => {
-    if (service) {
-      setEditingService(service);
+  const handleOpenModal = (cat?: ServiceCategory) => {
+    if (cat) {
+      setEditingCategory(cat);
       setFormData({
-        name: service.name,
-        category: service.category,
-        description: service.description || "",
-        price: service.price,
-        currency: service.currency || "FC",
-        isActive: service.isActive,
-        imageKey: service.imageKey || ""
+        name: cat.name,
+        category: cat.category || "Général",
+        description: cat.description || "",
+        price: 0,
+        currency: "USD",
+        isActive: cat.isActive,
+        imageKey: cat.imageKey || ""
       });
-      setPreviewUrl(service.imageKey ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/uploads/services/${service.imageKey}` : null);
+      setPreviewUrl(cat.imageKey ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/uploads/services/${cat.imageKey}` : null);
     } else {
-      setEditingService(null);
+      setEditingCategory(null);
       setFormData({
         name: "",
-        category: "",
+        category: "Général",
         description: "",
         price: 0,
-        currency: "FC",
+        currency: "USD",
         isActive: true,
         imageKey: ""
       });
       setPreviewUrl(null);
     }
     setIsModalOpen(true);
+  };
+
+  const applyExample = (example: typeof CATEGORY_EXAMPLES[0]) => {
+    setFormData({
+      ...formData,
+      name: example.name,
+      description: example.desc
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,15 +148,15 @@ export default function AdminServicesPage() {
     e.preventDefault();
     setFormLoading(true);
     try {
-      if (editingService) {
-        await api.patch(`/admin/services/${editingService.id}`, formData);
-        toast.success("Service mis à jour !");
+      if (editingCategory) {
+        await api.patch(`/admin/services/${editingCategory.id}`, formData);
+        toast.success("Catégorie mise à jour !");
       } else {
         await api.post("/admin/services", formData);
-        toast.success("Service créé avec succès !");
+        toast.success("Nouvelle catégorie créée !");
       }
       setIsModalOpen(false);
-      fetchServices();
+      fetchCategories();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Une erreur est survenue.");
     } finally {
@@ -145,19 +165,18 @@ export default function AdminServicesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce service ?")) return;
+    if (!confirm("Supprimer cette catégorie ? Cela affectera les futurs prestataires.")) return;
     try {
       await api.delete(`/admin/services/${id}`);
-      toast.success("Service supprimé.");
-      fetchServices();
+      toast.success("Catégorie supprimée.");
+      fetchCategories();
     } catch (error) {
       toast.error("Erreur lors de la suppression.");
     }
   };
 
-  const filteredServices = services.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.category.toLowerCase().includes(search.toLowerCase())
+  const filteredCategories = categories.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase())
   );
 
   if (authLoading || loading) {
@@ -169,16 +188,16 @@ export default function AdminServicesPage() {
   }
 
   return (
-    <div className="space-y-8 md:space-y-12 w-full min-w-0">
+    <div className="space-y-8 md:space-y-12 w-full min-w-0 pb-20">
 
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="min-w-0">
-          <h1 className="text-3xl md:text-5xl font-black text-[#321B13] tracking-tighter uppercase leading-none break-words">
-            Catalogue Services<span className="text-[#BC9C6C]">.</span>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black text-[#321B13] tracking-tighter uppercase leading-none">
+            Types de Services<span className="text-[#BC9C6C]">.</span>
           </h1>
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#321B13]/40 mt-3">
-            Gestion de l'offre Kaskade
+            Définir les domaines d'expertise disponibles
           </p>
         </div>
 
@@ -187,7 +206,7 @@ export default function AdminServicesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-[#BC9C6C]" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder="Rechercher une catégorie..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-gray-100 py-3.5 pl-11 pr-4 rounded-xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all min-w-[120px]"
@@ -198,20 +217,20 @@ export default function AdminServicesPage() {
             className="bg-[#321B13] text-white px-6 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#BC9C6C] transition-all shadow-xl shadow-[#321B13]/5 whitespace-nowrap shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Nouveau Service
+            Nouvelle Catégorie
           </button>
         </div>
       </header>
 
       {/* Stats Quick View */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
-          { label: "Total Services", value: services.length, icon: Briefcase, color: "bg-gray-50 text-gray-400" },
-          { label: "Actifs", value: services.filter(s => s.isActive).length, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
-          { label: "Inactifs", value: services.filter(s => !s.isActive).length, icon: XCircle, color: "bg-red-50 text-red-500" },
-          { label: "Catégories", value: new Set(services.map(s => s.category)).size, icon: ImageIcon, color: "bg-blue-50 text-blue-500" },
+          { label: "Total Catégories", value: categories.length, icon: LayoutGrid, color: "bg-gray-50 text-gray-400" },
+          { label: "Actives", value: categories.filter(c => c.isActive).length, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
+          { label: "Inactives", value: categories.filter(c => !c.isActive).length, icon: XCircle, color: "bg-red-50 text-red-500" },
+          { label: "Nouveau (Mois)", value: 0, icon: Plus, color: "bg-blue-50 text-blue-500" },
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-4 md:p-6 border border-gray-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-h-[120px] md:min-h-0">
+          <div key={i} className="bg-white p-4 md:p-6 border border-gray-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-h-[110px] md:min-h-0">
             <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl shrink-0 ${stat.color}`}>
               <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
             </div>
@@ -223,83 +242,56 @@ export default function AdminServicesPage() {
         ))}
       </div>
 
-      {/* Services Table */}
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden w-full">
-        <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left whitespace-nowrap min-w-[700px]">
-              <thead className="bg-gray-50/50 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 md:px-8 py-4 md:py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Service</th>
-                  <th className="px-4 md:px-8 py-4 md:py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Catégorie</th>
-                  <th className="px-4 md:px-8 py-4 md:py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Prix Moyen</th>
-                  <th className="px-4 md:px-8 py-4 md:py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">Statut</th>
-                  <th className="px-4 md:px-8 py-4 md:py-5 text-right text-[10px] font-black uppercase tracking-widest text-gray-400">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredServices.map((service) => (
-                  <tr key={service.id} className="hover:bg-gray-50/30 transition-colors group">
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-[#BC9C6C]/10 group-hover:text-[#BC9C6C] transition-all overflow-hidden">
-                          {service.imageKey ? (
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/uploads/services/${service.imageKey}`}
-                              alt={service.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Briefcase className="w-4 h-4 md:w-5 md:h-5" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-black text-[#321B13] uppercase tracking-tight truncate max-w-[150px] md:max-w-[200px]">{service.name}</p>
-                          <p className="text-[10px] text-gray-400 truncate max-w-[150px] md:max-w-[200px]">{service.description || "Aucune description"}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <span className="text-[10px] font-black bg-gray-100 px-2 md:px-3 py-1.5 rounded-full uppercase tracking-widest text-gray-500 whitespace-nowrap">
-                        {service.category}
-                      </span>
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <p className="text-sm font-black text-[#321B13] whitespace-nowrap">{service.price.toLocaleString()} {service.currency || 'FC'}</p>
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6">
-                      <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${service.isActive ? "text-green-600" : "text-red-500"} whitespace-nowrap`}>
-                        <div className={`w-1.5 h-1.5 shrink-0 rounded-full ${service.isActive ? "bg-green-600 animate-pulse" : "bg-red-500"}`} />
-                        {service.isActive ? "Actif" : "Désactivé"}
-                      </div>
-                    </td>
-                    <td className="px-4 md:px-8 py-4 md:py-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleOpenModal(service)}
-                          className="p-2.5 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-[#BC9C6C] hover:border-[#BC9C6C]/20 transition-all"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(service.id)}
-                          className="p-2.5 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-red-500 hover:border-red-100 transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {/* Categories Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredCategories.map((cat) => (
+          <motion.div
+            key={cat.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white border border-gray-100 rounded-[2rem] p-8 hover:shadow-2xl hover:shadow-[#321B13]/5 transition-all group relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#BC9C6C]/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-[#BC9C6C]/10 transition-colors"></div>
+            
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100">
+                  {cat.imageKey ? (
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/uploads/services/${cat.imageKey}`}
+                      alt={cat.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <LayoutGrid className="w-6 h-6 text-[#BC9C6C]" />
+                  )}
+                </div>
+                <div className="flex gap-2">
+                   <button onClick={() => handleOpenModal(cat)} className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 hover:text-[#BC9C6C] transition-colors"><Edit className="w-4 h-4" /></button>
+                   <button onClick={() => handleDelete(cat.id)} className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
 
-        {filteredServices.length === 0 && (
-          <div className="py-20 text-center flex flex-col items-center gap-4">
-            <AlertTriangle className="w-10 h-10 text-gray-100" />
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 italic">Aucun service trouvé dans le catalogue</p>
+              <h3 className="text-xl font-black text-[#321B13] uppercase tracking-tighter mb-2">{cat.name}</h3>
+              <p className="text-[10px] text-gray-400 leading-relaxed line-clamp-2 mb-6">
+                {cat.description || "Aucune description définie pour cette catégorie."}
+              </p>
+
+              <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] ${cat.isActive ? "text-green-600" : "text-red-500"}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${cat.isActive ? "bg-green-600 animate-pulse" : "bg-red-500"}`} />
+                  {cat.isActive ? "Actif" : "Inactif"}
+                </div>
+                <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">ID: {cat.id.slice(0, 8)}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+
+        {filteredCategories.length === 0 && (
+          <div className="col-span-full py-20 text-center flex flex-col items-center gap-4 bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200">
+            <AlertTriangle className="w-10 h-10 text-gray-200" />
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 italic">Aucune catégorie définie</p>
           </div>
         )}
       </div>
@@ -311,134 +303,119 @@ export default function AdminServicesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6"
           >
-            <div className="absolute inset-0 bg-[#321B13]/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+            <div className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-xl relative overflow-hidden shadow-2xl"
+              className="bg-white rounded-[2rem] md:rounded-[2.5rem] w-full max-w-2xl relative overflow-hidden shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]"
             >
-              <div className="p-10 space-y-8">
-                <div className="flex justify-between items-start">
+              <div className="p-6 sm:p-8 md:p-10 overflow-y-auto custom-scrollbar">
+                <div className="flex justify-between items-start mb-6 md:mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-[#321B13] uppercase tracking-tighter">
-                      {editingService ? "Modifier Service" : "Nouveau Service"}
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#321B13] uppercase tracking-tighter">
+                      {editingCategory ? "Modifier Catégorie" : "Nouvelle Catégorie"}
                     </h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#BC9C6C] mt-1">
-                      Configuration du catalogue
+                    <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#BC9C6C] mt-1 md:mt-2">
+                      Définir un nouveau type de service
                     </p>
                   </div>
-                  <button onClick={() => setIsModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
-                    <X className="w-5 h-5 text-gray-400" />
+                  <button onClick={() => setIsModalOpen(false)} className="p-2 sm:p-3 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="col-span-2 space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Nom du service</label>
+                {!editingCategory && (
+                  <div className="mb-8 md:mb-10 space-y-3 md:space-y-4">
+                    <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-400">Suggestions rapides</p>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORY_EXAMPLES.map((ex) => (
+                        <button
+                          key={ex.name}
+                          type="button"
+                          onClick={() => applyExample(ex)}
+                          className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-[#FCFBF7] border border-gray-100 rounded-xl text-[9px] md:text-[10px] font-bold text-[#321B13] hover:border-[#BC9C6C] hover:bg-white transition-all"
+                        >
+                          <ex.icon className="w-3 h-3 text-[#BC9C6C]" />
+                          {ex.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+                  <div className="space-y-5 md:space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Nom de la catégorie</label>
                       <input
                         type="text"
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-100 py-3.5 px-5 rounded-2xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all"
-                        placeholder="ex: Plomberie d'urgence"
+                        className="w-full bg-gray-50 border border-gray-100 py-3 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl text-sm font-bold focus:outline-none focus:border-[#BC9C6C] transition-all"
+                        placeholder="ex: Architecture d'intérieur"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Catégorie</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-100 py-3.5 px-5 rounded-2xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all"
-                        placeholder="ex: Maison"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Prix Indicatif</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          required
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) })}
-                          className="flex-1 bg-gray-50 border border-gray-100 py-3.5 px-5 rounded-2xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all"
-                          placeholder="0"
-                        />
-                        <select
-                          value={formData.currency}
-                          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                          className="w-24 bg-gray-50 border border-gray-100 py-3.5 px-3 rounded-2xl text-sm font-bold focus:outline-none focus:border-[#BC9C6C] transition-all"
-                        >
-                          <option value="FC">FC</option>
-                          <option value="USD">$</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="col-span-2 space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Description</label>
+                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Description (optionnel)</label>
                       <textarea
                         rows={3}
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-100 py-3.5 px-5 rounded-2xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all resize-none"
-                        placeholder="Décrivez brièvement le service..."
+                        className="w-full bg-gray-50 border border-gray-100 py-3 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all resize-none"
+                        placeholder="Décrivez brièvement ce type de service..."
                       />
                     </div>
 
-                    <div className="col-span-2 space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Image du service</label>
-                      <div className="flex items-center gap-6">
-                        <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-100 rounded-3xl flex items-center justify-center overflow-hidden group relative">
+                    <div className="space-y-3 md:space-y-4">
+                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Image illustrative</label>
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 p-4 md:p-6 bg-gray-50/50 rounded-[1.5rem] md:rounded-[2rem] border border-gray-100">
+                        <div className="w-20 h-20 md:w-24 md:h-24 bg-white border-2 border-dashed border-gray-100 rounded-2xl md:rounded-3xl flex items-center justify-center overflow-hidden group relative shrink-0">
                           {previewUrl ? (
                             <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                           ) : (
-                            <ImageIcon className="w-8 h-8 text-gray-200" />
+                            <ImageIcon className="w-6 h-6 md:w-8 md:h-8 text-gray-200" />
                           )}
                           {uploading && (
                             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                              <Loader2 className="w-6 h-6 animate-spin text-[#BC9C6C]" />
+                              <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin text-[#BC9C6C]" />
                             </div>
                           )}
                         </div>
-                        <div className="flex-1 space-y-2">
-                          <label className="inline-flex items-center gap-3 px-6 py-3 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#321B13] cursor-pointer hover:bg-gray-50 transition-all shadow-sm">
-                            <Upload className="w-4 h-4" />
-                            {uploading ? "Upload..." : "Choisir une image"}
+                        <div className="flex-1 space-y-2 md:space-y-3 text-center sm:text-left">
+                          <label className="inline-flex items-center gap-2 md:gap-3 px-5 md:px-6 py-2 md:py-3 bg-white border border-gray-100 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#321B13] cursor-pointer hover:border-[#BC9C6C] transition-all shadow-sm">
+                            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                            {uploading ? "Upload..." : "Choisir une icône"}
                             <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
                           </label>
-                          <p className="text-[9px] text-gray-400 font-medium">JPG, PNG ou WebP. Max 5MB.</p>
+                          <p className="text-[7px] md:text-[8px] text-gray-400 font-bold uppercase tracking-widest">Formats: JPG, PNG, WebP. Max 5MB.</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="col-span-2 flex items-center gap-4 py-4 px-6 bg-gray-50 rounded-2xl">
+                    <div className="flex items-center gap-3 md:gap-4 py-4 md:py-5 px-5 md:px-6 bg-[#FCFBF7] rounded-xl md:rounded-2xl border border-gray-100">
                       <input
                         type="checkbox"
                         id="isActive"
                         checked={formData.isActive}
                         onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                        className="w-5 h-5 accent-[#BC9C6C]"
+                        className="w-5 h-5 md:w-6 md:h-6 accent-[#BC9C6C] rounded-md"
                       />
-                      <label htmlFor="isActive" className="text-xs font-black uppercase tracking-widest text-[#321B13]">Rendre ce service actif immédiatement</label>
+                      <label htmlFor="isActive" className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#321B13] cursor-pointer">Activer cette catégorie immédiatement</label>
                     </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={formLoading}
-                    className="w-full bg-[#321B13] text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-[#BC9C6C] transition-all shadow-xl shadow-[#321B13]/10"
+                    className="w-full bg-[#321B13] text-white py-4 md:py-5 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 hover:bg-[#BC9C6C] transition-all shadow-xl shadow-[#321B13]/10"
                   >
-                    {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                    {editingService ? "Sauvegarder les modifications" : "Créer le service"}
+                    {formLoading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Save className="w-4 h-4 md:w-5 md:h-5" />}
+                    {editingCategory ? "Mettre à jour" : "Créer la catégorie"}
                   </button>
                 </form>
               </div>
