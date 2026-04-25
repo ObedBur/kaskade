@@ -5,20 +5,19 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { Bell, Search, Menu, X, ChevronDown } from 'lucide-react';
 
-export default function AdminNavbar() {
+export default function AdminNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header className="h-20 bg-[#321B13] border-b border-white/5 flex items-center justify-between px-4 md:px-10 sticky top-0 z-50">
+    <header className="h-20 bg-[#321B13] border-b border-white/5 flex items-center justify-between px-4 md:px-10 sticky top-0 z-50 lg:ml-72 transition-all duration-300">
 
       {/* Left Interface: Logo & Search (Start Alignment) */}
       <div className="flex items-center gap-4 md:gap-8 flex-1">
         <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onClick={onMenuClick}
           className="lg:hidden p-2 text-white/70 hover:text-[#BC9C6C] transition-colors"
         >
-          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          <Menu size={20} />
         </button>
 
         {/* Search Bar - Now at start */}
@@ -39,7 +38,7 @@ export default function AdminNavbar() {
       <div className="flex items-center gap-4 group cursor-pointer">
         {/* Notifications - Moved in front of the name */}
         <Link
-          href="/admin/notifications"
+          href="/admin/notification"
           className="relative p-2 text-white/30 hover:text-[#BC9C6C] transition-all"
         >
           <Bell className="w-4 h-4 text-white/50" />
@@ -65,25 +64,6 @@ export default function AdminNavbar() {
         <ChevronDown className="w-3 h-3 text-white/30 group-hover:text-[#BC9C6C] transition-colors ml-1 hidden sm:block" />
       </div>
 
-      {/* Mobile Drawer (Simplified) */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-20 left-0 right-0 bg-[#321B13] border-b border-white/5 p-4 flex flex-col gap-4 lg:hidden animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-3 p-4 bg-white/5 border border-white/10">
-            <Search className="w-4 h-4 text-[#BC9C6C]" />
-            <input
-              type="text"
-              placeholder="RECHERCHER..."
-              className="bg-transparent border-none outline-none text-[10px] font-black tracking-[0.2em] text-white w-full uppercase"
-            />
-          </div>
-          <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] px-4 pt-4">Navigation Rapide</p>
-          <nav className="flex flex-col gap-1">
-            <Link href="/admin/dashboard" className="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest hover:bg-[#BC9C6C] hover:text-[#321B13] transition-colors">Vue Globale</Link>
-            <Link href="/admin/notifications" className="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest hover:bg-[#BC9C6C] hover:text-[#321B13] transition-colors">Notifications</Link>
-            <Link href="/admin/users" className="px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest hover:bg-[#BC9C6C] hover:text-[#321B13] transition-colors">Utilisateurs</Link>
-          </nav>
-        </div>
-      )}
     </header>
   );
 }

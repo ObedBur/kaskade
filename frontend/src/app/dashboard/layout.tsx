@@ -59,7 +59,6 @@ export default function DashboardLayout({
     { name: "Mes Missions", href: "/dashboard/mes-missions", icon: ClipboardList },
     { name: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: unreadNotifs },
     { name: "Profil", href: "/dashboard/profil", icon: User },
-    { name: "Paramètres", href: "/dashboard/parametres", icon: Settings },
   ];
 
   if (!user) return null;

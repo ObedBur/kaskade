@@ -18,6 +18,8 @@ import {
   Phone,
   Mail,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminGuard } from "@/lib/use-admin-guard";
@@ -78,6 +80,8 @@ export default function AdminPrestatairePage() {
   const [search, setSearch] = useState("");
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const fetchApplications = async () => {
     try {
@@ -141,6 +145,16 @@ export default function AdminPrestatairePage() {
     return statusMatch && searchMatch;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, search]);
+
+  const totalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
+  const paginatedApplications = filteredApplications.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   const counts = {
     all: applications.length,
     pending: applications.filter((a) => a.status === "PENDING").length,
@@ -159,7 +173,7 @@ export default function AdminPrestatairePage() {
 
   if (authLoading || (isAuthenticated && dataLoading)) {
     return (
-      <div className="p-12 flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen">
         <Loader2 className="w-10 h-10 animate-spin text-[#BC9C6C]" />
       </div>
     );
@@ -168,7 +182,7 @@ export default function AdminPrestatairePage() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="p-8 md:p-12">
+    <div className="">
       {/* Header */}
       <header className="mb-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
@@ -210,7 +224,7 @@ export default function AdminPrestatairePage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="bg-slate-50 p-1.5 rounded-2xl flex gap-1 w-fit">
+        <div className="bg-slate-50 p-1.5 rounded-2xl flex flex-wrap gap-1 w-full md:w-fit">
           {(
             [
               { key: "ALL", label: "Toutes" },
@@ -248,9 +262,10 @@ export default function AdminPrestatairePage() {
 
       {/* Applications Table */}
       {!error && (
-        <div className="space-y-3">
-          {filteredApplications.length > 0 ? (
-            filteredApplications.map((app, i) => {
+        <div className="space-y-4">
+          <div className="space-y-3 max-h-[650px] overflow-y-auto custom-scrollbar pr-2">
+            {paginatedApplications.length > 0 ? (
+              paginatedApplications.map((app, i) => {
               const config = statusConfig[app.status];
               const StatusIcon = config.icon;
 
@@ -319,7 +334,47 @@ export default function AdminPrestatairePage() {
               </p>
             </div>
           )}
-        </div>
+          </div>
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 border border-slate-100 rounded-2xl shadow-sm gap-4">
+            <p className="text-xs font-bold text-slate-400 text-center sm:text-left">
+              Affichage de <span className="text-[#321B13]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> à <span className="text-[#321B13]">{Math.min(currentPage * ITEMS_PER_PAGE, filteredApplications.length)}</span> sur <span className="text-[#321B13]">{filteredApplications.length}</span> candidatures
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-[#321B13] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] custom-scrollbar">
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentPage(idx + 1)}
+                    className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition-all ${
+                      currentPage === idx + 1
+                        ? "bg-[#321B13] text-white"
+                        : "bg-transparent text-slate-500 hover:bg-slate-100"
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-[#321B13] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -479,11 +534,11 @@ export default function AdminPrestatairePage() {
               {/* Footer Actions — Fixed at bottom */}
               <div className="border-t border-slate-100 px-8 md:px-10 py-5 bg-slate-50/80 backdrop-blur-sm flex-shrink-0">
                 {selectedApp.status === "PENDING" ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
                     <button
                       onClick={() => handleApprove(selectedApp.id)}
                       disabled={actionLoading === selectedApp.id}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                      className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-emerald-500/20"
                     >
                       {actionLoading === selectedApp.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -495,7 +550,7 @@ export default function AdminPrestatairePage() {
                     <button
                       onClick={() => handleReject(selectedApp.id)}
                       disabled={actionLoading === selectedApp.id}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-red-500 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-50 transition-all active:scale-[0.98] disabled:opacity-50"
+                      className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-red-500 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-50 transition-all active:scale-[0.98] disabled:opacity-50"
                     >
                       {actionLoading === selectedApp.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

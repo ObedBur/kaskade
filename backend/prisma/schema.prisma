@@ -51,6 +51,7 @@ model Service {
   category    String    
   description String?   @db.Text
   price       Float     
+  currency    String    @default("USD")
   isActive    Boolean   @default(true)
 
   imageKey    String?   
@@ -98,6 +99,7 @@ model Request {
   scheduledAt DateTime
 
   price       Float?
+  currency    String    @default("USD")
   acceptedAt  DateTime?
 
   status      RequestStatus @default(PENDING)

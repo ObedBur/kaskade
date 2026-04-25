@@ -11,7 +11,7 @@ import { Role, RequestStatus } from '@prisma/client';
 export class AdminFinancialsController {
   private readonly logger = new Logger(AdminFinancialsController.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   @Get()
   async getFinancials() {
@@ -25,9 +25,13 @@ export class AdminFinancialsController {
       include: {
         client: { select: { fullName: true } },
         service: { select: { name: true } },
+        payments: { where: { status: 'SUCCESS' }, take: 1 }
       },
       orderBy: { updatedAt: 'desc' },
     });
+
+    // Déterminer la devise majoritaire ou par défaut
+    const defaultCurrency = completedRequests[0]?.payments[0]?.currency || 'FC';
 
     const totalRevenue = completedRequests.reduce((sum, req) => sum + (req.price || 0), 0);
     const completedCount = completedRequests.filter(r => r.status === RequestStatus.COMPLETED).length;
@@ -36,7 +40,7 @@ export class AdminFinancialsController {
     const stats = [
       {
         label: "Revenu Total",
-        value: `${totalRevenue.toLocaleString()} FC`,
+        value: `${totalRevenue.toLocaleString()} ${defaultCurrency}`,
         trend: "+12.5%",
         color: "text-emerald-500"
       },
@@ -54,23 +58,26 @@ export class AdminFinancialsController {
       },
       {
         label: "Prix Moyen Mission",
-        value: completedRequests.length > 0 
-          ? `${Math.round(totalRevenue / completedRequests.length).toLocaleString()} FC`
-          : "0 FC",
+        value: completedRequests.length > 0
+          ? `${Math.round(totalRevenue / completedRequests.length).toLocaleString()} ${defaultCurrency}`
+          : `0 ${defaultCurrency}`,
         trend: "Stable",
         color: "text-purple-500"
       }
     ];
 
     // Transform requests into transaction items for the frontend
-    const transactions = completedRequests.map(req => ({
-      id: req.id.slice(0, 8),
-      type: req.status === RequestStatus.COMPLETED ? "PAIEMENT" : "ACOMPTE",
-      amount: `${req.price?.toLocaleString()} FC`,
-      status: req.status === RequestStatus.COMPLETED ? "RÉUSSI" : "EN ATTENTE",
-      date: new Date(req.updatedAt).toLocaleDateString('fr-FR'),
-      method: req.service.name + " (" + req.client.fullName + ")"
-    }));
+    const transactions = completedRequests.map(req => {
+      const currency = req.payments[0]?.currency || 'FC';
+      return {
+        id: req.id.slice(0, 8),
+        type: req.status === RequestStatus.COMPLETED ? "PAIEMENT" : "ACOMPTE",
+        amount: `${req.price?.toLocaleString()} ${currency}`,
+        status: req.status === RequestStatus.COMPLETED ? "RÉUSSI" : "EN ATTENTE",
+        date: new Date(req.updatedAt).toLocaleDateString('fr-FR'),
+        method: req.service.name + " (" + req.client.fullName + ")"
+      };
+    });
 
     return {
       stats,

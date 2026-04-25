@@ -14,6 +14,7 @@ type RequestItem = {
   amount: string;
   status: string;
   date: string;
+  avatarUrl?: string | null;
 };
 
 export default function AdminRequestsPage() {
@@ -32,14 +33,18 @@ export default function AdminRequestsPage() {
         const res = await api.get('/admin/requests');
         const data = Array.isArray(res.data) ? res.data : (res.data.requests || []);
         
-        const mapped: RequestItem[] = data.map((r: any) => ({
-          id: r.id,
-          client: r.client?.fullName || 'Inconnu',
-          service: r.service?.name || 'Service supprimé',
-          amount: r.price ? `${r.price.toLocaleString()} FC` : 'Non fixé',
-          status: r.status,
-          date: new Date(r.createdAt).toLocaleDateString('fr-FR')
-        }));
+        const mapped: RequestItem[] = data.map((r: any) => {
+          const currency = r.payments?.[0]?.currency || 'FC';
+          return {
+            id: r.id,
+            client: r.client?.fullName || 'Inconnu',
+            service: r.service?.name || 'Service supprimé',
+            amount: r.price ? `${r.price.toLocaleString()} ${currency}` : 'Non fixé',
+            status: r.status,
+            date: new Date(r.createdAt).toLocaleDateString('fr-FR'),
+            avatarUrl: r.client?.avatarUrl || null
+          };
+        });
         
         setRequests(mapped);
       } catch (err) {
@@ -81,20 +86,20 @@ export default function AdminRequestsPage() {
   };
 
   if (authLoading || (isAuthenticated && dataLoading)) {
-    return <div className="p-12 flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
   }
 
   if (!isAuthenticated) return null;
 
   return (
-    <div className="p-12">
-      <header className="flex justify-between items-center mb-16 gap-8">
+    <div className="">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-8">
         <div>
           <h1 className="text-4xl font-black tracking-tight mb-2">Demandes de Service</h1>
           <p className="text-slate-400 text-sm font-medium">Flux réel récupéré via l'API NestJS.</p>
         </div>
         
-        <div className="flex-1 max-w-lg group relative">
+        <div className="w-full md:flex-1 max-w-lg group relative">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
             type="text" 
@@ -112,10 +117,10 @@ export default function AdminRequestsPage() {
         </div>
       ) : (
       <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-xl shadow-slate-200/40">
-         <div className="flex justify-between items-center mb-12">
-            <h3 className="text-2xl font-black">Historique des Flux</h3>
-            <button className="flex items-center gap-2 text-xs font-bold text-[#FF6B00] hover:bg-[#FF6B00]/5 px-6 py-3 rounded-2xl transition-all">
-              <Filter className="w-4 h-4" /> Filtres Avancés
+         <div className="flex flex-row justify-between items-center gap-4 mb-12 w-full">
+            <h3 className="text-xl md:text-2xl font-black truncate">Historique des Flux</h3>
+            <button className="flex justify-center items-center gap-2 text-xs font-bold text-[#FF6B00] hover:bg-[#FF6B00]/5 px-4 md:px-6 py-3 rounded-2xl transition-all shrink-0">
+              <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filtres Avancés</span>
             </button>
          </div>
 
@@ -127,18 +132,26 @@ export default function AdminRequestsPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="flex items-center justify-between p-6 rounded-3xl border border-slate-50 hover:border-[#BC9C6C]/30 hover:bg-slate-50/50 transition-all cursor-pointer group"
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 rounded-3xl border border-slate-50 hover:border-[#BC9C6C]/30 hover:bg-slate-50/50 transition-all cursor-pointer group gap-6 md:gap-4"
                 >
-                   <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 rounded-2xl bg-[#321B13]/5 flex items-center justify-center text-[#321B13] font-bold text-xs truncate">
-                        {req.id.slice(-4)}
+                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
+                      <div className="w-12 h-12 rounded-2xl bg-[#321B13]/5 flex items-center justify-center text-[#321B13] font-bold text-xs shrink-0 overflow-hidden">
+                        {req.avatarUrl ? (
+                          <img 
+                            src={req.avatarUrl.startsWith('http') ? req.avatarUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${req.avatarUrl}`} 
+                            alt={req.client} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          req.id.slice(-4)
+                        )}
                       </div>
-                      <div>
-                         <h5 className="font-bold text-sm tracking-tight">{req.service} <span className="text-slate-200 mx-2">•</span> {req.client}</h5>
-                         <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{req.id.slice(0, 8)}... — {req.date}</p>
+                      <div className="min-w-0">
+                         <h5 className="font-bold text-sm tracking-tight whitespace-normal">{req.service} <span className="text-slate-200 mx-1 sm:mx-2">•</span> {req.client}</h5>
+                         <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1 whitespace-normal">{req.id.slice(0, 8)}... — {req.date}</p>
                       </div>
                    </div>
-                   <div className="flex items-center gap-4">
+                   <div className="flex flex-row flex-wrap items-center justify-between sm:justify-end w-full md:w-auto gap-4 pl-0 sm:pl-16 md:pl-0">
                       <p className="font-black text-sm mr-2">{req.amount}</p>
                       
                       {req.status === 'EN ATTENTE' ? (

@@ -115,7 +115,7 @@ export default function DevenirPrestataireForm() {
       toast.success("Candidature soumise avec succès !");
       setIsSubmitted(true);
       setTimeout(() => {
-        router.push('/mes-demandes');
+        router.push('/');
       }, 5000);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Erreur lors de la soumission de la candidature.");
@@ -136,12 +136,12 @@ export default function DevenirPrestataireForm() {
           <div className="w-20 h-20 bg-ocre/10 rounded-full flex items-center justify-center mb-8">
             <CheckCircle className="w-10 h-10 text-ocre" />
           </div>
-          <h3 className="text-3xl font-serif font-black text-chocolat mb-6 uppercase tracking-tighter">Dossier Complet.</h3>
+          <h3 className="text-3xl font-serif font-black text-chocolat mb-6 uppercase tracking-tighter">Dossier Reçu.</h3>
           <p className="text-chocolat/70 text-sm leading-relaxed max-w-sm mb-10">
-            Merci pour votre candidature détaillée. Nos experts vont analyser votre profil professionnel avec la plus grande attention.
+            Votre candidature a été soumise avec succès. Veuillez patienter pendant qu'un administrateur examine votre profil. Une fois approuvé, vos accès prestataires seront activés automatiquement.
           </p>
           <button 
-            onClick={() => router.push('/mes-demandes')}
+            onClick={() => router.push('/')}
             className="text-ocre font-black uppercase tracking-[0.2em] text-[10px] hover:text-chocolat transition-all"
           >
             Retour à l'accueil

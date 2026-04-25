@@ -34,7 +34,7 @@ export class AdminDashboardService {
         status: { in: [RequestStatus.PENDING, RequestStatus.APPROVED, RequestStatus.ACCEPTED, RequestStatus.IN_PROGRESS, RequestStatus.AWAITING_FINAL] },
         price: { not: null },
       },
-      select: { price: true },
+      select: { price: true, currency: true },
     });
 
     // 2. Les missions terminées ont généré 100% (Acompte + Solde Final)
@@ -43,12 +43,35 @@ export class AdminDashboardService {
         status: RequestStatus.COMPLETED,
         price: { not: null },
       },
-      select: { price: true },
+      select: { price: true, currency: true },
     });
 
-    const activeRevenue = activeRequests.reduce((sum, req) => sum + ((req.price || 0) * 0.5), 0);
-    const completedRevenue = completedPaidRequests.reduce((sum, req) => sum + (req.price || 0), 0);
-    const totalRevenue = activeRevenue + completedRevenue;
+    const activeRevenue = activeRequests.reduce((acc: any, req) => {
+      const curr = req.currency || 'USD';
+      acc[curr] = (acc[curr] || 0) + ((req.price || 0) * 0.5);
+      return acc;
+    }, {});
+
+    const completedRevenue = completedPaidRequests.reduce((acc: any, req) => {
+      const curr = req.currency || 'USD';
+      acc[curr] = (acc[curr] || 0) + (req.price || 0);
+      return acc;
+    }, {});
+
+    // Fusionner les revenus par devise (en gérant les synonymes CDF/FC)
+    const totalRevenue: Record<string, number> = { USD: 0, CDF: 0 };
+    
+    const allCurrencies = new Set([...Object.keys(activeRevenue), ...Object.keys(completedRevenue)]);
+    
+    allCurrencies.forEach(c => {
+      const amount = (activeRevenue[c] || 0) + (completedRevenue[c] || 0);
+      if (c === 'USD') {
+        totalRevenue.USD += amount;
+      } else {
+        // Tout ce qui n'est pas USD est considéré comme FC/CDF
+        totalRevenue.CDF += amount;
+      }
+    });
 
     // Additional "Important" Data
     const topQuartier = await this.prisma.user.groupBy({

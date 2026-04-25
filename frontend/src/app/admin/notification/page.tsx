@@ -90,7 +90,7 @@ export default function AdminNotificationsPage() {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="min-h-screen p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-8 border-b border-gray-100">
@@ -106,20 +106,21 @@ export default function AdminNotificationsPage() {
         <button 
           onClick={markAllAsRead}
           disabled={unreadCount === 0}
-          className="px-6 py-3 bg-[#321B13] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#BC9C6C] transition-colors disabled:opacity-30"
+          className="px-6 py-3 w-full md:w-auto bg-[#321B13] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#BC9C6C] transition-colors disabled:opacity-30 shrink-0"
         >
           Tout marquer comme lu
         </button>
       </div>
 
       {/* Notifications List */}
-      <div className="space-y-4">
+      <div className="max-h-[650px] overflow-y-auto custom-scrollbar pr-2 md:pr-4">
+        <div className="space-y-4">
         {notifications.length > 0 ? (
           notifications.map((n) => (
             <div 
               key={n.id}
               onClick={() => !n.isRead && markAsRead(n.id)}
-              className={`group relative flex items-start gap-6 p-8 border transition-all cursor-pointer ${
+              className={`group relative flex flex-col sm:flex-row items-start gap-4 sm:gap-6 p-4 md:p-8 border transition-all cursor-pointer ${
                 n.isRead 
                   ? "bg-white border-gray-100 opacity-60" 
                   : "bg-white border-[#BC9C6C]/30 shadow-sm hover:border-[#BC9C6C]"
@@ -138,14 +139,14 @@ export default function AdminNotificationsPage() {
               </div>
 
               {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className={`text-sm font-black uppercase tracking-tight ${
+              <div className="flex-1 min-w-0 w-full">
+                <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-1 sm:gap-4">
+                  <h3 className={`text-sm font-black uppercase tracking-tight break-words ${
                     n.isRead ? "text-gray-500" : "text-[#321B13]"
                   }`}>
                     {n.title}
                   </h3>
-                  <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">
+                  <span className="text-[9px] font-bold text-gray-400 sm:text-gray-300 uppercase tracking-widest shrink-0">
                     {new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -157,7 +158,7 @@ export default function AdminNotificationsPage() {
               </div>
 
               {/* Actions */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity self-end sm:self-auto mt-2 sm:mt-0">
                 <button className="p-2 text-gray-300 hover:text-red-500">
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -170,6 +171,7 @@ export default function AdminNotificationsPage() {
              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Aucune notification pour le moment</p>
           </div>
         )}
+        </div>
       </div>
 
     </div>

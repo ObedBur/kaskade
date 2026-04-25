@@ -31,6 +31,10 @@ export class CreateServiceDto {
 
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
 }
 
 /**
@@ -43,6 +47,7 @@ export class ServiceResponseDto {
   category: string;
   description: string | null;
   price: number;
+  currency: string;
   isActive: boolean;
   imageUrl: string | null;
   createdAt: Date;
@@ -75,4 +80,8 @@ export class UpdateServiceDto {
 
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
 }

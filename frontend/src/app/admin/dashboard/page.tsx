@@ -20,7 +20,7 @@ interface DashboardStats {
   users: { total: number; clients: number; providers: number };
   requests: { total: number; pending: number; inProgress: number; completed: number };
   services: { total: number };
-  revenue: number;
+  revenue: Record<string, number>;
 }
 
 interface RecentActivity {
@@ -67,15 +67,15 @@ export default function AdminDashboardPage() {
 
   if (!isAuthenticated) return null;
 
-  const exchangeRate = 2800; // Exemple: 1 USD = 2800 FC
-  const revenueFC = stats?.revenue || 0;
-  const revenueUSD = revenueFC / exchangeRate;
+  const revenue = stats?.revenue || { USD: 0, CDF: 0 };
+  const hasUSD = (revenue.USD || 0) > 0;
+  const hasCDF = (revenue.CDF || 0) > 0;
 
   const topCards = [
     {
       title: "Revenue",
-      value: `${revenueFC.toLocaleString()} FC`,
-      sub: `≈ ${revenueUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+      value: hasUSD ? `${revenue.USD.toLocaleString('fr-FR')} $` : (hasCDF ? `${revenue.CDF.toLocaleString('fr-FR')} FC` : '0 FC'),
+      sub: (hasUSD && hasCDF) ? `+ ${revenue.CDF.toLocaleString('fr-FR')} FC` : "C.A Plateforme",
       icon: TrendingUp,
       color: "text-green-600"
     },
@@ -86,7 +86,7 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-transparent p-8 space-y-8 font-sans">
+    <div className="space-y-8 font-sans">
 
       {/* 5 Stats Cards - Top Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">

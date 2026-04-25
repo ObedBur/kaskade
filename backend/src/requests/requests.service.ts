@@ -135,8 +135,9 @@ export class RequestsService {
       include: {
         service: true,
         client: {
-          select: { id: true, fullName: true, email: true, phone: true },
+          select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true },
         },
+        payments: { where: { status: 'SUCCESS' }, take: 1 },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -148,8 +149,9 @@ export class RequestsService {
       include: {
         service: true,
         client: {
-          select: { id: true, fullName: true, email: true, phone: true },
+          select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true },
         },
+        payments: { where: { status: 'SUCCESS' }, take: 1 },
       },
     });
 

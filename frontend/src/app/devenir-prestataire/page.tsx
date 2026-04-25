@@ -31,8 +31,8 @@ export default function DevenirPrestatairePage() {
              <DevenirPrestataireForm />
           </div>
 
-          {/* Colonne de droite : Avantages & Image */}
-          <div className="lg:col-span-5 space-y-16 mt-12 lg:mt-32">
+          {/* Colonne de droite : Avantages & Image (Masquée sur mobile) */}
+          <div className="hidden lg:block lg:col-span-5 space-y-16 mt-12 lg:mt-32">
              <motion.div 
                initial={{ opacity: 0, x: 20 }}
                animate={{ opacity: 1, x: 0 }}

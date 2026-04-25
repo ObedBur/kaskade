@@ -32,6 +32,7 @@ export class ServicesService {
       category: service.category,
       description: service.description || null,
       price: service.price,
+      currency: service.currency,
       isActive: service.isActive,
       imageUrl: this.storageService.getPublicUrl(service.imageKey), // ← Génère URL depuis imageKey
       createdAt: service.createdAt,
