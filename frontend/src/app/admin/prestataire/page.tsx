@@ -187,8 +187,8 @@ export default function AdminPrestatairePage() {
       <header className="mb-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
-              Candidatures Prestataires
+            <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black text-[#321B13] tracking-tighter uppercase leading-none">
+              Candidatures Prestataires<span className="text-[#BC9C6C]">.</span>
             </h1>
             <p className="text-slate-400 text-sm font-medium">
               Analysez et traitez les demandes des candidats souhaitant devenir prestataires.
@@ -236,11 +236,10 @@ export default function AdminPrestatairePage() {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all ${
-                filter === tab.key
-                  ? "bg-white text-[#321B13] shadow-sm"
-                  : "text-slate-400 hover:text-slate-600"
-              }`}
+              className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all ${filter === tab.key
+                ? "bg-white text-[#321B13] shadow-sm"
+                : "text-slate-400 hover:text-slate-600"
+                }`}
             >
               {tab.label}
               {tab.key === "PENDING" && counts.pending > 0 && (
@@ -266,115 +265,113 @@ export default function AdminPrestatairePage() {
           <div className="space-y-3 max-h-[650px] overflow-y-auto custom-scrollbar pr-2">
             {paginatedApplications.length > 0 ? (
               paginatedApplications.map((app, i) => {
-              const config = statusConfig[app.status];
-              const StatusIcon = config.icon;
+                const config = statusConfig[app.status];
+                const StatusIcon = config.icon;
 
-              return (
-                <motion.div
-                  key={app.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  onClick={() => setSelectedApp(app)}
-                  className={`flex items-center gap-5 p-5 bg-white border rounded-2xl cursor-pointer hover:shadow-md transition-all group ${
-                    app.status === "PENDING"
+                return (
+                  <motion.div
+                    key={app.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    onClick={() => setSelectedApp(app)}
+                    className={`flex items-center gap-5 p-5 bg-white border rounded-2xl cursor-pointer hover:shadow-md transition-all group ${app.status === "PENDING"
                       ? "border-amber-200/60 hover:border-amber-300"
                       : "border-slate-100 hover:border-slate-200"
-                  }`}
-                >
-                  {/* Avatar */}
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-slate-100 bg-slate-50 flex-shrink-0 flex items-center justify-center group-hover:border-[#BC9C6C]/30 transition-colors">
-                    {app.user.avatarUrl ? (
-                      <img src={app.user.avatarUrl} alt={app.user.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-sm font-black text-slate-300">
-                        {app.user.fullName.split(" ").map((n) => n[0]).join("")}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-bold text-sm truncate">{app.user.fullName}</h3>
-                      {app.user.isVerified && <Shield className="w-3.5 h-3.5 text-[#BC9C6C] flex-shrink-0" />}
-                    </div>
-                    <p className="text-xs text-slate-400 truncate">{app.user.email}</p>
-                  </div>
-
-                  {/* Métier */}
-                  <div className="hidden md:block text-right min-w-[140px]">
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Métier</p>
-                    <p className="text-xs font-bold text-slate-600 truncate">{app.user.metier || "—"}</p>
-                  </div>
-
-                  {/* Date */}
-                  <div className="hidden lg:block text-right min-w-[100px]">
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Soumis le</p>
-                    <p className="text-xs font-bold text-slate-600">
-                      {new Date(app.createdAt).toLocaleDateString("fr-FR")}
-                    </p>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${config.bg} ${config.color} ${config.border} border`}
+                      }`}
                   >
-                    <StatusIcon className="w-3 h-3" />
-                    {config.label}
-                  </div>
-                </motion.div>
-              );
-            })
-          ) : (
-            <div className="py-24 text-center">
-              <AlertTriangle className="w-10 h-10 text-slate-200 mx-auto mb-4" />
-              <p className="text-slate-300 text-xs font-bold uppercase tracking-widest">
-                Aucune candidature trouvée
-              </p>
-            </div>
-          )}
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-slate-100 bg-slate-50 flex-shrink-0 flex items-center justify-center group-hover:border-[#BC9C6C]/30 transition-colors">
+                      {app.user.avatarUrl ? (
+                        <img src={app.user.avatarUrl} alt={app.user.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-black text-slate-300">
+                          {app.user.fullName.split(" ").map((n) => n[0]).join("")}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h3 className="font-bold text-sm truncate">{app.user.fullName}</h3>
+                        {app.user.isVerified && <Shield className="w-3.5 h-3.5 text-[#BC9C6C] flex-shrink-0" />}
+                      </div>
+                      <p className="text-xs text-slate-400 truncate">{app.user.email}</p>
+                    </div>
+
+                    {/* Métier */}
+                    <div className="hidden md:block text-right min-w-[140px]">
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Métier</p>
+                      <p className="text-xs font-bold text-slate-600 truncate">{app.user.metier || "—"}</p>
+                    </div>
+
+                    {/* Date */}
+                    <div className="hidden lg:block text-right min-w-[100px]">
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Soumis le</p>
+                      <p className="text-xs font-bold text-slate-600">
+                        {new Date(app.createdAt).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${config.bg} ${config.color} ${config.border} border`}
+                    >
+                      <StatusIcon className="w-3 h-3" />
+                      {config.label}
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="py-24 text-center">
+                <AlertTriangle className="w-10 h-10 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-300 text-xs font-bold uppercase tracking-widest">
+                  Aucune candidature trouvée
+                </p>
+              </div>
+            )}
           </div>
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 border border-slate-100 rounded-2xl shadow-sm gap-4">
-            <p className="text-xs font-bold text-slate-400 text-center sm:text-left">
-              Affichage de <span className="text-[#321B13]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> à <span className="text-[#321B13]">{Math.min(currentPage * ITEMS_PER_PAGE, filteredApplications.length)}</span> sur <span className="text-[#321B13]">{filteredApplications.length}</span> candidatures
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-[#321B13] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] custom-scrollbar">
-                {Array.from({ length: totalPages }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentPage(idx + 1)}
-                    className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition-all ${
-                      currentPage === idx + 1
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-white px-6 py-4 border border-slate-100 rounded-2xl shadow-sm gap-4">
+              <p className="text-xs font-bold text-slate-400 text-center sm:text-left">
+                Affichage de <span className="text-[#321B13]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> à <span className="text-[#321B13]">{Math.min(currentPage * ITEMS_PER_PAGE, filteredApplications.length)}</span> sur <span className="text-[#321B13]">{filteredApplications.length}</span> candidatures
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-[#321B13] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-1 overflow-x-auto max-w-[200px] custom-scrollbar">
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentPage(idx + 1)}
+                      className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition-all ${currentPage === idx + 1
                         ? "bg-[#321B13] text-white"
                         : "bg-transparent text-slate-500 hover:bg-slate-100"
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
+                        }`}
+                    >
+                      {idx + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-[#321B13] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-[#321B13] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════ */}

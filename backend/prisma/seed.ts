@@ -43,39 +43,6 @@ async function main() {
   });
   console.log(`✅ Admin: ${admin.email}`);
 
-  // 2. PROVIDER
-  const provider = await prisma.user.upsert({
-    where: { email: 'provider@gmail.com' },
-    update: {},
-    create: {
-      email: 'provider@gmail.com',
-      password: passwordHash,
-      fullName: 'Provider (Prestataire)',
-      phone: '+243991111111',
-      role: Role.PROVIDER,
-      quartier: 'Goma',
-      isVerified: true,
-      isActive: true,
-    },
-  });
-  console.log(`✅ Provider: ${provider.email}`);
-
-  // 3. CLIENT
-  const client = await prisma.user.upsert({
-    where: { email: 'client@gmail.com' },
-    update: {},
-    create: {
-      email: 'client@gmail.com',
-      password: passwordHash,
-      fullName: 'Client (Client)',
-      phone: '+243992222222',
-      role: Role.CLIENT,
-      quartier: 'Goma',
-      isVerified: true,
-      isActive: true,
-    },
-  });
-  console.log(`✅ Client: ${client.email}`);
 
   console.log('✅ Seed des utilisateurs terminé avec succès!');
 }

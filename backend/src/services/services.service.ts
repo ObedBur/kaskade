@@ -19,7 +19,7 @@ export class ServicesService {
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   /**
    * Formate un service pour la réponse API
@@ -31,10 +31,12 @@ export class ServicesService {
       name: service.name,
       category: service.category,
       description: service.description || null,
-      price: service.price || 0, // Retourne 0 si null pour le frontend
+      price: service.price || 0,
       currency: service.currency || 'USD',
       isActive: service.isActive,
       imageUrl: this.storageService.getPublicUrl(service.imageKey),
+      workingHoursStart: service.workingHoursStart || '06:00',
+      workingHoursEnd: service.workingHoursEnd || '18:00',
       createdAt: service.createdAt,
       updatedAt: service.updatedAt,
     };

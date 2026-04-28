@@ -121,7 +121,9 @@ export class NotificationsListener {
   async handleServiceCreated(payload: { serviceId: string; serviceName: string }) {
     try {
       const users = await this.prisma.user.findMany({ 
-        where: { role: { in: ['CLIENT', 'PROVIDER'] } } 
+        where: { 
+          role: { in: ['PROVIDER', 'CLIENT'] }
+        } 
       });
       const notifications = users.map((user) => ({
         userId: user.id,
@@ -143,7 +145,7 @@ export class NotificationsListener {
   async handleServiceUpdated(payload: { serviceId: string; serviceName: string }) {
     try {
       const users = await this.prisma.user.findMany({ 
-        where: { role: { in: ['CLIENT', 'PROVIDER'] } } 
+        where: { role: 'PROVIDER' } 
       });
       
       const notifications = users.map((user) => ({
@@ -166,7 +168,7 @@ export class NotificationsListener {
   async handleServiceDeleted(payload: { serviceId: string; serviceName: string }) {
     try {
       const users = await this.prisma.user.findMany({ 
-        where: { role: { in: ['CLIENT', 'PROVIDER'] } } 
+        where: { role: 'PROVIDER' } 
       });
       
       const notifications = users.map((user) => ({

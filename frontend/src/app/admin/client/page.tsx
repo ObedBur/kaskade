@@ -210,32 +210,32 @@ export default function ClientDashboard() {
         </div>
       )}
 
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-[#BC9C6C] rounded-full"></div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#321B13]/40">Kaskade Admin</p>
-          </div>
-          <h1 className="text-4xl md:text-7xl font-black tracking-tighter bg-gradient-to-r from-[#321B13] via-[#321B13] to-[#BC9C6C] bg-clip-text text-transparent uppercase leading-none">
-            Gestion Clients
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-3xl lg:text-4xl xl:text-5xl font-black text-[#321B13] tracking-tighter uppercase leading-none">
+            Gestion des clients <span className="text-[#BC9C6C]">.</span>
           </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#321B13]/40 mt-3">
+            Liste complète et statistiques
+          </p>
         </div>
 
-        <div className="flex flex-col min-[360px]:flex-row items-stretch min-[360px]:items-center gap-4 w-full md:w-auto">
-          <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#321B13]/20 w-4 h-4 transition-colors group-focus-within:text-[#BC9C6C]" />
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto mt-6 md:mt-0">
+          <div className="relative flex-1 md:w-72 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 transition-colors group-focus-within:text-[#BC9C6C]" />
             <input
               type="text"
-              placeholder="Rechercher une identité..."
+              placeholder="Rechercher un client..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-[#321B13]/10 rounded-2xl py-3.5 pl-12 pr-6 text-sm focus:outline-none focus:ring-4 focus:ring-[#BC9C6C]/10 transition-all font-bold placeholder:text-[#321B13]/10"
+              className="w-full bg-white border border-gray-100 py-3.5 pl-11 pr-4 rounded-xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all min-w-[120px]"
             />
           </div>
-          <button className="flex items-center justify-center gap-3 px-8 py-3.5 bg-[#321B13] text-white rounded-2xl hover:bg-[#BC9C6C] hover:text-[#321B13] transition-all shadow-xl shadow-[#321B13]/5 group whitespace-nowrap">
-            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Nouveau</span>
+          <button
+            className="bg-[#321B13] text-white px-6 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#BC9C6C] transition-all shadow-xl shadow-[#321B13]/5 whitespace-nowrap shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Nouveau Client
           </button>
         </div>
       </header>

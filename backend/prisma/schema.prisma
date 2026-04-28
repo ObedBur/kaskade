@@ -55,6 +55,8 @@ model Service {
   isActive    Boolean   @default(true)
 
   imageKey    String?   
+  workingHoursStart String  @default("06:00")
+  workingHoursEnd   String  @default("18:00")
 
   // relations
   requests    Request[]

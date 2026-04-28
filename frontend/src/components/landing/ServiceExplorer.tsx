@@ -13,6 +13,8 @@ export interface Service {
   description: string;
   price: number;
   imageUrl: string | null;
+  workingHoursStart?: string;
+  workingHoursEnd?: string;
   provider?: {
     id: string;
     fullName: string;
@@ -38,7 +40,7 @@ export default function ServiceExplorer() {
       try {
         setIsLoading(true);
         const response = await api.get('/services');
-        setServices(response.data);
+        setServices(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error('Erreur chargement services:', err);
         setError('Impossible de charger les services. Veuillez réessayer.');
@@ -52,13 +54,13 @@ export default function ServiceExplorer() {
 
   return (
     <section className="py-16 md:py-20 bg-[#F5F3ED] relative overflow-hidden font-sans border-y border-ocre/10">
-      
+
       {/* Éléments de structure (Glows Kaskade) */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ocre/5 rounded-full blur-[100px] -z-10 translate-x-1/4 -translate-y-1/4" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-chocolat/5 rounded-full blur-[100px] -z-10 -translate-x-1/4 translate-y-1/4" />
 
       <div className="arcture-container relative z-10">
-        
+
         {/* EN-TÊTE : Inspiré de Stitch mais Style Kaskade */}
         <div className="max-w-4xl mb-16 md:mb-24">
           <motion.p
@@ -69,12 +71,12 @@ export default function ServiceExplorer() {
           >
             L'ÉCOSYSTÈME
           </motion.p>
-          
+
           <h2 className="text-5xl md:text-7xl font-black text-chocolat tracking-tighter leading-none uppercase mb-8">
-            Trouver un <br/> 
+            Trouver un <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-ocre to-[#d4af37] italic font-serif font-normal lowercase">service.</span>
           </h2>
-          
+
           <p className="text-chocolat/60 text-lg md:text-xl font-medium leading-relaxed max-w-2xl">
             Parcourez et demandez des services locaux certifiés pour tous vos besoins quotidiens, avec la garantie de qualité Kaskade.
           </p>
@@ -82,7 +84,7 @@ export default function ServiceExplorer() {
 
         {/* BARRE DE RECHERCHE & FILTRES : Style Premium Architectural */}
         <div className="flex flex-col gap-10">
-          
+
           {/* Bloc de Recherche (Inspiré de Stitch Search Bar) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
@@ -92,16 +94,16 @@ export default function ServiceExplorer() {
           >
             <div className="flex-1 flex items-center px-8 py-4 sm:py-6">
               <Search className="w-6 h-6 text-ocre mr-4" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Quel service recherchez-vous ?"
                 className="w-full bg-transparent border-none focus:ring-0 text-chocolat font-bold text-sm uppercase tracking-widest placeholder:text-chocolat/30"
               />
             </div>
-            
+
             <button className="bg-chocolat text-white px-12 py-5 sm:py-6 rounded-[2rem] font-black text-sm uppercase tracking-widest hover:bg-ocre hover:text-chocolat transition-all duration-300 shadow-lg shadow-chocolat/20 active:scale-95 group">
-               RECHERCHER
-               <ChevronRight className="w-4 h-4 inline-block ml-2 transition-transform group-hover:translate-x-1" />
+              RECHERCHER
+              <ChevronRight className="w-4 h-4 inline-block ml-2 transition-transform group-hover:translate-x-1" />
             </button>
           </motion.div>
 
@@ -120,12 +122,6 @@ export default function ServiceExplorer() {
                 <span className="text-[11px] font-black text-chocolat uppercase tracking-widest">{filter.name}</span>
               </motion.button>
             ))}
-            
-            <div className="ml-auto">
-               <button className="text-[10px] font-black text-ocre uppercase tracking-widest border-b border-ocre/20 hover:border-ocre pb-1 transition-all">
-                  Effacer les filtres
-               </button>
-            </div>
           </div>
 
         </div>
@@ -155,9 +151,9 @@ export default function ServiceExplorer() {
 
         {/* CTA FINAL pour plus de services */}
         <div className="mt-20 flex justify-center">
-           <button className="border-b-2 border-ocre/30 text-chocolat px-8 py-4 font-black text-xs uppercase tracking-[0.3em] hover:border-ocre transition-all active:scale-95">
-              Explorer tous les experts
-           </button>
+          <button className="border-b-2 border-ocre/30 text-chocolat px-8 py-4 font-black text-xs uppercase tracking-[0.3em] hover:border-ocre transition-all active:scale-95">
+            Explorer tous les experts
+          </button>
         </div>
 
       </div>

@@ -35,6 +35,14 @@ export class CreateServiceDto {
   @IsString()
   @IsOptional()
   currency?: string;
+
+  @IsString()
+  @IsOptional()
+  workingHoursStart?: string;
+
+  @IsString()
+  @IsOptional()
+  workingHoursEnd?: string;
 }
 
 /**
@@ -50,6 +58,8 @@ export class ServiceResponseDto {
   currency: string;
   isActive: boolean;
   imageUrl: string | null;
+  workingHoursStart: string;
+  workingHoursEnd: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,4 +93,12 @@ export class UpdateServiceDto {
   @IsString()
   @IsOptional()
   currency?: string;
+
+  @IsString()
+  @IsOptional()
+  workingHoursStart?: string;
+
+  @IsString()
+  @IsOptional()
+  workingHoursEnd?: string;
 }

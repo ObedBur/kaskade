@@ -15,6 +15,7 @@ import {
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface Notification {
   id: string;
@@ -23,11 +24,14 @@ interface Notification {
   type: string;
   isRead: boolean;
   createdAt: string;
+  serviceId?: string;
+  requestId?: string;
 }
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchNotifications = async () => {
     try {
@@ -51,6 +55,18 @@ export default function NotificationsPage() {
       setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
     } catch (err) {
       toast.error("Erreur lors de la mise à jour.");
+    }
+  };
+
+  const handleNotificationClick = async (notif: Notification) => {
+    if (!notif.isRead) {
+      await markAsRead(notif.id);
+    }
+    
+    if (notif.type === 'SERVICE_CREATED' || notif.type === 'SERVICE_UPDATED') {
+      router.push('/services');
+    } else if (notif.type.includes('REQUEST')) {
+      router.push('/dashboard/missions');
     }
   };
 
@@ -118,7 +134,8 @@ export default function NotificationsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ delay: i * 0.05 }}
-                className={`group p-8 border-b border-[#321B13]/5 flex items-start gap-8 hover:bg-[#FCFBF7] transition-all relative ${!notif.isRead ? 'bg-[#BC9C6C]/5' : ''}`}
+                onClick={() => handleNotificationClick(notif)}
+                className={`group p-8 border-b border-[#321B13]/5 flex items-start gap-8 hover:bg-[#FCFBF7] transition-all relative cursor-pointer ${!notif.isRead ? 'bg-[#BC9C6C]/5' : ''}`}
               >
                 {!notif.isRead && (
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#BC9C6C]"></div>
@@ -150,14 +167,14 @@ export default function NotificationsPage() {
                   <div className="flex items-center gap-6">
                     {!notif.isRead && (
                       <button 
-                        onClick={() => markAsRead(notif.id)}
+                        onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
                         className="text-[9px] font-black uppercase tracking-widest text-[#BC9C6C] hover:text-[#321B13] transition-colors"
                       >
                         Marquer comme lu
                       </button>
                     )}
                     <button 
-                      onClick={() => deleteNotification(notif.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
                       className="text-[9px] font-black uppercase tracking-widest text-red-400 opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1.5 hover:text-red-600"
                     >
                       <Trash2 className="w-3 h-3" />

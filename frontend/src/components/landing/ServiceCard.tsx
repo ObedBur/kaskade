@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Star, ShieldCheck, ArrowRight, Heart, CheckCircle, X, CreditCard, Smartphone, Loader2 } from "lucide-react";
+import { Star, ShieldCheck, ArrowRight, Heart, CheckCircle, X, CreditCard, Smartphone, Loader2, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Service } from "@/components/landing/ServiceExplorer";
 import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import Timing from "./Timing";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
@@ -21,7 +22,7 @@ function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; o
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const depositAmount = service.price * 0.5;
+  const depositAmount = (service.price || 0) * 0.5;
 
   const handleClose = () => {
     if (phase === 'WAITING_USSD') {
@@ -121,7 +122,7 @@ function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; o
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-chocolat/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-2 sm:p-4 bg-chocolat/80 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -141,15 +142,15 @@ function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; o
           <div className="p-4 sm:p-8 space-y-4 sm:space-y-8 overflow-y-auto">
             <div className="text-center py-3 sm:py-6 bg-chocolat text-white rounded-2xl relative overflow-hidden shrink-0">
               <div className="flex justify-between items-center px-4 sm:px-6 mb-1 sm:mb-3">
-                 <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-white/50 font-bold">Prix total</span>
-                 <span className="text-[10px] sm:text-xs font-bold text-white/50">${service.price.toLocaleString()}</span>
+                <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-white/50 font-bold">Prix total</span>
+                <span className="text-[10px] sm:text-xs font-bold text-white/50">${(service.price || 0).toLocaleString()}</span>
               </div>
-              
+
               <div className="border-t border-white/10 mx-4 sm:mx-6 mb-2 sm:mb-4"></div>
-              
+
               <p className="text-[9px] sm:text-[10px] uppercase tracking-widest text-ocre font-bold mb-0.5 sm:mb-1">Acompte (50%)</p>
               <p className="text-2xl sm:text-4xl font-black tracking-tighter text-white">${depositAmount.toLocaleString()}</p>
-              
+
               <div className="absolute -bottom-2 -right-2 p-4 opacity-5">
                 <CreditCard className="w-12 h-12 sm:w-20 sm:h-20" />
               </div>
@@ -230,9 +231,9 @@ function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; o
 }
 
 // ─── MODAL DE DÉTAILS DU SERVICE ────────────────────────────────────────────
-function ServiceDetailsModal({ service, onClose, onReserve }: { service: Service; onClose: () => void; onReserve: () => void }) {
+function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { service: Service; onClose: () => void; onReserve: () => void; onTiming: () => void }) {
   return (
-    <div className="fixed inset-0 z-[50] flex items-center justify-center p-2 sm:p-4 bg-chocolat/80 backdrop-blur-md overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-chocolat/80 backdrop-blur-md overflow-y-auto" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -256,7 +257,7 @@ function ServiceDetailsModal({ service, onClose, onReserve }: { service: Service
             </div>
             <div className="bg-white text-chocolat px-4 py-2 sm:py-3 rounded-2xl flex flex-col items-center shrink-0 shadow-xl">
               <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest opacity-50">PRIX TOTAL</span>
-              <span className="text-xl sm:text-2xl font-black leading-none mt-1">${service.price.toLocaleString()}</span>
+              <span className="text-xl sm:text-2xl font-black leading-none mt-1">${(service.price || 0).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -264,17 +265,31 @@ function ServiceDetailsModal({ service, onClose, onReserve }: { service: Service
         <div className="p-5 sm:p-8 overflow-y-auto bg-[#FCFBF7] flex flex-col flex-1">
           <div className="mb-8 flex-1">
             <h4 className="text-[10px] sm:text-xs font-black text-chocolat/40 uppercase tracking-widest mb-3">À propos de ce service</h4>
-            <p className="text-sm sm:text-base text-chocolat/80 leading-relaxed whitespace-pre-wrap">{service.description || "Aucune description fournie pour ce service."}</p>
+            <p className="text-sm sm:text-base text-chocolat/80 leading-relaxed whitespace-pre-wrap mb-8">{service.description || "Aucune description fournie pour ce service."}</p>
+
+            <div className="bg-white border border-ocre/10 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="w-4 h-4 text-ocre" />
+                <h4 className="text-[10px] sm:text-xs font-black text-chocolat uppercase tracking-widest">Disponibilité du service</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-chocolat tracking-tighter">{service.workingHoursStart || "06:00"}</span>
+                <span className="text-sm font-bold text-ocre uppercase">à</span>
+                <span className="text-2xl sm:text-3xl font-black text-chocolat tracking-tighter">{service.workingHoursEnd || "18:00"}</span>
+              </div>
+              <p className="text-[9px] font-bold text-chocolat/40 uppercase tracking-widest mt-3">Heures d'intervention garanties</p>
+            </div>
           </div>
-          
+
           {/* Reserve Button Area */}
           <div className="mt-auto border-t border-zinc-200 pt-6 shrink-0">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 bg-chocolat/5 border border-chocolat/10 rounded-2xl p-4 w-full">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-chocolat/60 uppercase tracking-widest">Acompte demandé (50%)</span>
-                  <span className="text-lg font-black text-chocolat">${(service.price * 0.5).toLocaleString()}</span>
-                </div>
+                <button
+                  onClick={onTiming}
+                  className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-chocolat/60 uppercase tracking-widest">Offre Premium</span>
+                </button>
               </div>
               <button
                 onClick={onReserve}
@@ -296,6 +311,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showTiming, setShowTiming] = useState(false);
   const { user, isAuthenticated } = useAuth();
 
   const handleRequestClick = (e?: React.MouseEvent) => {
@@ -323,6 +339,18 @@ export default function ServiceCardBento({ service }: { service: Service }) {
     toast.success("Votre demande a été payée et enregistrée avec succès !");
   };
 
+  // Verrouiller le scroll quand une modal est ouverte
+  useEffect(() => {
+    if (showPayment || showDetails || showTiming) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showPayment, showDetails, showTiming]);
+
   return (
     <>
       <AnimatePresence>
@@ -341,6 +369,27 @@ export default function ServiceCardBento({ service }: { service: Service }) {
             service={service}
             onClose={() => setShowDetails(false)}
             onReserve={handleRequestClick as unknown as () => void}
+            onTiming={() => {
+              setShowDetails(false);
+              setShowTiming(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTiming && (
+          <Timing
+            service={service}
+            onClose={() => setShowTiming(false)}
+            onConfirm={(plan) => {
+              setShowTiming(false);
+              const scheduleMsg = plan.frequency === "DAILY" 
+                ? `Planning quotidien à ${plan.time}`
+                : `Planning ${plan.frequency.toLowerCase()} (${plan.day}) à ${plan.time}`;
+              toast.success(`${scheduleMsg} enregistré !`);
+              setShowPayment(true);
+            }}
           />
         )}
       </AnimatePresence>
@@ -375,14 +424,21 @@ export default function ServiceCardBento({ service }: { service: Service }) {
             </h3>
           </div>
 
-          <p className="text-chocolat/70 text-[10px] sm:text-sm leading-relaxed line-clamp-2 mb-3 sm:mb-5">
+          <p className="text-chocolat/70 text-[10px] sm:text-sm leading-relaxed line-clamp-2 mb-3 sm:mb-4">
             {service.description}
           </p>
+
+          <div className="flex items-center gap-2 mb-4 bg-chocolat/[0.03] py-1.5 px-3 rounded-lg self-start">
+            <Clock className="w-3 h-3 text-ocre" />
+            <span className="text-[9px] font-bold text-chocolat/60 uppercase tracking-widest">
+              {service.workingHoursStart || "06:00"} - {service.workingHoursEnd || "18:00"}
+            </span>
+          </div>
 
           <div className="mt-auto pt-3 sm:pt-4 border-t border-zinc-100 flex items-center justify-between gap-2">
             <div className="flex flex-col">
               <span className="text-[7px] sm:text-[8px] font-black text-ocre uppercase tracking-widest mb-0.5 sm:mb-1">PRIX</span>
-              <span className="text-sm sm:text-lg font-black text-chocolat">${service.price.toLocaleString()}</span>
+              <span className="text-sm sm:text-lg font-black text-chocolat">${(service.price || 0).toLocaleString()}</span>
             </div>
 
             <button
