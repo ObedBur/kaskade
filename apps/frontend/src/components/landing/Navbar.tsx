@@ -17,9 +17,8 @@ export default function Navbar() {
   
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Déterminer dynamiquement le rôle en fonction du véritable contexte d'authentification
-  const userRole = isAuthenticated 
-    ? (user?.role?.toLowerCase() === 'provider' ? 'provider' : 'client')
+  const userRole = isAuthenticated && user?.role 
+    ? user.role.toLowerCase() 
     : 'guest';
 
   // Gérer l'effet de navbar sticky / ombre au défilement
@@ -57,6 +56,11 @@ export default function Navbar() {
       { name: "Accueil", href: "/" },
       { name: "Mes services", href: "/mes-services" },
       { name: "Demandes reçues", href: "/demandes", badge: 5 },
+    ],
+    admin: [
+      { name: "Console Admin", href: "/admin/dashboard" },
+      { name: "Demandes", href: "/admin/requests" },
+      { name: "Utilisateurs", href: "/admin/users" },
     ],
   };
 
@@ -113,12 +117,12 @@ export default function Navbar() {
               ) : (
                 <div className="flex items-center gap-6">
                   {/* Notification Badge Icon */}
-                  <button className="relative text-gray-500 hover:text-blue-600 transition-colors p-2 hover:bg-gray-100 rounded-full">
+                  <Link href="/notifications" className="relative text-gray-500 hover:text-blue-600 transition-colors p-2 hover:bg-gray-100 rounded-full">
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
                       {userRole === "client" ? 2 : 5}
                     </span>
-                  </button>
+                  </Link>
 
                   <div className="relative" ref={dropdownRef}>
                     <button
@@ -147,7 +151,18 @@ export default function Navbar() {
                         </div>
                         
                         <div className="py-2">
-                          {userRole === "client" ? (
+                          {userRole === "admin" && (
+                            <>
+                              <Link href="/admin/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-blue-600 hover:bg-blue-50 transition-colors">
+                                <LayoutDashboard className="w-4 h-4" /> Console Admin
+                              </Link>
+                              <Link href="/admin/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                                <Settings className="w-4 h-4" /> Paramètres Généraux
+                              </Link>
+                            </>
+                          )}
+                          
+                          {userRole === "client" && (
                             <>
                               <Link href="/mon-compte" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                 <User className="w-4 h-4" /> Mon Compte
@@ -156,7 +171,9 @@ export default function Navbar() {
                                 <Settings className="w-4 h-4" /> Paramètres
                               </Link>
                             </>
-                          ) : (
+                          )}
+
+                          {userRole === "provider" && (
                             <>
                               <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                 <LayoutDashboard className="w-4 h-4" /> Dashboard
@@ -186,12 +203,12 @@ export default function Navbar() {
             {/* Menu Burger Mobile */}
             <div className="lg:hidden flex items-center gap-4">
               {userRole !== "guest" && (
-                <button className="relative text-gray-500 hover:text-blue-600 transition-colors">
+                <Link href="/notifications" className="relative text-gray-500 hover:text-blue-600 transition-colors">
                   <Bell className="w-6 h-6" />
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
                     {userRole === "client" ? 2 : 5}
                   </span>
-                </button>
+                </Link>
               )}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -266,7 +283,18 @@ export default function Navbar() {
                       </div>
                     </div>
                     
-                    {userRole === "client" ? (
+                    {userRole === "admin" && (
+                      <>
+                        <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-3 text-blue-600 bg-blue-50 rounded-xl font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                          <LayoutDashboard className="w-5 h-5" /> Console Admin
+                        </Link>
+                        <Link href="/admin/settings" className="flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-50 rounded-xl font-medium" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Settings className="w-5 h-5 text-gray-400" /> Paramètres
+                        </Link>
+                      </>
+                    )}
+
+                    {userRole === "client" && (
                       <>
                         <Link href="/mon-compte" className="flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-50 rounded-xl font-medium" onClick={() => setIsMobileMenuOpen(false)}>
                           <User className="w-5 h-5 text-gray-400" /> Mon Compte
@@ -275,7 +303,9 @@ export default function Navbar() {
                           <Settings className="w-5 h-5 text-gray-400" /> Paramètres
                         </Link>
                       </>
-                    ) : (
+                    )}
+
+                    {userRole === "provider" && (
                       <>
                         <Link href="/dashboard" className="flex items-center gap-3 px-3 py-3 text-gray-700 hover:bg-gray-50 rounded-xl font-medium" onClick={() => setIsMobileMenuOpen(false)}>
                           <LayoutDashboard className="w-5 h-5 text-gray-400" /> Dashboard

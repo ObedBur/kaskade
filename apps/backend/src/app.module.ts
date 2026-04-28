@@ -13,6 +13,7 @@ import { RedisModule } from './redis/redis.module';
 import { RequestsModule } from './requests/requests.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { AdminModule } from './admin/admin.module';
     RequestsModule,
     NotificationsModule,
     AdminModule,
+    ServicesModule,
   ],
   providers: [
     {

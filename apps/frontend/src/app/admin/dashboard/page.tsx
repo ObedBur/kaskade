@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search, Bell, Plus, Loader2 } from "lucide-react";
+import { Search, Bell, Plus, Loader2, Check, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
 
@@ -38,6 +39,24 @@ export default function AdminDashboardPage() {
 
     fetchDashboard();
   }, [isAuthenticated]);
+
+  const handleStatusChange = async (requestId: string, nextStatus: string) => {
+    try {
+      await api.patch(`/requests/${requestId}/status`, { status: nextStatus });
+      
+      // Mettre à jour l'état local
+      setActivities(prev => prev.map(act => 
+        act.id === requestId 
+          ? { ...act, status: nextStatus === 'APPROVED' ? 'VÉRIFIÉ' : 'REJETÉ' } 
+          : act
+      ));
+      
+      toast.success(nextStatus === 'APPROVED' ? "Demande approuvée ! ✅" : "Demande rejetée.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de l'action.");
+    }
+  };
 
   if (authLoading || (isAuthenticated && dataLoading)) {
     return <div className="p-12 flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
@@ -222,14 +241,33 @@ export default function AdminDashboardPage() {
                      <p className="text-xs font-bold text-slate-600">{row.type}</p>
                    </td>
                    <td className="py-8 text-center">
-                     <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${
-                       row.status === 'VÉRIFIÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                       row.status === 'EN ATTENTE' ? 'bg-slate-50 text-slate-400 border-slate-100' :
-                       'bg-rose-50 text-rose-500 border-rose-100'
-                     }`}>
-                       {row.status}
-                     </span>
-                   </td>
+                    {row.status === 'EN ATTENTE' ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(row.id, 'APPROVED'); }}
+                          className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                          title="Approuver"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(row.id, 'REJECTED'); }}
+                          className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                          title="Rejeter"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${
+                        row.status === 'VÉRIFIÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                        row.status === 'EN ATTENTE' ? 'bg-slate-50 text-slate-400 border-slate-100' :
+                        'bg-rose-50 text-rose-500 border-rose-100'
+                      }`}>
+                        {row.status}
+                      </span>
+                    )}
+                  </td>
                    <td className="py-8 text-right px-4 text-sm font-black text-slate-700">
                      {row.amount}
                    </td>

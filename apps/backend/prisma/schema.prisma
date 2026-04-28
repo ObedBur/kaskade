@@ -28,6 +28,28 @@ model User {
   providerRequests Request[]       @relation("ProviderRequests")
   adminRequests    Request[]       @relation("AdminRequests")
   reviews          ServiceReview[]
+  notifications    Notification[]
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  isRead    Boolean  @default(false)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  link      String?  // Lien optionnel (ex: /demandes/id)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────
@@ -39,6 +61,7 @@ model Service {
   description String
   category    String
   price       Float
+  image       String?
   isActive    Boolean   @default(true)
 
   providerId  String

@@ -14,10 +14,10 @@ export function useAdminGuard() {
 
   useEffect(() => {
     if (!isLoading) {
+       const userRole = user?.role?.toUpperCase();
        if (!isAuthenticated) {
          router.replace('/login');
-       } else if (user?.role !== 'ADMIN') {
-         // Optionally redirect non-admins
+       } else if (userRole !== 'ADMIN') {
          router.replace('/');
        }
     }

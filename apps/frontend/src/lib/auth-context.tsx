@@ -52,7 +52,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('kaskade_user', JSON.stringify(userData));
     setAccessToken(tokens.accessToken);
     setUser(userData);
-    router.push('/');
+    
+    // Redirection basée sur le rôle
+    if (userData.role === 'ADMIN') {
+      router.push('/admin/dashboard');
+    } else if (userData.role === 'PROVIDER') {
+      router.push('/dashboard');
+    } else {
+      router.push('/');
+    }
   }, [router]);
 
   const logout = useCallback(() => {

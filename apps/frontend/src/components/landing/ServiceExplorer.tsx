@@ -1,10 +1,25 @@
 "use client";
 
-import { Search, SlidersHorizontal, MapPin, Calculator, Calendar, ChevronRight } from "lucide-react";
+import { Search, SlidersHorizontal, MapPin, Calculator, Calendar, ChevronRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { generateMockServices, Service } from "@/lib/mock-data";
+import api from "@/lib/api";
 import ServiceCard from "./ServiceCard";
+
+export interface Service {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  price: number;
+  image: string | null;
+  provider: {
+    id: string;
+    fullName: string;
+    isVerified: boolean;
+  };
+  _count?: { reviews: number };
+}
 
 export default function ServiceExplorer() {
   const filters = [
@@ -15,10 +30,24 @@ export default function ServiceExplorer() {
   ];
 
   const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Génération des données de test via faker.js
-    setServices(generateMockServices(18));
+    const fetchServices = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.get('/services');
+        setServices(response.data);
+      } catch (err) {
+        console.error('Erreur chargement services:', err);
+        setError('Impossible de charger les services. Veuillez réessayer.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchServices();
   }, []);
 
   return (
@@ -101,12 +130,28 @@ export default function ServiceExplorer() {
 
         </div>
 
-        {/* GRILLE DE SERVICES (4 colonnes pour un meilleur équilibre) */}
-        <div className="mt-16 md:mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-          {services.map((service, i) => (
-            <ServiceCard key={service.id} service={service} />
-          ))}
-        </div>
+        {/* GRILLE DE SERVICES */}
+        {isLoading ? (
+          <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-4 py-24 text-chocolat/50">
+            <Loader2 className="w-10 h-10 animate-spin text-ocre" />
+            <p className="text-sm font-bold uppercase tracking-widest">Chargement des services...</p>
+          </div>
+        ) : error ? (
+          <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <p className="text-chocolat font-bold">{error}</p>
+            <button onClick={() => window.location.reload()} className="text-ocre text-sm font-black uppercase tracking-widest border-b border-ocre">Réessayer</button>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <p className="text-chocolat/50 font-bold">Aucun service disponible pour le moment.</p>
+          </div>
+        ) : (
+          <div className="mt-16 md:mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            {services.map((service) => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
+          </div>
+        )}
 
         {/* CTA FINAL pour plus de services */}
         <div className="mt-20 flex justify-center">

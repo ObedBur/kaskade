@@ -1,15 +1,21 @@
 {
   "name": "kaskade-monorepo",
   "private": true,
+  "description": "Kaskade - Monorepo with Next.js frontend and NestJS backend",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test": "turbo test",
+    "start": "turbo start",
+    "backend:dev": "pnpm --filter @kaskade/backend run dev",
+    "frontend:dev": "pnpm --filter @kaskade/frontend run dev"
   },
   "devDependencies": {
     "turbo": "latest",
-    "prettier": "latest"
+    "prettier": "latest",
+    "typescript": "^5.7.0"
   },
   "packageManager": "pnpm@10.32.1"
 }

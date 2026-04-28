@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search, Filter, ExternalLink, Loader2 } from "lucide-react";
+import { Search, Filter, ExternalLink, Loader2, Check, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
 
@@ -45,6 +46,25 @@ export default function AdminRequestsPage() {
     req.client.toLowerCase().includes(search.toLowerCase()) || 
     req.service.toLowerCase().includes(search.toLowerCase())
   );
+  
+  const handleStatusChange = async (requestId: string, nextStatus: string) => {
+    try {
+      await api.patch(`/requests/${requestId}/status`, { status: nextStatus });
+      
+      // Mettre à jour l'état local pour un retour immédiat
+      setRequests(prev => prev.map(req => 
+        req.id === requestId 
+          ? { ...req, status: nextStatus === 'APPROVED' ? 'VÉRIFIÉ' : 'REJETÉ' } 
+          : req
+      ));
+      
+      const isApproved = nextStatus === 'APPROVED';
+      toast.success(isApproved ? "Demande approuvée avec succès ! ✅" : "Demande rejetée.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Une erreur est survenue lors du changement de statut.");
+    }
+  };
 
   if (authLoading || (isAuthenticated && dataLoading)) {
     return <div className="p-12 flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
@@ -104,16 +124,41 @@ export default function AdminRequestsPage() {
                          <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{req.id.slice(0, 8)}... — {req.date}</p>
                       </div>
                    </div>
-                   <div className="flex items-center gap-6">
-                      <p className="font-black text-sm">{req.amount}</p>
-                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${
-                        req.status === 'TERMINÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                        req.status === 'VÉRIFIÉ' ? 'bg-[#FF6B00]/5 text-[#FF6B00] border-[#FF6B00]/10' :
-                        'bg-slate-50 text-slate-400 border-slate-100'
-                      }`}>
-                         {req.status}
-                      </span>
-                      <ExternalLink className="w-4 h-4 text-slate-200 group-hover:text-[#FF6B00] transition-colors" />
+                   <div className="flex items-center gap-4">
+                      <p className="font-black text-sm mr-2">{req.amount}</p>
+                      
+                      {req.status === 'EN ATTENTE' ? (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleStatusChange(req.id, 'APPROVED'); }}
+                            className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm group/btn"
+                            title="Approuver la demande"
+                          >
+
+
+
+                            
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleStatusChange(req.id, 'REJECTED'); }}
+                            className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm group/btn"
+                            title="Rejeter la demande"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${
+                          req.status === 'TERMINÉ' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                          req.status === 'REJETÉ' ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                          'bg-amber-100 text-amber-700 border-amber-200'
+                        }`}>
+                          {req.status}
+                        </span>
+                      )}
+                      
+                      <ExternalLink className="w-4 h-4 text-slate-200 group-hover:text-emerald-500 transition-colors ml-2" />
                    </div>
                 </motion.div>
               ))}

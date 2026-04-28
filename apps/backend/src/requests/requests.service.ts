@@ -4,12 +4,58 @@ import { RequestStatus, Role } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RequestStatusChangedEvent } from './events/request-status.event';
 
+import { CreateRequestDto } from './dto/create-request.dto';
+
 @Injectable()
 export class RequestsService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2
   ) {}
+
+  /**
+   * CRÉATION : Permet à un client de demander un service
+   * La demande est créée au statut PENDING.
+   */
+  async create(createRequestDto: CreateRequestDto, clientId: string) {
+    const { serviceId, message } = createRequestDto;
+
+    // 1. Vérifier que le service existe
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      include: { provider: true }
+    });
+
+    if (!service) {
+      throw new NotFoundException(`Service #${serviceId} introuvable.`);
+    }
+
+    // 2. Création de la demande (Request)
+    const request = await this.prisma.request.create({
+      data: {
+        status: RequestStatus.PENDING,
+        message: message,
+        clientId: clientId,
+        serviceId: serviceId,
+        providerId: service.providerId,
+        escrowAmount: service.price, // On pré-remplit le montant du séquestre avec le prix du service
+        expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Expiration par défaut : 48h
+      },
+      include: {
+        client: true,
+        service: true,
+        provider: true
+      }
+    });
+
+    // Émettre l'événement de création (Optionnel pour notifications)
+    this.eventEmitter.emit(
+      'request.status.changed',
+      new RequestStatusChangedEvent(request.id, null, RequestStatus.PENDING, clientId)
+    );
+
+    return request;
+  }
 
   /**
    * MACHINE D'ÉTAT : Gère le passage d'un statut à un autre
