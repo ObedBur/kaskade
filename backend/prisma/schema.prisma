@@ -100,6 +100,11 @@ model Request {
   address     String
   scheduledAt DateTime
 
+  // Planning premium (optionnel)
+  scheduleFrequency  String?   // DAILY, WEEKLY, MONTHLY
+  scheduleDay        String?   // "Lun", "Mar", ... ou "1"-"31" ou "Tous les jours"
+  scheduleTime       String?   // "08:00", "09:00", etc.
+
   price       Float?
   currency    String    @default("USD")
   acceptedAt  DateTime?

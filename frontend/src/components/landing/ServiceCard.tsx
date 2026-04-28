@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Star, ShieldCheck, ArrowRight, Heart, CheckCircle, X, CreditCard, Smartphone, Loader2, Clock } from "lucide-react";
+import { Star, ArrowRight, CheckCircle, X, CreditCard, Smartphone, Loader2, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Service } from "@/components/landing/ServiceExplorer";
@@ -12,8 +12,15 @@ import Timing from "./Timing";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
+// ─── Types partagés ─────────────────────────────────────────────────────────
+interface SchedulePlan {
+  frequency: string;
+  day: string;
+  time: string;
+}
+
 // ─── MODAL DE PAIEMENT MOBILE MONEY ─────────────────────────────────────────
-function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; onClose: () => void; onSuccess: (phone: string, op: string) => void }) {
+function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { service: Service; onClose: () => void; onSuccess: (phone: string, op: string) => void; schedulePlan?: SchedulePlan | null }) {
   const [method, setMethod] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
 
@@ -55,6 +62,11 @@ function MobileMoneyModal({ service, onClose, onSuccess }: { service: Service; o
         description: `Demande pour: ${service.name}`,
         address: "Adresse à préciser",
         scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        ...(schedulePlan && {
+          scheduleFrequency: schedulePlan.frequency,
+          scheduleDay: schedulePlan.day,
+          scheduleTime: schedulePlan.time,
+        }),
       });
 
       const requestId = requestRes.data.id;
@@ -282,22 +294,31 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
           </div>
 
           {/* Reserve Button Area */}
-          <div className="mt-auto border-t border-zinc-200 pt-6 shrink-0">
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex-1 bg-chocolat/5 border border-chocolat/10 rounded-2xl p-4 w-full">
-                <button
-                  onClick={onTiming}
-                  className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-chocolat/60 uppercase tracking-widest">Offre Premium</span>
-                </button>
+          <div className="mt-auto border-t border-zinc-200 pt-5 shrink-0 space-y-3">
+            {/* Premium CTA */}
+            <button
+              onClick={onTiming}
+              className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-chocolat/5 to-ocre/5 border border-ocre/20 rounded-2xl px-5 py-4 hover:border-ocre/40 hover:bg-ocre/10 transition-all group active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-ocre/10 rounded-xl">
+                  <Star className="w-4 h-4 text-ocre fill-current" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-chocolat uppercase tracking-widest">Offre Premium</p>
+                  <p className="text-[9px] font-bold text-chocolat/40 mt-0.5">Planifier un abonnement récurrent</p>
+                </div>
               </div>
-              <button
-                onClick={onReserve}
-                className="w-full sm:w-auto flex-1 bg-chocolat text-white py-4 sm:py-5 px-6 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 shadow-lg"
-              >
-                RÉSERVER MAINTENANT <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            </div>
+              <ArrowRight className="w-4 h-4 text-ocre transition-transform group-hover:translate-x-1 shrink-0" />
+            </button>
+
+            {/* Standard reserve */}
+            <button
+              onClick={onReserve}
+              className="w-full bg-chocolat text-white py-4 sm:py-5 px-6 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 shadow-lg active:scale-[0.99]"
+            >
+              RÉSERVER MAINTENANT <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           </div>
         </div>
       </motion.div>
@@ -307,11 +328,10 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
 
 // ─── ServiceCard ────────────────────────────────────────────────────────────
 export default function ServiceCardBento({ service }: { service: Service }) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showTiming, setShowTiming] = useState(false);
+  const [schedulePlan, setSchedulePlan] = useState<SchedulePlan | null>(null);
   const { user, isAuthenticated } = useAuth();
 
   const handleRequestClick = (e?: React.MouseEvent) => {
@@ -357,8 +377,9 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         {showPayment && (
           <MobileMoneyModal
             service={service}
-            onClose={() => setShowPayment(false)}
+            onClose={() => { setShowPayment(false); setSchedulePlan(null); }}
             onSuccess={handlePaymentSuccess}
+            schedulePlan={schedulePlan}
           />
         )}
       </AnimatePresence>
@@ -384,6 +405,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
             onClose={() => setShowTiming(false)}
             onConfirm={(plan) => {
               setShowTiming(false);
+              setSchedulePlan(plan);
               const scheduleMsg = plan.frequency === "DAILY" 
                 ? `Planning quotidien à ${plan.time}`
                 : `Planning ${plan.frequency.toLowerCase()} (${plan.day}) à ${plan.time}`;
@@ -399,59 +421,61 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         onClick={() => setShowDetails(true)}
-        className="group bg-[#F8F9FA] rounded-2xl sm:rounded-[32px] p-2 sm:p-4 border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full hover:bg-white cursor-pointer"
+        className="group bg-white rounded-2xl sm:rounded-[28px] border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full cursor-pointer overflow-hidden"
       >
         {/* Zone Image */}
-        <div className="relative h-28 sm:h-48 w-full rounded-xl overflow-hidden mb-3 sm:mb-5">
+        <div className="relative h-32 sm:h-48 w-full overflow-hidden shrink-0">
           <Image
             src={service.imageUrl || FALLBACK_IMAGE}
             alt={service.name}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute top-2 left-2 backdrop-blur-md bg-white/60 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-white/20">
-            <span className="text-chocolat text-[8px] sm:text-[10px] font-bold uppercase tracking-wider">
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-chocolat/40 to-transparent" />
+          {/* Category badge */}
+          <div className="absolute top-2.5 left-2.5 backdrop-blur-md bg-white/70 px-2 py-0.5 rounded-full border border-white/30">
+            <span className="text-chocolat text-[8px] sm:text-[9px] font-bold uppercase tracking-wider">
               {service.category}
             </span>
+          </div>
+          {/* Premium badge */}
+          <div className="absolute top-2.5 right-2.5 bg-ocre/90 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Star className="w-2.5 h-2.5 text-white fill-current" />
+            <span className="text-white text-[7px] font-black uppercase tracking-widest">Premium</span>
+          </div>
+          {/* Price on image bottom-right */}
+          <div className="absolute bottom-2.5 right-2.5 bg-white rounded-xl px-2.5 py-1 shadow-lg">
+            <span className="text-[11px] sm:text-sm font-black text-chocolat">${(service.price || 0).toLocaleString()}</span>
           </div>
         </div>
 
         {/* Contenu */}
-        <div className="px-1 sm:px-2 flex flex-col flex-1">
-          <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
-            <h3 className="text-xs sm:text-lg font-extrabold text-chocolat leading-tight flex-1 line-clamp-2 uppercase">
-              {service.name}
-            </h3>
-          </div>
+        <div className="p-3.5 sm:p-5 flex flex-col flex-1">
+          <h3 className="text-xs sm:text-base font-black text-chocolat leading-tight line-clamp-2 uppercase mb-1.5">
+            {service.name}
+          </h3>
 
-          <p className="text-chocolat/70 text-[10px] sm:text-sm leading-relaxed line-clamp-2 mb-3 sm:mb-4">
+          <p className="text-chocolat/60 text-[10px] sm:text-xs leading-relaxed line-clamp-2 mb-3 flex-1">
             {service.description}
           </p>
 
-          <div className="flex items-center gap-2 mb-4 bg-chocolat/[0.03] py-1.5 px-3 rounded-lg self-start">
+          {/* Hours pill */}
+          <div className="flex items-center gap-1.5 mb-4 bg-zinc-50 border border-zinc-100 py-1.5 px-2.5 rounded-lg self-start">
             <Clock className="w-3 h-3 text-ocre" />
-            <span className="text-[9px] font-bold text-chocolat/60 uppercase tracking-widest">
-              {service.workingHoursStart || "06:00"} - {service.workingHoursEnd || "18:00"}
+            <span className="text-[8px] font-bold text-chocolat/50 uppercase tracking-widest">
+              {service.workingHoursStart || "06:00"} – {service.workingHoursEnd || "18:00"}
             </span>
           </div>
 
-          <div className="mt-auto pt-3 sm:pt-4 border-t border-zinc-100 flex items-center justify-between gap-2">
-            <div className="flex flex-col">
-              <span className="text-[7px] sm:text-[8px] font-black text-ocre uppercase tracking-widest mb-0.5 sm:mb-1">PRIX</span>
-              <span className="text-sm sm:text-lg font-black text-chocolat">${(service.price || 0).toLocaleString()}</span>
-            </div>
-
-            <button
-              onClick={handleRequestClick}
-              disabled={isSubmitting}
-              className="flex items-center gap-1.5 sm:gap-3 bg-chocolat text-white py-2 sm:py-3 px-3 sm:px-6 rounded-full hover:bg-ocre hover:text-chocolat transition-all duration-500 shadow-lg active:scale-95 disabled:opacity-50"
-            >
-              <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-                {isSubmitting ? '...' : 'RÉSERVER'}
-              </span>
-              <ArrowRight className="w-3 h-3 sm:w-5 sm:h-5" />
-            </button>
-          </div>
+          {/* CTA */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowDetails(true); }}
+            className="mt-auto w-full flex items-center justify-between gap-2 bg-chocolat text-white py-3 px-4 rounded-xl hover:bg-ocre hover:text-chocolat transition-all duration-300 shadow-md group/btn active:scale-[0.98]"
+          >
+            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Voir &amp; Réserver</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1 shrink-0" />
+          </button>
         </div>
       </motion.div>
     </>

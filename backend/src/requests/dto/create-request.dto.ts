@@ -24,4 +24,17 @@ export class CreateRequestDto {
   @IsString()
   @IsOptional()
   operator?: string;
+
+  // Planning premium (optionnel)
+  @IsString()
+  @IsOptional()
+  scheduleFrequency?: string;
+
+  @IsString()
+  @IsOptional()
+  scheduleDay?: string;
+
+  @IsString()
+  @IsOptional()
+  scheduleTime?: string;
 }
