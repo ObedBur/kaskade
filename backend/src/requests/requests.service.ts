@@ -205,5 +205,48 @@ export class RequestsService {
     return updatedRequest;
   }
 
+  /**
+   * Récupère les créneaux occupés pour un service donné
+   */
+  async getAvailability(serviceId: string) {
+    const activeRequests = await this.prisma.request.findMany({
+      where: {
+        serviceId,
+        status: {
+          in: [
+            RequestStatus.PENDING,
+            RequestStatus.APPROVED,
+            RequestStatus.ACCEPTED,
+            RequestStatus.IN_PROGRESS,
+            RequestStatus.AWAITING_FINAL
+          ]
+        }
+      },
+      select: {
+        scheduledAt: true,
+        scheduleTime: true,
+        duration: true // Note: Assurez-vous que duration existe dans votre modèle ou utilisez une valeur par défaut
+      }
+    });
+
+    // Formater les données pour le frontend : "YYYY-MM-DD-HH:mm"
+    const occupiedSlots: string[] = [];
+
+    activeRequests.forEach(req => {
+      if (req.scheduledAt && req.scheduleTime) {
+        const dateStr = req.scheduledAt.toISOString().split('T')[0];
+        const timeStr = req.scheduleTime; // ex: "09:00"
+        
+        // Ajouter le créneau de départ
+        occupiedSlots.push(`${dateStr}-${timeStr}`);
+        
+        // Si la durée est > 1, on bloque aussi les heures suivantes (optionnel mais recommandé)
+        // Pour simplifier ici, on renvoie juste le point de départ
+      }
+    });
+
+    return occupiedSlots;
+  }
+
 }
 

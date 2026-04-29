@@ -59,7 +59,7 @@ export default function ServiceExplorer() {
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ocre/5 rounded-full blur-[100px] -z-10 translate-x-1/4 -translate-y-1/4" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-chocolat/5 rounded-full blur-[100px] -z-10 -translate-x-1/4 translate-y-1/4" />
 
-      <div className="arcture-container relative z-10">
+      <div className="arcture-container relative">
 
         {/* EN-TÊTE : Inspiré de Stitch mais Style Kaskade */}
         <div className="max-w-4xl mb-16 md:mb-24">

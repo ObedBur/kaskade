@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     X, Calendar, Clock, Check, ArrowRight,
-    Zap, Star, ChevronRight
+    Zap, Star, ChevronRight, ChevronLeft
 } from "lucide-react";
 import { Service } from "./ServiceExplorer";
+import { toast } from "sonner";
+import api from "@/lib/api";
 
 interface TimingProps {
     service: Service;
@@ -14,12 +16,15 @@ interface TimingProps {
     onConfirm: (plan: SchedulePlan) => void;
 }
 
-type Frequency = "DAILY" | "WEEKLY" | "MONTHLY";
+type Frequency = "ONCE" | "WEEKLY" | "MONTHLY";
 
 interface SchedulePlan {
     frequency: Frequency;
     day: string;
     time: string;
+    duration: number;
+    dateLabel?: string;
+    startDate?: string;
 }
 
 interface PlanOption {
@@ -30,28 +35,80 @@ interface PlanOption {
     badge?: string;
 }
 
-const DAYS_OF_WEEK = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-const MONTHLY_DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 export default function Timing({ service, onClose, onConfirm }: TimingProps) {
-    const [frequency, setFrequency] = useState<Frequency>("WEEKLY");
-    const [selectedDay, setSelectedDay] = useState<string>("Lun");
+    const [frequency, setFrequency] = useState<Frequency>("ONCE");
+    const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+    const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
     const [selectedTime, setSelectedTime] = useState("09:00");
+    const [duration, setDuration] = useState<number>(2);
+    const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+    const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+
+    // Récupérer les disponibilités réelles depuis le backend
+    useEffect(() => {
+        const fetchAvailability = async () => {
+            try {
+                setIsLoadingAvailability(true);
+                const response = await api.get(`/requests/availability/${service.id}`);
+                setOccupiedSlots(Array.isArray(response.data) ? response.data : []);
+            } catch (err) {
+                console.error("Erreur chargement disponibilités:", err);
+                // On garde une liste vide en cas d'erreur
+            } finally {
+                setIsLoadingAvailability(false);
+            }
+        };
+
+        if (service?.id) {
+            fetchAvailability();
+        }
+    }, [service.id]);
+
+    const isSlotOccupied = (day: number, month: number, year: number, time: string) => {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}-${time}`;
+        return occupiedSlots.includes(dateKey);
+    };
+
+    // Generate next 4 months
+    const months = useMemo(() => {
+        const result = [];
+        const now = new Date();
+        for (let i = 0; i < 4; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            result.push({
+                name: d.toLocaleString('fr-FR', { month: 'long' }),
+                year: d.getFullYear(),
+                month: d.getMonth(),
+                label: d.toLocaleString('fr-FR', { month: 'short' }).toUpperCase()
+            });
+        }
+        return result;
+    }, []);
+
+    const selectedMonth = months[selectedMonthIndex];
+
+    // Days in the selected month
+    const daysInMonth = useMemo(() => {
+        const date = new Date(selectedMonth.year, selectedMonth.month + 1, 0);
+        const count = date.getDate();
+        return Array.from({ length: count }, (_, i) => i + 1);
+    }, [selectedMonth]);
 
     const plans: PlanOption[] = [
         {
-            id: "DAILY",
-            label: "Quotidien",
-            desc: "Chaque jour",
+            id: "ONCE",
+            label: "Une fois",
+            desc: "Ponctuel",
             icon: <Zap className="w-5 h-5" />,
+            badge: "Populaire",
         },
         {
             id: "WEEKLY",
             label: "Hebdo",
             desc: "1×/semaine",
             icon: <Calendar className="w-5 h-5" />,
-            badge: "Populaire",
         },
         {
             id: "MONTHLY",
@@ -60,19 +117,24 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
             icon: <Star className="w-5 h-5" />,
         },
     ];
-
-    const handleFrequencyChange = (newFreq: Frequency) => {
-        setFrequency(newFreq);
-        // Reset day selection to a valid default
-        if (newFreq === "WEEKLY") setSelectedDay("Lun");
-        if (newFreq === "MONTHLY") setSelectedDay("1");
-    };
-
     const handleConfirm = () => {
+        const fullDate = new Date(selectedMonth.year, selectedMonth.month, selectedDay);
+        const dayLabel = fullDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+        const weekday = fullDate.toLocaleDateString('fr-FR', { weekday: 'long' });
+
+        // Vérification de sécurité finale
+        if (isSlotOccupied(selectedDay, selectedMonth.month, selectedMonth.year, selectedTime)) {
+            toast.error("Ce créneau est malheureusement déjà occupé pour cette date.");
+            return;
+        }
+
         onConfirm({
             frequency,
-            day: frequency === "DAILY" ? "Tous les jours" : selectedDay,
+            day: frequency === "ONCE" ? `${selectedDay}` : (frequency === "WEEKLY" ? weekday : `${selectedDay}`),
             time: selectedTime,
+            duration,
+            dateLabel: `${dayLabel} (${weekday})`,
+            startDate: fullDate.toISOString()
         });
     };
 
@@ -80,7 +142,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
 
     return (
         <div
-            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-chocolat/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-chocolat/90 backdrop-blur-md"
             onClick={onClose}
         >
             <motion.div
@@ -89,87 +151,69 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                 exit={{ opacity: 0, y: 60 }}
                 transition={{ type: "spring", stiffness: 350, damping: 30 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white w-full sm:max-w-lg sm:mx-4 rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
+                className="bg-white w-full sm:max-w-lg sm:mx-4 rounded-t-[40px] sm:rounded-[40px] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
             >
                 {/* Drag handle (mobile) */}
-                <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
-                    <div className="w-10 h-1 bg-zinc-200 rounded-full" />
+                <div className="flex justify-center pt-4 pb-2 sm:hidden shrink-0">
+                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full" />
                 </div>
 
-                {/* Gradient accent */}
-                <div className="hidden sm:block absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-ocre via-chocolat to-ocre rounded-t-[32px]" />
-
                 {/* ─── Header ─── */}
-                <div className="px-5 pt-4 pb-4 sm:px-8 sm:pt-7 flex items-start justify-between gap-4 shrink-0 border-b border-zinc-100">
+                <div className="px-6 pt-2 pb-5 sm:px-10 sm:pt-10 flex items-start justify-between gap-4 shrink-0 border-b border-zinc-100">
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <span className="bg-ocre/10 text-ocre px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-ocre/15">
-                                Offre Premium
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-ocre/10 text-ocre px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-ocre/20">
+                                Expérience Premium
                             </span>
-                            <div className="flex -space-x-1">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="w-3.5 h-3.5 rounded-full bg-ocre border border-white flex items-center justify-center">
-                                        <Star className="w-1.5 h-1.5 text-white fill-current" />
-                                    </div>
-                                ))}
-                            </div>
                         </div>
-                        <h2 className="text-lg sm:text-2xl font-black text-chocolat uppercase tracking-tight leading-tight">
-                            Planifier le service
+                        <h2 className="text-xl sm:text-3xl font-black text-chocolat uppercase tracking-tighter leading-tight">
+                            Planifier le <span className="text-ocre italic font-serif lowercase">passage.</span>
                         </h2>
-                        <p className="text-[10px] font-bold text-chocolat/40 uppercase tracking-wider mt-0.5 truncate">
-                            {service.name}
-                        </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="shrink-0 p-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-all active:scale-95"
+                        className="shrink-0 p-3 bg-zinc-50 hover:bg-zinc-100 rounded-2xl transition-all active:scale-90 border border-zinc-100"
                     >
-                        <X className="w-4 h-4 text-chocolat" />
+                        <X className="w-5 h-5 text-chocolat" />
                     </button>
                 </div>
 
-                {/* ─── Scrollable body ─── */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-6 space-y-5">
+                {/* ─── Body ─── */}
+                <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-6 py-6 sm:px-10 sm:py-8 space-y-8">
 
                     {/* Frequency Picker */}
-                    <div>
-                        <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-[0.2em] mb-3">
-                            Fréquence d'intervention
-                        </p>
-                        <div className="grid grid-cols-3 gap-2.5">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-ocre" />
+                            <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
+                                Fréquence de service
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
                             {plans.map((plan) => {
                                 const active = frequency === plan.id;
                                 return (
                                     <button
                                         key={plan.id}
-                                        onClick={() => handleFrequencyChange(plan.id)}
-                                        className={`relative flex flex-col items-center gap-2 p-3.5 rounded-2xl border-2 transition-all duration-200 active:scale-95 ${active
-                                            ? "border-chocolat bg-chocolat shadow-lg"
-                                            : "border-zinc-100 bg-zinc-50 hover:border-ocre/40"
+                                        onClick={() => setFrequency(plan.id)}
+                                        className={`relative flex flex-col items-center gap-3 p-4 rounded-3xl border-2 transition-all duration-300 ${active
+                                            ? "border-chocolat bg-chocolat shadow-xl shadow-chocolat/20 scale-[1.02]"
+                                            : "border-zinc-100 bg-white hover:border-ocre/30"
                                             }`}
                                     >
-                                        {plan.badge && !active && (
-                                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-ocre text-white text-[7px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap">
-                                                {plan.badge}
-                                            </span>
-                                        )}
-                                        <div className={`p-2 rounded-xl ${active ? "bg-white/15" : "bg-white shadow-sm"}`}>
-                                            <div className={active ? "text-white" : "text-ocre"}>
-                                                {plan.icon}
-                                            </div>
+                                        <div className={`p-2.5 rounded-2xl ${active ? "bg-white/10" : "bg-ocre/5 text-ocre"}`}>
+                                            {plan.icon}
                                         </div>
                                         <div className="text-center">
                                             <p className={`text-[11px] font-black uppercase tracking-tight ${active ? "text-white" : "text-chocolat"}`}>
                                                 {plan.label}
                                             </p>
-                                            <p className={`text-[9px] font-bold mt-0.5 ${active ? "text-white/60" : "text-chocolat/40"}`}>
-                                                {plan.desc}
-                                            </p>
                                         </div>
                                         {active && (
-                                            <div className="absolute top-2.5 right-2.5">
-                                                <Check className="w-3.5 h-3.5 text-ocre" />
+                                            <div className="absolute top-3 right-3">
+                                                <div className="w-4 h-4 bg-ocre rounded-full flex items-center justify-center">
+                                                    <Check className="w-2.5 h-2.5 text-chocolat" />
+                                                </div>
                                             </div>
                                         )}
                                     </button>
@@ -178,113 +222,181 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                         </div>
                     </div>
 
-                    {/* Day Picker (Weekly / Monthly only) */}
-                    <AnimatePresence mode="popLayout">
-                        {frequency !== "DAILY" && (
-                            <motion.div
-                                key={frequency}
-                                initial={{ opacity: 0, y: -12, scale: 0.98 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -12, scale: 0.98 }}
-                                transition={{ duration: 0.18 }}
-                                className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4"
-                            >
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Calendar className="w-3.5 h-3.5 text-ocre" />
-                                    <p className="text-[9px] font-black text-chocolat/40 uppercase tracking-widest">
-                                        {frequency === "WEEKLY" ? "Jour de passage" : "Date du mois"}
-                                    </p>
+                    {/* Date Selector (Month + Day) */}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="space-y-6"
+                        >
+                            {/* Month Picker */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-ocre" />
+                                        <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
+                                            Choisir le mois
+                                        </p>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-chocolat uppercase tracking-widest bg-zinc-100 px-3 py-1 rounded-full">
+                                        {selectedMonth.name} {selectedMonth.year}
+                                    </span>
                                 </div>
+                                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                    {months.map((m, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setSelectedMonthIndex(idx)}
+                                            className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black transition-all border ${selectedMonthIndex === idx
+                                                ? "bg-ocre border-ocre text-white shadow-md shadow-ocre/20"
+                                                : "bg-white border-zinc-100 text-chocolat/40 hover:border-ocre/30"
+                                                }`}
+                                        >
+                                            {m.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-                                {frequency === "WEEKLY" ? (
-                                    <div className="grid grid-cols-7 gap-1.5">
-                                        {DAYS_OF_WEEK.map((day) => (
+                            {/* Day Grid */}
+                            <div className="bg-zinc-50/50 border border-zinc-100 rounded-[32px] p-5 sm:p-6">
+                                <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-[0.2em] mb-4 text-center">
+                                    Date de passage souhaitée
+                                </p>
+                                <div className="grid grid-cols-7 gap-2">
+                                    {daysInMonth.map((day) => {
+                                        const active = selectedDay === day;
+                                        // Calculer si le jour est très occupé (ex: plus de 3 créneaux pris)
+                                        const daySlotsOccupied = HOURS.filter(h => isSlotOccupied(day, selectedMonth.month, selectedMonth.year, h)).length;
+                                        const isFull = daySlotsOccupied >= 5;
+                                        const isBusy = daySlotsOccupied > 0 && daySlotsOccupied < 5;
+
+                                        return (
                                             <button
                                                 key={day}
-                                                onClick={() => setSelectedDay(day)}
-                                                className={`py-2.5 rounded-xl text-[9px] font-black transition-all border active:scale-95 ${selectedDay === day
-                                                    ? "bg-ocre border-ocre text-white shadow-sm"
-                                                    : "bg-white border-zinc-200 text-chocolat/50 hover:border-ocre/40 hover:text-chocolat"
+                                                onClick={() => !isFull && setSelectedDay(day)}
+                                                disabled={isFull}
+                                                className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] font-bold transition-all border relative ${active
+                                                    ? "bg-chocolat border-chocolat text-white shadow-lg"
+                                                    : isFull
+                                                        ? "bg-red-50 border-red-100 text-red-500 cursor-not-allowed"
+                                                        : "bg-white border-zinc-100 text-chocolat/60 hover:border-ocre/40"
                                                     }`}
                                             >
-                                                {day}
+                                                <span>{day}</span>
+                                                {!active && !isFull && isBusy && (
+                                                    <div className="flex gap-0.5 mt-0.5">
+                                                        <div className="w-1 h-1 rounded-full bg-orange-400" />
+                                                    </div>
+                                                )}
+                                                {isFull && (
+                                                    <div className="absolute top-1 right-1">
+                                                        <div className="w-1 h-1 rounded-full bg-red-500" />
+                                                    </div>
+                                                )}
                                             </button>
-                                        ))}
+                                        );
+                                    })}
+                                </div>
+                                {/* Légende de disponibilité */}
+                                <div className="mt-4 flex items-center justify-center gap-4 px-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                                        <span className="text-[8px] font-bold text-chocolat/40 uppercase tracking-widest">Chargé</span>
                                     </div>
-                                ) : (
-                                    <div className="grid grid-cols-7 gap-1.5">
-                                        {MONTHLY_DAYS.map((day) => (
-                                            <button
-                                                key={day}
-                                                onClick={() => setSelectedDay(day)}
-                                                className={`py-2 rounded-lg text-[9px] font-black transition-all border active:scale-95 ${selectedDay === day
-                                                    ? "bg-ocre border-ocre text-white shadow-sm"
-                                                    : "bg-white border-zinc-200 text-chocolat/50 hover:border-ocre/40"
-                                                    }`}
-                                            >
-                                                {day}
-                                            </button>
-                                        ))}
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                        <span className="text-[8px] font-bold text-chocolat/40 uppercase tracking-widest">Complet</span>
                                     </div>
-                                )}
-                            </motion.div>
-                        )}
+                                </div>
+                            </div>
+                        </motion.div>
                     </AnimatePresence>
 
-                    {/* Hour Picker */}
-                    <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Clock className="w-3.5 h-3.5 text-ocre" />
-                            <p className="text-[9px] font-black text-chocolat/40 uppercase tracking-widest">
-                                Heure de passage
+                    {/* Duration Picker */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-ocre" />
+                            <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
+                                Durée de l'intervention
                             </p>
                         </div>
-                        <div className="grid grid-cols-5 gap-1.5">
-                            {HOURS.map((time) => (
+                        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                            {[1, 2, 3, 4, 5, 8].map((h) => (
                                 <button
-                                    key={time}
-                                    onClick={() => setSelectedTime(time)}
-                                    className={`py-2.5 rounded-xl text-[9px] font-black transition-all border active:scale-95 ${selectedTime === time
-                                        ? "bg-ocre border-ocre text-white shadow-sm"
-                                        : "bg-white border-zinc-200 text-chocolat/50 hover:border-ocre/40 hover:text-chocolat"
+                                    key={h}
+                                    onClick={() => setDuration(h)}
+                                    className={`shrink-0 px-6 py-3 rounded-2xl text-[11px] font-black transition-all border ${duration === h
+                                        ? "bg-ocre border-ocre text-white shadow-md shadow-ocre/20"
+                                        : "bg-white border-zinc-100 text-chocolat/50 hover:border-ocre/40 hover:text-chocolat"
                                         }`}
                                 >
-                                    {time}
+                                    {h} {h === 1 ? 'heure' : 'heures'}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Summary chip */}
-                    <div className="flex items-center gap-2 px-1">
-                        <Zap className="w-3 h-3 text-ocre shrink-0" />
-                        <p className="text-[9px] font-bold text-chocolat/30 italic uppercase tracking-wider">
-                            Priorité premium • interventions garanties
-                        </p>
+                    {/* Hour Picker */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-ocre" />
+                            <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
+                                Créneau horaire
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-5 gap-2">
+                            {HOURS.map((time) => {
+                                const isOccupied = isSlotOccupied(selectedDay, selectedMonth.month, selectedMonth.year, time);
+                                return (
+                                    <button
+                                        key={time}
+                                        disabled={isOccupied}
+                                        onClick={() => setSelectedTime(time)}
+                                        className={`py-3.5 rounded-2xl text-[10px] font-black transition-all border relative overflow-hidden ${selectedTime === time
+                                            ? "bg-ocre border-ocre text-white shadow-md shadow-ocre/20"
+                                            : isOccupied 
+                                                ? "bg-zinc-100 border-zinc-100 text-zinc-300 cursor-not-allowed"
+                                                : "bg-white border-zinc-100 text-chocolat/50 hover:border-ocre/40 hover:text-chocolat"
+                                            }`}
+                                    >
+                                        {time}
+                                        {isOccupied && (
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+                                                <div className="w-full h-[1px] bg-red-500 rotate-12"></div>
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
                 {/* ─── Footer ─── */}
-                <div className="shrink-0 px-5 pb-6 pt-3 sm:px-8 sm:pb-8 border-t border-zinc-100 bg-white">
+                <div className="shrink-0 px-6 pb-8 pt-4 sm:px-10 sm:pb-10 border-t border-zinc-100 bg-white">
                     {/* Selected summary */}
-                    <div className="flex items-center gap-3 mb-4 bg-chocolat/[0.04] rounded-2xl px-4 py-3">
+                    <div className="flex items-center gap-4 mb-6 bg-off-white rounded-[24px] px-5 py-4 border border-ocre/10">
+                        <div className="w-10 h-10 rounded-full bg-ocre/10 flex items-center justify-center shrink-0">
+                            <Calendar className="w-5 h-5 text-ocre" />
+                        </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[9px] font-bold text-chocolat/40 uppercase tracking-widest mb-0.5">Planning sélectionné</p>
-                            <p className="text-[11px] font-black text-chocolat uppercase tracking-tight truncate">
+                            <p className="text-[9px] font-bold text-chocolat/30 uppercase tracking-[0.2em] mb-0.5">Planning finalisé</p>
+                            <p className="text-[13px] font-black text-chocolat uppercase tracking-tight truncate">
                                 {selectedPlanLabel}
-                                {frequency !== "DAILY" && ` · ${selectedDay}`}
-                                {` · ${selectedTime}`}
+                                {` • ${selectedDay} ${selectedMonth.name}`}
+                                {` • ${selectedTime} (${duration}h)`}
                             </p>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-chocolat/30 shrink-0" />
                     </div>
 
                     <button
                         onClick={handleConfirm}
-                        className="w-full bg-chocolat text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 shadow-lg group active:scale-[0.98]"
+                        className="w-full bg-chocolat text-white py-5 rounded-[24px] font-black text-[12px] uppercase tracking-[0.3em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-4 shadow-2xl shadow-chocolat/20 group active:scale-[0.98]"
                     >
                         Confirmer le planning
-                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                        <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1.5" />
                     </button>
                 </div>
             </motion.div>

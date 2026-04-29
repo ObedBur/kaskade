@@ -53,5 +53,11 @@ export class RequestsController {
   remove(@Param('id') id: string, @CurrentUser('id') clientId: string) {
     return this.requestsService.removeForClient(id, clientId);
   }
+  
+  // Récupérer les créneaux occupés pour un service
+  @Get('availability/:serviceId')
+  getAvailability(@Param('serviceId') serviceId: string) {
+    return this.requestsService.getAvailability(serviceId);
+  }
 
 }

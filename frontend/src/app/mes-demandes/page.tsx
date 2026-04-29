@@ -2,12 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
-import { Clock, Play, CheckCircle2, Search, Loader2, CreditCard, AlertCircle } from "lucide-react";
+import { Clock, Play, CheckCircle2, Search, Loader2, CreditCard, AlertCircle, Calendar, Trash2, Edit3, MapPin, FileText, X, ChevronRight, Star } from "lucide-react";
 import Footer from "@/components/landing/Footer";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import Timing from "@/components/landing/Timing";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1581578731548-c64695cc6958?q=80&w=800";
 
 export default function MesDemandesPage() {
   const { user, isLoading: authLoading } = useRequireAuth();
@@ -15,10 +19,30 @@ export default function MesDemandesPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("TOUTES");
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  const resolveImageUrl = (path: string | null | undefined) => {
+    if (!path) return FALLBACK_IMAGE;
+    if (path.startsWith('http')) return path;
+
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const baseUrl = 'http://localhost:4000'; // Ton backend
+
+    // Si le chemin contient déjà "uploads", on ajoute juste le domaine
+    if (cleanPath.includes('/uploads/')) {
+      return `${baseUrl}${cleanPath}`;
+    }
+
+    // Sinon (cas où on n'a que le nom du fichier), on suit la logique backend : /uploads/services/nom_du_fichier
+    return `${baseUrl}/uploads/services${cleanPath}`;
+  };
 
   const fetchRequests = async () => {
     try {
       const res = await api.get("/requests");
+      console.log("Mes Demandes Data:", res.data); // Pour analyser la structure des images
       setRequests(res.data);
     } catch (err) {
       toast.error("Erreur lors du chargement de vos demandes.");
@@ -32,6 +56,40 @@ export default function MesDemandesPage() {
       fetchRequests();
     }
   }, [user, authLoading]);
+
+  // Annuler une demande
+  const handleCancel = async (requestId: string) => {
+    if (!confirm("Voulez-vous vraiment annuler cette demande ?")) return;
+    try {
+      await api.delete(`/requests/${requestId}`);
+      toast.success("Demande annulée avec succès.");
+      fetchRequests();
+    } catch (err) {
+      toast.error("Impossible d'annuler la demande.");
+    }
+  };
+
+  // Reporter une demande (Réel)
+  const handleReschedule = (request: any) => {
+    setSelectedRequest(request);
+    setShowReschedule(true);
+  };
+
+  const confirmReschedule = async (plan: any) => {
+    setShowReschedule(false);
+    const loadingToast = toast.loading("Mise à jour de votre planning...");
+    try {
+      await api.patch(`/requests/${selectedRequest.id}`, {
+        scheduleDay: plan.day,
+        scheduleTime: plan.time,
+        notes: `Report demandé : ${plan.dateLabel}. ${selectedRequest.notes || ''}`
+      });
+      toast.success("Votre demande de report a été transmise ! Un expert va confirmer le changement.", { id: loadingToast });
+      fetchRequests();
+    } catch (err) {
+      toast.error("Erreur lors du report.", { id: loadingToast });
+    }
+  };
 
   // Simulation de paiement (Appel au Backend)
   const handlePayment = async (requestId: string, type: 'deposit' | 'final') => {
@@ -69,10 +127,10 @@ export default function MesDemandesPage() {
   }
 
   return (
-    <main className="bg-[#FCFBF7] min-h-screen font-sans selection:bg-[#BC9C6C] selection:text-white">
+    <main className="bg-[#FCFBF7] min-h-screen font-sans selection:bg-[#BC9C6C] selection:text-white overflow-x-hidden">
       <Navbar />
 
-      <div className="pt-24 md:pt-32 pb-24 max-w-[1200px] mx-auto px-4 min-[480px]:px-8 min-[1440px]:p-12">
+      <div className="pt-32 md:pt-40 pb-24 max-w-[1400px] mx-auto px-4 sm:px-10">
 
         {/* HEADER EDITORIAL */}
         <motion.section
@@ -98,8 +156,8 @@ export default function MesDemandesPage() {
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
                 className={`text-[10px] font-black uppercase tracking-widest px-6 py-3 transition-all duration-300 ${activeFilter === filter
-                    ? "bg-[#321B13] text-[#FCFBF7]"
-                    : "bg-white border border-[#321B13]/10 text-[#321B13] hover:border-[#BC9C6C]"
+                  ? "bg-[#321B13] text-[#FCFBF7]"
+                  : "bg-white border border-[#321B13]/10 text-[#321B13] hover:border-[#BC9C6C]"
                   }`}
               >
                 {filter}
@@ -108,89 +166,79 @@ export default function MesDemandesPage() {
           </div>
         </div>
 
-        {/* LISTE DES DEMANDES */}
-        <div className="space-y-6">
+        {/* GRILLE DES DEMANDES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence mode="popLayout">
             {filteredRequests.length > 0 ? (
               filteredRequests.map((req, index) => (
                 <motion.div
                   key={req.id}
+                  layout
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group relative bg-white border border-[#321B13]/5 p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8 hover:border-[#BC9C6C]/30 hover:shadow-2xl transition-all duration-500"
+                  onClick={() => { setSelectedRequest(req); setShowDetailModal(true); }}
+                  className="group bg-white rounded-[32px] border border-zinc-100 overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col h-full"
                 >
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#BC9C6C] scale-y-0 group-hover:scale-y-100 origin-top transition-transform duration-500"></div>
+                  {/* Image & Status */}
+                  <div className="relative h-48 w-full overflow-hidden shrink-0">
+                    <Image
+                      src={resolveImageUrl(req.service?.imageUrl)}
+                      alt={req.service?.name || "Service"}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      unoptimized
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-chocolat/60 to-transparent" />
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-4">
-                      <span className="text-[#321B13]/30 text-[9px] font-black uppercase tracking-[0.2em]">{req.id.split('-')[0]}</span>
-                      <span className="text-[#321B13]/40 text-[9px] font-bold uppercase tracking-widest flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5" /> {new Date(req.createdAt).toLocaleDateString('fr-FR')}
-                      </span>
+                    {/* Status Badge */}
+                    <div className="absolute top-4 left-4">
+                      {req.status === "PENDING" && <span className="bg-white/90 backdrop-blur-md text-chocolat text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20">En attente</span>}
+                      {req.status === "IN_PROGRESS" && <span className="bg-ocre text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-ocre/20"><Play className="w-2.5 h-2.5" /> En cours</span>}
+                      {req.status === "COMPLETED" && <span className="bg-green-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5"><CheckCircle2 className="w-2.5 h-2.5" /> Terminée</span>}
+                      {req.status === "ACCEPTED" && <span className="bg-blue-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20">Acceptée</span>}
                     </div>
-                    <h3 className="text-2xl font-black text-[#321B13] tracking-tighter uppercase mb-2">
-                      {req.service?.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                       <p className="text-[#321B13]/60 text-[10px] font-bold uppercase tracking-widest">
-                        Artisan : <span className="text-[#321B13]">{req.provider?.fullName || "En attente d'acceptation"}</span>
-                      </p>
+
+                    <div className="absolute bottom-4 right-4">
+                      <p className="text-white text-xl font-black tracking-tighter">${req.price}</p>
                     </div>
                   </div>
 
-                  {/* Actions & Paiement */}
-                  <div className="flex flex-col sm:flex-row items-center gap-8 lg:min-w-[300px] justify-end">
-                    
-                    <div className="text-center sm:text-right">
-                       <p className="text-[9px] uppercase tracking-widest text-[#321B13]/40 font-black mb-1">Montant Total</p>
-                       <p className="text-2xl font-black text-[#321B13] tracking-tighter">${req.price}</p>
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[8px] font-black text-ocre uppercase tracking-[0.2em]">{req.service?.category}</span>
                     </div>
+                    <h3 className="text-lg font-black text-chocolat tracking-tighter uppercase mb-2 line-clamp-1 group-hover:text-ocre transition-colors">
+                      {req.service?.name}
+                    </h3>
+                    <p className="text-chocolat/50 text-[10px] font-bold uppercase tracking-widest mb-4">
+                      Artisan : <span className="text-chocolat">{req.provider?.fullName || "Recherche..."}</span>
+                    </p>
 
-                    {/* LOGIQUE DES BOUTONS DE PAIEMENT */}
-                    {req.status === "ACCEPTED" && (
-                      <button 
-                        onClick={() => handlePayment(req.id, 'deposit')}
-                        disabled={payingId === req.id}
-                        className="bg-[#BC9C6C] text-white px-8 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#321B13] transition-all flex items-center gap-3 animate-pulse hover:animate-none"
-                      >
-                        {payingId === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                        Payer l'Acompte (50%)
-                      </button>
-                    )}
-
-                    {req.status === "AWAITING_FINAL" && (
-                      <button 
-                        onClick={() => handlePayment(req.id, 'final')}
-                        disabled={payingId === req.id}
-                        className="bg-[#321B13] text-white px-8 py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#BC9C6C] transition-all flex items-center gap-3"
-                      >
-                        {payingId === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                        Régler le Solde Final (50%)
-                      </button>
-                    )}
-
-                    {/* BADGES DE STATUT */}
-                    {["PENDING", "APPROVED"].includes(req.status) && (
-                      <div className="flex items-center gap-2 bg-[#FCFBF7] border border-[#321B13]/10 text-[#321B13]/40 px-6 py-3 text-[9px] font-black uppercase tracking-widest">
-                        Recherche Artisan...
+                    {req.scheduleFrequency && (
+                      <div className="mt-auto pt-4 border-t border-zinc-50 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-off-white flex items-center justify-center shrink-0">
+                          <Calendar className="w-4 h-4 text-ocre" />
+                        </div>
+                        <div>
+                          <p className="text-[7px] font-black text-chocolat/30 uppercase tracking-widest">Abonnement</p>
+                          <p className="text-[10px] font-black text-chocolat uppercase">{req.scheduleFrequency} • {req.scheduleDay}</p>
+                        </div>
                       </div>
                     )}
-                    {req.status === "IN_PROGRESS" && (
-                      <div className="flex items-center gap-2 bg-[#321B13] text-white px-6 py-3 text-[9px] font-black uppercase tracking-widest">
-                        <Play className="w-3 h-3 text-[#BC9C6C]" /> Mission en cours
+
+                    <div className="mt-6 flex items-center justify-between">
+                      <span className="text-[9px] font-black text-chocolat/20 uppercase tracking-[0.2em]">ID: {req.id.split('-')[0]}</span>
+                      <div className="flex items-center gap-1 text-ocre group-hover:translate-x-1 transition-transform">
+                        <span className="text-[9px] font-black uppercase tracking-widest">Détails</span>
+                        <ChevronRight className="w-3 h-3" />
                       </div>
-                    )}
-                    {req.status === "COMPLETED" && (
-                      <div className="flex items-center gap-2 bg-green-50 text-green-600 px-6 py-3 text-[9px] font-black uppercase tracking-widest border border-green-100">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Terminée
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </motion.div>
               ))
             ) : (
-              <div className="py-32 text-center bg-white border border-[#321B13]/5">
+              <div className="col-span-full py-32 text-center bg-white border border-[#321B13]/5 rounded-[40px]">
                 <AlertCircle className="w-12 h-12 text-[#321B13]/10 mx-auto mb-6" />
                 <h3 className="text-sm font-black text-[#321B13]/30 uppercase tracking-widest">Aucune demande trouvée</h3>
               </div>
@@ -200,6 +248,149 @@ export default function MesDemandesPage() {
       </div>
 
       <Footer />
+
+      <AnimatePresence>
+        {showReschedule && selectedRequest && (
+          <Timing
+            service={selectedRequest.service}
+            onClose={() => setShowReschedule(false)}
+            onConfirm={confirmReschedule}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* MODALE DE DÉTAILS COMPLÈTE */}
+      <AnimatePresence>
+        {showDetailModal && selectedRequest && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDetailModal(false)}
+              className="absolute inset-0 bg-chocolat/80 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Header Image Detail */}
+              <div className="relative h-64 shrink-0">
+                <Image
+                  src={resolveImageUrl(selectedRequest.service?.imageUrl)}
+                  alt={selectedRequest.service?.name || "Service"}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="absolute top-6 right-6 p-3 bg-white/90 backdrop-blur-md rounded-2xl border border-white/20 text-chocolat hover:scale-110 active:scale-95 transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content Detail */}
+              <div className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-8 custom-scrollbar">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="bg-ocre/10 text-ocre text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full">
+                      {selectedRequest.service?.category}
+                    </span>
+                    <span className="text-chocolat/30 text-[10px] font-bold uppercase tracking-widest">ID: {selectedRequest.id}</span>
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-black text-chocolat tracking-tighter uppercase leading-none">
+                    {selectedRequest.service?.name}
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-5 bg-off-white rounded-3xl border border-zinc-100">
+                    <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest mb-2">Artisan Assigné</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-ocre/10 flex items-center justify-center">
+                        <Star className="w-4 h-4 text-ocre" />
+                      </div>
+                      <p className="text-xs font-black text-chocolat">{selectedRequest.provider?.fullName || "Recherche en cours..."}</p>
+                    </div>
+                  </div>
+                  <div className="p-5 bg-off-white rounded-3xl border border-zinc-100 text-right">
+                    <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest mb-1">Montant Total</p>
+                    <p className="text-2xl font-black text-chocolat tracking-tighter">${selectedRequest.price}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-zinc-50 rounded-2xl"><MapPin className="w-5 h-5 text-chocolat/40" /></div>
+                    <div>
+                      <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest">Adresse d'intervention</p>
+                      <p className="text-sm font-bold text-chocolat">{selectedRequest.address || "À préciser avec l'artisan"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-zinc-50 rounded-2xl"><Calendar className="w-5 h-5 text-chocolat/40" /></div>
+                    <div>
+                      <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest">Planning & Fréquence</p>
+                      <p className="text-sm font-bold text-chocolat">
+                        {selectedRequest.scheduleFrequency === "ONCE" ? "Intervention ponctuelle" : `Abonnement ${selectedRequest.scheduleFrequency}`}
+                        {selectedRequest.scheduleDay && ` • Chaque ${selectedRequest.scheduleDay} à ${selectedRequest.scheduleTime}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedRequest.notes && (
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-zinc-50 rounded-2xl"><FileText className="w-5 h-5 text-chocolat/40" /></div>
+                      <div>
+                        <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest">Notes & Instructions</p>
+                        <p className="text-sm text-chocolat/70 leading-relaxed italic">"{selectedRequest.notes}"</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions Modal */}
+                <div className="pt-8 border-t border-zinc-100 flex flex-wrap gap-4">
+                  {selectedRequest.status === "ACCEPTED" && (
+                    <button
+                      onClick={() => { handlePayment(selectedRequest.id, 'deposit'); setShowDetailModal(false); }}
+                      className="flex-1 bg-ocre text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-ocre/20 hover:scale-[1.02] transition-all"
+                    >
+                      Payer l'acompte (50%)
+                    </button>
+                  )}
+                  {selectedRequest.status === "AWAITING_FINAL" && (
+                    <button
+                      onClick={() => { handlePayment(selectedRequest.id, 'final'); setShowDetailModal(false); }}
+                      className="flex-1 bg-chocolat text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-chocolat/20 hover:scale-[1.02] transition-all"
+                    >
+                      Payer le solde final
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { handleReschedule(selectedRequest); setShowDetailModal(false); }}
+                    className="px-8 py-5 bg-zinc-100 text-chocolat rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all"
+                  >
+                    Reporter
+                  </button>
+                  <button
+                    onClick={() => { handleCancel(selectedRequest.id); setShowDetailModal(false); }}
+                    className="px-8 py-5 text-red-500 font-black text-[10px] uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

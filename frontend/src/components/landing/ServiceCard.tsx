@@ -17,6 +17,10 @@ interface SchedulePlan {
   frequency: string;
   day: string;
   time: string;
+  duration: number;
+  dateLabel?: string;
+  startDate?: string;
+  instructions?: string;
 }
 
 // ─── MODAL DE PAIEMENT MOBILE MONEY ─────────────────────────────────────────
@@ -61,11 +65,12 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
         serviceId: service.id,
         description: `Demande pour: ${service.name}`,
         address: "Adresse à préciser",
-        scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+        scheduledAt: schedulePlan?.startDate ? new Date(schedulePlan.startDate).toISOString() : new Date(Date.now() + 86400000).toISOString(),
         ...(schedulePlan && {
           scheduleFrequency: schedulePlan.frequency,
           scheduleDay: schedulePlan.day,
           scheduleTime: schedulePlan.time,
+          notes: schedulePlan.instructions,
         }),
       });
 
@@ -134,7 +139,7 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-2 sm:p-4 bg-chocolat/80 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-chocolat/90 backdrop-blur-md overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -245,7 +250,7 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
 // ─── MODAL DE DÉTAILS DU SERVICE ────────────────────────────────────────────
 function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { service: Service; onClose: () => void; onReserve: () => void; onTiming: () => void }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-chocolat/80 backdrop-blur-md overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[9990] flex items-center justify-center p-2 sm:p-4 bg-chocolat/90 backdrop-blur-md overflow-y-auto" onClick={onClose}>
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -403,14 +408,47 @@ export default function ServiceCardBento({ service }: { service: Service }) {
           <Timing
             service={service}
             onClose={() => setShowTiming(false)}
-            onConfirm={(plan) => {
+            onConfirm={async (plan) => {
               setShowTiming(false);
+              
+              if (!isAuthenticated) {
+                toast.error("Veuillez vous connecter pour continuer.");
+                return;
+              }
+
               setSchedulePlan(plan);
-              const scheduleMsg = plan.frequency === "DAILY" 
-                ? `Planning quotidien à ${plan.time}`
-                : `Planning ${plan.frequency.toLowerCase()} (${plan.day}) à ${plan.time}`;
-              toast.success(`${scheduleMsg} enregistré !`);
-              setShowPayment(true);
+
+              if (plan.frequency === "ONCE") {
+                // Flux direct vers paiement pour "Une fois"
+                const msg = `Planning ponctuel le ${plan.dateLabel} à ${plan.time} (${plan.duration}h) enregistré !`;
+                toast.success(msg);
+                setShowPayment(true);
+              } else {
+                // Flux "Dossier" pour Hebdo / Mensuel
+                const loadingToast = toast.loading("Envoi de votre demande de planification...");
+                try {
+                  await api.post('/requests', {
+                    serviceId: service.id,
+                    description: `Planification ${plan.frequency} : ${service.name}`,
+                    address: "À préciser lors de l'étude",
+                    scheduledAt: new Date().toISOString(),
+                    scheduleFrequency: plan.frequency,
+                    scheduleDay: plan.day,
+                    scheduleTime: plan.time,
+                    notes: `Durée souhaitée: ${plan.duration}h. Demande d'abonnement récurrent.`,
+                  });
+                  
+                  toast.success("Demande envoyée ! Votre dossier est en cours d'étude par nos experts. Vous serez notifié dès validation.", {
+                    id: loadingToast,
+                    duration: 6000,
+                  });
+                  setSchedulePlan(null);
+                } catch (error) {
+                  toast.error("Erreur lors de l'envoi de la demande. Veuillez réessayer.", {
+                    id: loadingToast,
+                  });
+                }
+              }
             }}
           />
         )}
