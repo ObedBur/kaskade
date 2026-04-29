@@ -5,6 +5,7 @@ import { UpdateRequestDto } from './dto/update-request.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -14,7 +15,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 export class RequestsController {
   private readonly logger = new Logger(RequestsController.name);
 
-  constructor(private readonly requestsService: RequestsService) {}
+  constructor(private readonly requestsService: RequestsService) { }
 
   // Créer une demande de service
   @Post()
@@ -32,7 +33,8 @@ export class RequestsController {
     return this.requestsService.findMyRequests(clientId);
   }
 
-  // Récupérer les créneaux occupés pour un service
+  // Récupérer les créneaux occupés pour un service (route publique)
+  @Public()
   @Get('availability/:serviceId')
   getAvailability(@Param('serviceId') serviceId: string) {
     return this.requestsService.getAvailability(serviceId);
@@ -43,8 +45,7 @@ export class RequestsController {
   findOne(@Param('id') id: string, @CurrentUser('id') clientId: string) {
     return this.requestsService.findOneForClient(id, clientId);
   }
-
-  // Modifier une de SES demandes (PENDING uniquement)
+  // Modifier une de SES demandes
   @Patch(':id')
   update(
     @Param('id') id: string,

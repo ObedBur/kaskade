@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import Timing from "./Timing";
+import AddressForm from "./AddressForm";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
@@ -18,6 +19,8 @@ interface SchedulePlan {
   day: string;
   time: string;
   duration: number;
+  address?: string;
+  description?: string;
   dateLabel?: string;
   startDate?: string;
   instructions?: string;
@@ -63,8 +66,8 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
 
       const requestRes = await api.post('/requests', {
         serviceId: service.id,
-        description: `Demande pour: ${service.name}`,
-        address: "Adresse à préciser",
+        description: schedulePlan?.description || `Demande pour: ${service.name}`,
+        address: schedulePlan?.address || "Adresse à préciser",
         scheduledAt: schedulePlan?.startDate ? new Date(schedulePlan.startDate).toISOString() : new Date(Date.now() + 86400000).toISOString(),
         ...(schedulePlan && {
           scheduleFrequency: schedulePlan.frequency,
@@ -336,6 +339,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
   const [showPayment, setShowPayment] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showTiming, setShowTiming] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const [schedulePlan, setSchedulePlan] = useState<SchedulePlan | null>(null);
   const { user, isAuthenticated } = useAuth();
 
@@ -356,7 +360,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
     }
 
     setShowDetails(false);
-    setShowPayment(true);
+    setShowTiming(true); // Maintenant on passe par Timing pour TOUTES les réservations
   };
 
   const handlePaymentSuccess = (phone: string, operator: string) => {
@@ -366,7 +370,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
 
   // Verrouiller le scroll quand une modal est ouverte
   useEffect(() => {
-    if (showPayment || showDetails || showTiming) {
+    if (showPayment || showDetails || showTiming || showAddressForm) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -408,7 +412,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
           <Timing
             service={service}
             onClose={() => setShowTiming(false)}
-            onConfirm={async (plan) => {
+            onConfirm={(plan) => {
               setShowTiming(false);
               
               if (!isAuthenticated) {
@@ -417,38 +421,49 @@ export default function ServiceCardBento({ service }: { service: Service }) {
               }
 
               setSchedulePlan(plan);
+              setShowAddressForm(true); // Aller vers le formulaire d'adresse
+            }}
+          />
+        )}
+      </AnimatePresence>
 
-              if (plan.frequency === "ONCE") {
-                // Flux direct vers paiement pour "Une fois"
-                const msg = `Planning ponctuel le ${plan.dateLabel} à ${plan.time} (${plan.duration}h) enregistré !`;
-                toast.success(msg);
-                setShowPayment(true);
-              } else {
-                // Flux "Dossier" pour Hebdo / Mensuel
-                const loadingToast = toast.loading("Envoi de votre demande de planification...");
-                try {
-                  await api.post('/requests', {
-                    serviceId: service.id,
-                    description: `Planification ${plan.frequency} : ${service.name}`,
-                    address: "À préciser lors de l'étude",
-                    scheduledAt: new Date().toISOString(),
-                    scheduleFrequency: plan.frequency,
-                    scheduleDay: plan.day,
-                    scheduleTime: plan.time,
-                    notes: `Durée souhaitée: ${plan.duration}h. Demande d'abonnement récurrent.`,
-                  });
-                  
-                  toast.success("Demande envoyée ! Votre dossier est en cours d'étude par nos experts. Vous serez notifié dès validation.", {
-                    id: loadingToast,
-                    duration: 6000,
-                  });
-                  setSchedulePlan(null);
-                } catch (error) {
-                  toast.error("Erreur lors de l'envoi de la demande. Veuillez réessayer.", {
-                    id: loadingToast,
-                  });
+      <AnimatePresence>
+        {showAddressForm && (
+          <AddressForm 
+            onClose={() => setShowAddressForm(false)}
+            onConfirm={async (data) => {
+                setShowAddressForm(false);
+                const updatedPlan = { ...schedulePlan!, ...data };
+                setSchedulePlan(updatedPlan);
+
+                if (updatedPlan.frequency === "ONCE") {
+                    toast.success("Planning et adresse enregistrés !");
+                    setShowPayment(true);
+                } else {
+                    const loadingToast = toast.loading("Envoi de votre demande d'abonnement...");
+                    try {
+                        await api.post('/requests', {
+                            serviceId: service.id,
+                            description: updatedPlan.description,
+                            address: updatedPlan.address,
+                            scheduledAt: new Date().toISOString(),
+                            scheduleFrequency: updatedPlan.frequency,
+                            scheduleDay: updatedPlan.day,
+                            scheduleTime: updatedPlan.time,
+                            notes: `Durée souhaitée: ${updatedPlan.duration}h. Demande d'abonnement récurrent.`,
+                        });
+                        
+                        toast.success("Demande envoyée ! Votre dossier est en cours d'étude.", {
+                            id: loadingToast,
+                            duration: 6000,
+                        });
+                        setSchedulePlan(null);
+                    } catch (error) {
+                        toast.error("Erreur lors de l'envoi de la demande.", {
+                            id: loadingToast,
+                        });
+                    }
                 }
-              }
             }}
           />
         )}

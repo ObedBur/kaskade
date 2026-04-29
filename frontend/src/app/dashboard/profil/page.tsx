@@ -73,11 +73,17 @@ export default function ProfilPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    console.log("DEBUG: Envoi des données de profil...", formData);
+
     try {
-      await api.patch("/provider/profile", formData);
+      const res = await api.patch("/provider/profile", formData);
+      console.log("DEBUG: Réponse du serveur après mise à jour :", res.data);
+      
       await refreshUser();
       toast.success("Profil mis à jour avec succès !");
     } catch (err) {
+      console.error("DEBUG: Erreur lors de la mise à jour du profil :", err);
       toast.error("Erreur lors de la mise à jour du profil.");
     } finally {
       setLoading(false);
@@ -95,7 +101,8 @@ export default function ProfilPage() {
   const getFullAvatarUrl = (url: string) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${url}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+    return `${baseUrl.replace('/api/v1', '')}${url}`;
   };
 
   return (

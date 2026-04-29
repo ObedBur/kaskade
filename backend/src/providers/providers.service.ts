@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { unlinkSync, existsSync } from 'fs';
+import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApplyProviderDto } from './dto/apply-provider.dto';
 import { AssignServicesDto } from './dto/assign-services.dto';
@@ -223,8 +225,18 @@ export class ProvidersService {
 
     return this.prisma.request.findMany({
       where: {
-        serviceId: { in: assignedServiceIds },
-        status: RequestStatus.APPROVED,
+        OR: [
+          { serviceId: { in: assignedServiceIds } },
+          {
+            service: {
+              OR: [
+                { category: { contains: user.metier || '', mode: 'insensitive' } },
+                { name: { contains: user.metier || '', mode: 'insensitive' } },
+              ]
+            }
+          }
+        ],
+        status: { in: [RequestStatus.APPROVED, RequestStatus.PENDING] },
       },
       include: {
         service: true,
@@ -262,7 +274,7 @@ export class ProvidersService {
       throw new NotFoundException('Demande introuvable.');
     }
 
-    if (request.status !== RequestStatus.APPROVED) {
+    if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.PENDING) {
       throw new BadRequestException('Cette demande n\'est plus disponible.');
     }
 
@@ -370,9 +382,32 @@ export class ProvidersService {
       throw new NotFoundException('Profil prestataire introuvable.');
     }
 
+    // LOG de diagnostic serveur
+    this.logger.log(`DONNÉES REÇUES POUR UPDATE (ID: ${providerId}): ${JSON.stringify(updateProfileDto)}`);
+
+    // Nettoyage automatique de l'ancien avatar si une nouvelle URL est fournie
+    if (updateProfileDto.avatarUrl && user.avatarUrl && user.avatarUrl !== updateProfileDto.avatarUrl) {
+      try {
+        const oldPath = join(process.cwd(), user.avatarUrl.startsWith('/') ? user.avatarUrl.substring(1) : user.avatarUrl);
+        if (existsSync(oldPath)) {
+          unlinkSync(oldPath);
+          this.logger.log(`Nettoyage : Ancien avatar supprimé (${oldPath})`);
+        }
+      } catch (err) {
+        this.logger.error(`Erreur lors du nettoyage de l'ancien avatar : ${err.message}`);
+      }
+    }
+
     return this.prisma.user.update({
       where: { id: providerId },
-      data: updateProfileDto,
+      data: {
+        fullName: updateProfileDto.fullName,
+        metier: updateProfileDto.metier,
+        experience: updateProfileDto.experience,
+        bio: updateProfileDto.bio,
+        quartier: updateProfileDto.quartier,
+        avatarUrl: updateProfileDto.avatarUrl,
+      },
     });
   }
 

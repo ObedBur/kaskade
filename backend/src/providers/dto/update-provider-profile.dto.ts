@@ -3,6 +3,10 @@ import { IsString, IsOptional } from 'class-validator';
 export class UpdateProviderProfileDto {
   @IsString()
   @IsOptional()
+  fullName?: string;
+
+  @IsString()
+  @IsOptional()
   metier?: string;
 
   @IsString()
@@ -16,4 +20,8 @@ export class UpdateProviderProfileDto {
   @IsString()
   @IsOptional()
   bio?: string;
+
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
 }

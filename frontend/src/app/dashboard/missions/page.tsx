@@ -26,6 +26,7 @@ interface ServiceCategory {
 interface AvailableMission {
   id: string;
   service: {
+    id: string;
     name: string;
     category: string;
   };

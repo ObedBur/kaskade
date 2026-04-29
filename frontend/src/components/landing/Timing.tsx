@@ -4,7 +4,7 @@ import { useState, ReactNode, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     X, Calendar, Clock, Check, ArrowRight,
-    Zap, Star, ChevronRight, ChevronLeft
+    Zap, Star, ChevronRight, ChevronLeft, MapPin
 } from "lucide-react";
 import { Service } from "./ServiceExplorer";
 import { toast } from "sonner";
@@ -121,12 +121,6 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
         const fullDate = new Date(selectedMonth.year, selectedMonth.month, selectedDay);
         const dayLabel = fullDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
         const weekday = fullDate.toLocaleDateString('fr-FR', { weekday: 'long' });
-
-        // Vérification de sécurité finale
-        if (isSlotOccupied(selectedDay, selectedMonth.month, selectedMonth.year, selectedTime)) {
-            toast.error("Ce créneau est malheureusement déjà occupé pour cette date.");
-            return;
-        }
 
         onConfirm({
             frequency,
