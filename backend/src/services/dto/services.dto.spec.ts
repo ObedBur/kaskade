@@ -8,6 +8,7 @@ describe('Services DTO Validation', () => {
       const dto = new CreateServiceDto();
       dto.name = 'Plomberie';
       dto.category = 'Bâtiment';
+      dto.price = 50;
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });
