@@ -224,8 +224,7 @@ export class RequestsService {
       },
       select: {
         scheduledAt: true,
-        scheduleTime: true,
-        duration: true // Note: Assurez-vous que duration existe dans votre modèle ou utilisez une valeur par défaut
+        scheduleTime: true
       }
     });
 

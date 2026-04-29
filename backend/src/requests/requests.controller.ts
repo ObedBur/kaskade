@@ -32,6 +32,12 @@ export class RequestsController {
     return this.requestsService.findMyRequests(clientId);
   }
 
+  // Récupérer les créneaux occupés pour un service
+  @Get('availability/:serviceId')
+  getAvailability(@Param('serviceId') serviceId: string) {
+    return this.requestsService.getAvailability(serviceId);
+  }
+
   // Voir le détail d'une de SES demandes
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser('id') clientId: string) {
@@ -52,12 +58,6 @@ export class RequestsController {
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser('id') clientId: string) {
     return this.requestsService.removeForClient(id, clientId);
-  }
-  
-  // Récupérer les créneaux occupés pour un service
-  @Get('availability/:serviceId')
-  getAvailability(@Param('serviceId') serviceId: string) {
-    return this.requestsService.getAvailability(serviceId);
   }
 
 }
