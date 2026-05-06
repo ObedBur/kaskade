@@ -20,10 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
-  experimental: {
-    // @ts-ignore
-    outputFileTracingRoot: __dirname,
-  },
+  outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;                         

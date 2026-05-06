@@ -45,9 +45,9 @@ export class PaymentsService {
       throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
     }
 
-    if (request.status !== RequestStatus.ACCEPTED && request.status !== RequestStatus.PENDING) {
+    if (request.status !== RequestStatus.ACCEPTED) {
       throw new BadRequestException(
-        "L'acompte ne peut être versé que sur une demande nouvelle ou acceptée.",
+        "L'acompte ne peut être versé que lorsqu'un prestataire a accepté la mission (statut ACCEPTED).",
       );
     }
 
