@@ -15,10 +15,9 @@ export class ProvidersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   async apply(userId: string, applyProviderDto: ApplyProviderDto) {
-    // 1. Vérifier que l'utilisateur existe
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -26,12 +25,9 @@ export class ProvidersService {
       throw new NotFoundException('Utilisateur introuvable');
     }
 
-    // 2. S'il est déjà PROVIDER, on bloque
     if (user.role === Role.PROVIDER) {
       throw new BadRequestException('Vous êtes déjà un prestataire.');
     }
-
-    // 3. Empêcher une double demande en attente
     const existingApp = await this.prisma.providerApplication.findFirst({
       where: {
         userId,
@@ -43,7 +39,6 @@ export class ProvidersService {
       throw new BadRequestException('Vous avez déjà une candidature en attente.');
     }
 
-    // 4. Créer la demande et mettre à jour le profil utilisateur (Transaction)
     const [application] = await this.prisma.$transaction([
       this.prisma.providerApplication.create({
         data: {
@@ -82,13 +77,11 @@ export class ProvidersService {
       throw new BadRequestException(`Cette candidature a déjà été traitée (${application.status})`);
     }
 
-    // Mise à jour de la candidature
     const updatedApp = await this.prisma.providerApplication.update({
       where: { id: applicationId },
       data: { status: RequestStatus.APPROVED },
     });
 
-    // Mise à jour du rôle de l'utilisateur
     await this.prisma.user.update({
       where: { id: application.userId },
       data: { role: Role.PROVIDER },
@@ -278,13 +271,29 @@ export class ProvidersService {
       throw new BadRequestException('Cette demande n\'est plus disponible.');
     }
 
-    // Vérifier que le prestataire est bien assigné au service demandé
-    const canHandleService = provider.services.some(s => s.id === request.serviceId);
-    if (!canHandleService) {
+    const directLink = provider.services.some(s => s.id === request.serviceId);
+
+    let canHandleByMetier = false;
+    if (!directLink) {
+      const service = await this.prisma.service.findUnique({
+        where: { id: request.serviceId },
+        include: { _count: { select: { providers: true } } }
+      });
+
+      const metierMatches = provider.metier && (
+        service?.name.toLowerCase().includes(provider.metier.toLowerCase()) ||
+        service?.category.toLowerCase().includes(provider.metier.toLowerCase())
+      );
+
+      if (metierMatches && service?._count.providers === 0) {
+        canHandleByMetier = true;
+      }
+    }
+
+    if (!directLink && !canHandleByMetier) {
       throw new BadRequestException('Vous n\'êtes pas autorisé à réaliser ce service.');
     }
 
-    // Marquer la mission acceptée + changer le statut du prestataire (transaction)
     const [updatedRequest] = await this.prisma.$transaction([
       this.prisma.request.update({
         where: { id: requestId },
@@ -306,19 +315,15 @@ export class ProvidersService {
     return updatedRequest;
   }
 
-  // Feature B : Refuser une mission
-  // (Le refus d'une demande disponible signifie simplement l'ignorer, on ne fait rien en BDD.
-  // Mais si le client l'exige, on peut au moins vérifier si la demande existe)
   async rejectRequest(requestId: string, providerId: string) {
     const request = await this.prisma.request.findUnique({ where: { id: requestId } });
     if (!request) throw new NotFoundException('Demande introuvable');
-    
+
     this.eventEmitter.emit('request.rejected', { requestId, providerId });
-    
+
     return { message: 'Demande ignorée avec succès' };
   }
 
-  // Marquer une mission comme terminée
   async completeRequest(requestId: string, providerId: string) {
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
@@ -332,7 +337,6 @@ export class ProvidersService {
       throw new BadRequestException('Vous n\'êtes pas le prestataire assigné à cette mission.');
     }
 
-    // Le client doit avoir versé l'acompte avant que le provider puisse terminer
     if (request.status !== RequestStatus.IN_PROGRESS) {
       throw new BadRequestException(
         'La mission ne peut pas être marquée comme terminée : l\'acompte doit d\'abord être payé.'
@@ -356,7 +360,6 @@ export class ProvidersService {
     return updatedRequest;
   }
 
-  // Feature C : Voir son profil
   async getProfile(providerId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: providerId },
@@ -367,12 +370,9 @@ export class ProvidersService {
       throw new NotFoundException('Profil prestataire introuvable.');
     }
 
-    // Retourner les données pertinentes sans le mot de passe
     const { password, refreshToken, ...profile } = user;
     return profile;
   }
-
-  // Feature C : Modifier son profil
   async updateProfile(providerId: string, updateProfileDto: UpdateProviderProfileDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: providerId },
@@ -382,10 +382,8 @@ export class ProvidersService {
       throw new NotFoundException('Profil prestataire introuvable.');
     }
 
-    // LOG de diagnostic serveur
     this.logger.log(`DONNÉES REÇUES POUR UPDATE (ID: ${providerId}): ${JSON.stringify(updateProfileDto)}`);
 
-    // Nettoyage automatique de l'ancien avatar si une nouvelle URL est fournie
     if (updateProfileDto.avatarUrl && user.avatarUrl && user.avatarUrl !== updateProfileDto.avatarUrl) {
       try {
         const oldPath = join(process.cwd(), user.avatarUrl.startsWith('/') ? user.avatarUrl.substring(1) : user.avatarUrl);
@@ -413,7 +411,6 @@ export class ProvidersService {
 
   async getDashboardStats(providerId: string) {
     const [revenueData, pendingCount, completedCount, activeRequest] = await Promise.all([
-      // Total revenue (assuming price is fixed when approved/accepted)
       this.prisma.request.aggregate({
         where: {
           providerId,
@@ -421,21 +418,18 @@ export class ProvidersService {
         },
         _sum: { price: true },
       }),
-      // Pending missions count (assigned and in progress)
       this.prisma.request.count({
         where: {
           providerId,
           status: { in: [RequestStatus.ACCEPTED, RequestStatus.IN_PROGRESS] },
         },
       }),
-      // Completed missions count
       this.prisma.request.count({
         where: {
           providerId,
           status: RequestStatus.COMPLETED,
         },
       }),
-      // Active mission (Focus Principal)
       this.prisma.request.findFirst({
         where: {
           providerId,

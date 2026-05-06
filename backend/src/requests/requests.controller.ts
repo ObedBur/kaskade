@@ -17,7 +17,6 @@ export class RequestsController {
 
   constructor(private readonly requestsService: RequestsService) { }
 
-  // Créer une demande de service
   @Post()
   create(
     @CurrentUser('id') clientId: string,
@@ -27,25 +26,28 @@ export class RequestsController {
     return this.requestsService.create(clientId, createRequestDto);
   }
 
-  // Voir uniquement SES propres demandes
   @Get()
   findMyRequests(@CurrentUser('id') clientId: string) {
     return this.requestsService.findMyRequests(clientId);
   }
 
-  // Récupérer les créneaux occupés pour un service (route publique)
+  @Public()
+  @Get('availability/pooled/:serviceId')
+  getPooledAvailability(@Param('serviceId') serviceId: string) {
+    return this.requestsService.getPooledAvailability(serviceId);
+  }
+
   @Public()
   @Get('availability/:serviceId')
   getAvailability(@Param('serviceId') serviceId: string) {
     return this.requestsService.getAvailability(serviceId);
   }
 
-  // Voir le détail d'une de SES demandes
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser('id') clientId: string) {
     return this.requestsService.findOneForClient(id, clientId);
   }
-  // Modifier une de SES demandes
+
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -55,7 +57,6 @@ export class RequestsController {
     return this.requestsService.updateForClient(id, clientId, updateRequestDto);
   }
 
-  // Annuler une de SES demandes (PENDING uniquement)
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser('id') clientId: string) {
     return this.requestsService.removeForClient(id, clientId);

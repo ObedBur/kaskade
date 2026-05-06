@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { getMediaUrl } from "@/lib/utils";
 
 interface ServiceCategory {
   id: string;
@@ -170,7 +171,7 @@ export default function AvailableMissionsPage() {
               {/* Image Background */}
               <div className="aspect-square bg-gray-200 overflow-hidden">
                 <img
-                  src={category.imageUrl}
+                  src={getMediaUrl(category.imageUrl)}
                   alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />

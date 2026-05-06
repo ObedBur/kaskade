@@ -8,12 +8,14 @@ import { Service } from "@/components/landing/ServiceExplorer";
 import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { getMediaUrl } from "@/lib/utils";
 import Timing from "./Timing";
 import AddressForm from "./AddressForm";
+import PooledCalendar from "./PooledCalendar";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
-// ─── Types partagés ─────────────────────────────────────────────────────────
+// Types partagés
 interface SchedulePlan {
   frequency: string;
   day: string;
@@ -26,7 +28,7 @@ interface SchedulePlan {
   instructions?: string;
 }
 
-// ─── MODAL DE PAIEMENT MOBILE MONEY ─────────────────────────────────────────
+// MODAL DE PAIEMENT MOBILE MONEY
 function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { service: Service; onClose: () => void; onSuccess: (phone: string, op: string) => void; schedulePlan?: SchedulePlan | null }) {
   const [method, setMethod] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -250,7 +252,7 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
   );
 }
 
-// ─── MODAL DE DÉTAILS DU SERVICE ────────────────────────────────────────────
+// MODAL DE DÉTAILS DU SERVICE
 function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { service: Service; onClose: () => void; onReserve: () => void; onTiming: () => void }) {
   return (
     <div className="fixed inset-0 z-[9990] flex items-center justify-center p-2 sm:p-4 bg-chocolat/90 backdrop-blur-md overflow-y-auto" onClick={onClose}>
@@ -263,7 +265,7 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
       >
         {/* Header Image */}
         <div className="relative h-48 sm:h-72 w-full shrink-0">
-          <Image src={service.imageUrl || FALLBACK_IMAGE} alt={service.name} fill className="object-cover" />
+          <Image src={getMediaUrl(service.imageUrl) || FALLBACK_IMAGE} alt={service.name} fill className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-chocolat/90 via-chocolat/30 to-transparent" />
           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full transition-colors z-10">
             <X className="w-5 h-5 text-white" />
@@ -325,7 +327,7 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
               onClick={onReserve}
               className="w-full bg-chocolat text-white py-4 sm:py-5 px-6 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 shadow-lg active:scale-[0.99]"
             >
-              RÉSERVER MAINTENANT <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              VERIFIER DISPONIBILITES <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -334,16 +336,17 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
   );
 }
 
-// ─── ServiceCard ────────────────────────────────────────────────────────────
+// ServiceCard
 export default function ServiceCardBento({ service }: { service: Service }) {
   const [showPayment, setShowPayment] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showTiming, setShowTiming] = useState(false);
+  const [showPooledCalendar, setShowPooledCalendar] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [schedulePlan, setSchedulePlan] = useState<SchedulePlan | null>(null);
   const { user, isAuthenticated } = useAuth();
 
-  const handleRequestClick = (e?: React.MouseEvent) => {
+  const handleFreeRequest = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -360,7 +363,22 @@ export default function ServiceCardBento({ service }: { service: Service }) {
     }
 
     setShowDetails(false);
-    setShowTiming(true); // Maintenant on passe par Timing pour TOUTES les réservations
+    setShowPooledCalendar(true);
+  };
+
+  const handlePremiumRequest = () => {
+    if (!isAuthenticated) {
+      toast.error("Veuillez vous connecter pour accéder à l'offre premium.");
+      return;
+    }
+
+    if (user?.role !== 'CLIENT') {
+      toast.error("Seuls les clients peuvent accéder aux abonnements.");
+      return;
+    }
+
+    setShowDetails(false);
+    setShowTiming(true);
   };
 
   const handlePaymentSuccess = (phone: string, operator: string) => {
@@ -368,9 +386,8 @@ export default function ServiceCardBento({ service }: { service: Service }) {
     toast.success("Votre demande a été payée et enregistrée avec succès !");
   };
 
-  // Verrouiller le scroll quand une modal est ouverte
   useEffect(() => {
-    if (showPayment || showDetails || showTiming || showAddressForm) {
+    if (showPayment || showDetails || showTiming || showAddressForm || showPooledCalendar) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -378,7 +395,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [showPayment, showDetails, showTiming]);
+  }, [showPayment, showDetails, showTiming, showAddressForm, showPooledCalendar]);
 
   return (
     <>
@@ -393,16 +410,37 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         )}
       </AnimatePresence>
 
+      {/* Calendrier Poolé (FREE) */}
+      <AnimatePresence>
+        {showPooledCalendar && (
+          <PooledCalendar
+            serviceId={service.id}
+            onClose={() => setShowPooledCalendar(false)}
+            onConfirm={(slot) => {
+              setShowPooledCalendar(false);
+              // Plan minimal avec la date et l'heure choisies
+              const plan: SchedulePlan = {
+                frequency: "ONCE",
+                day: slot.dayName,
+                time: slot.time,
+                duration: 2,
+                startDate: slot.date,
+                dateLabel: `${slot.dayName} à ${slot.time}`,
+              };
+              setSchedulePlan(plan);
+              setShowAddressForm(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showDetails && (
           <ServiceDetailsModal
             service={service}
             onClose={() => setShowDetails(false)}
-            onReserve={handleRequestClick as unknown as () => void}
-            onTiming={() => {
-              setShowDetails(false);
-              setShowTiming(true);
-            }}
+            onReserve={() => handleFreeRequest()}
+            onTiming={handlePremiumRequest}
           />
         )}
       </AnimatePresence>
@@ -414,14 +452,14 @@ export default function ServiceCardBento({ service }: { service: Service }) {
             onClose={() => setShowTiming(false)}
             onConfirm={(plan) => {
               setShowTiming(false);
-              
+
               if (!isAuthenticated) {
                 toast.error("Veuillez vous connecter pour continuer.");
                 return;
               }
 
               setSchedulePlan(plan);
-              setShowAddressForm(true); // Aller vers le formulaire d'adresse
+              setShowAddressForm(true);
             }}
           />
         )}
@@ -429,41 +467,41 @@ export default function ServiceCardBento({ service }: { service: Service }) {
 
       <AnimatePresence>
         {showAddressForm && (
-          <AddressForm 
+          <AddressForm
             onClose={() => setShowAddressForm(false)}
             onConfirm={async (data) => {
-                setShowAddressForm(false);
-                const updatedPlan = { ...schedulePlan!, ...data };
-                setSchedulePlan(updatedPlan);
+              setShowAddressForm(false);
+              const updatedPlan = { ...schedulePlan!, ...data };
+              setSchedulePlan(updatedPlan);
 
-                if (updatedPlan.frequency === "ONCE") {
-                    toast.success("Planning et adresse enregistrés !");
-                    setShowPayment(true);
-                } else {
-                    const loadingToast = toast.loading("Envoi de votre demande d'abonnement...");
-                    try {
-                        await api.post('/requests', {
-                            serviceId: service.id,
-                            description: updatedPlan.description,
-                            address: updatedPlan.address,
-                            scheduledAt: new Date().toISOString(),
-                            scheduleFrequency: updatedPlan.frequency,
-                            scheduleDay: updatedPlan.day,
-                            scheduleTime: updatedPlan.time,
-                            notes: `Durée souhaitée: ${updatedPlan.duration}h. Demande d'abonnement récurrent.`,
-                        });
-                        
-                        toast.success("Demande envoyée ! Votre dossier est en cours d'étude.", {
-                            id: loadingToast,
-                            duration: 6000,
-                        });
-                        setSchedulePlan(null);
-                    } catch (error) {
-                        toast.error("Erreur lors de l'envoi de la demande.", {
-                            id: loadingToast,
-                        });
-                    }
+              if (updatedPlan.frequency === "ONCE") {
+                toast.success("Planning et adresse enregistrés !");
+                setShowPayment(true);
+              } else {
+                const loadingToast = toast.loading("Envoi de votre demande d'abonnement...");
+                try {
+                  await api.post('/requests', {
+                    serviceId: service.id,
+                    description: updatedPlan.description,
+                    address: updatedPlan.address,
+                    scheduledAt: new Date().toISOString(),
+                    scheduleFrequency: updatedPlan.frequency,
+                    scheduleDay: updatedPlan.day,
+                    scheduleTime: updatedPlan.time,
+                    notes: `Durée souhaitée: ${updatedPlan.duration}h. Demande d'abonnement récurrent.`,
+                  });
+
+                  toast.success("Demande envoyée ! Votre dossier est en cours d'étude.", {
+                    id: loadingToast,
+                    duration: 6000,
+                  });
+                  setSchedulePlan(null);
+                } catch (error) {
+                  toast.error("Erreur lors de l'envoi de la demande.", {
+                    id: loadingToast,
+                  });
                 }
+              }
             }}
           />
         )}
@@ -479,7 +517,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         {/* Zone Image */}
         <div className="relative h-32 sm:h-48 w-full overflow-hidden shrink-0">
           <Image
-            src={service.imageUrl || FALLBACK_IMAGE}
+            src={getMediaUrl(service.imageUrl) || FALLBACK_IMAGE}
             alt={service.name}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"

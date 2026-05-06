@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth-context";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { getMediaUrl } from "@/lib/utils";
 
 export default function ProfilPage() {
   const { user, refreshUser, isLoading: authLoading } = useAuth();
@@ -98,12 +99,6 @@ export default function ProfilPage() {
     );
   }
 
-  const getFullAvatarUrl = (url: string) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-    return `${baseUrl.replace('/api/v1', '')}${url}`;
-  };
 
   return (
     <div className="space-y-16 pb-20">
@@ -128,7 +123,7 @@ export default function ProfilPage() {
               <div className="w-full h-full bg-[#FCFBF7] border border-[#321B13]/10 flex items-center justify-center relative z-10">
                 {formData.avatarUrl ? (
                   <img 
-                    src={getFullAvatarUrl(formData.avatarUrl)!} 
+                    src={getMediaUrl(formData.avatarUrl)} 
                     alt="Avatar" 
                     className="w-full h-full object-cover"
                   />

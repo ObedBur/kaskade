@@ -42,7 +42,20 @@ export class UsersService {
   async findOneSafe(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, fullName: true, phone: true, quartier: true, role: true, isVerified: true, metier: true, experience: true, bio: true, avatarUrl: true },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        quartier: true,
+        role: true,
+        isPremium: true,
+        isVerified: true,
+        metier: true,
+        experience: true,
+        bio: true,
+        avatarUrl: true,
+      },
     });
   }
 
@@ -72,6 +85,7 @@ export class UsersService {
         email: true,
         fullName: true,
         role: true,
+        isPremium: true,
         isVerified: true,
         isActive: true,
         phone: true,

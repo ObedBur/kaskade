@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
+import { getMediaUrl } from "@/lib/utils";
 
 type RequestItem = {
   id: string;
@@ -140,7 +141,7 @@ export default function AdminRequestsPage() {
                     <div className="w-12 h-12 rounded-2xl bg-[#321B13]/5 flex items-center justify-center text-[#321B13] font-bold text-xs shrink-0 overflow-hidden">
                       {req.avatarUrl ? (
                         <img
-                          src={req.avatarUrl.startsWith('http') ? req.avatarUrl : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${req.avatarUrl}`}
+                          src={getMediaUrl(req.avatarUrl)}
                           alt={req.client}
                           className="w-full h-full object-cover"
                         />

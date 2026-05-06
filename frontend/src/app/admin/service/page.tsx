@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import { toast } from "sonner";
+import { getMediaUrl } from "@/lib/utils";
 
 interface ServiceCategory {
   id: string;
@@ -112,7 +113,7 @@ export default function AdminServicesPage() {
         isActive: cat.isActive,
         imageKey: cat.imageKey || ""
       });
-      setPreviewUrl(cat.imageKey ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/uploads/services/${cat.imageKey}` : null);
+      setPreviewUrl(cat.imageKey ? getMediaUrl(`/uploads/services/${cat.imageKey}`) : null);
     } else {
       setEditingCategory(null);
       setFormData({
@@ -152,7 +153,7 @@ export default function AdminServicesPage() {
         headers: { "Content-Type": "multipart/form-data" }
       });
       setFormData({ ...formData, imageKey: res.data.filename });
-      setPreviewUrl(res.data.url);
+      setPreviewUrl(getMediaUrl(res.data.url));
       toast.success("Image uploadée !");
     } catch (error) {
       toast.error("Erreur lors de l'upload de l'image.");
@@ -302,7 +303,7 @@ export default function AdminServicesPage() {
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100">
                   {cat.imageKey ? (
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/uploads/services/${cat.imageKey}`}
+                      src={getMediaUrl(`/uploads/services/${cat.imageKey}`)}
                       alt={cat.name}
                       className="w-full h-full object-cover"
                     />
@@ -611,8 +612,8 @@ export default function AdminServicesPage() {
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
                         <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Ouverture</label>
-                        <input 
-                          type="time" 
+                        <input
+                          type="time"
                           value={formData.workingHoursStart}
                           onChange={(e) => setFormData({ ...formData, workingHoursStart: e.target.value })}
                           className="w-full bg-white border border-gray-100 py-3 px-4 rounded-xl text-lg font-black text-[#321B13] focus:outline-none focus:border-[#BC9C6C]"
@@ -620,8 +621,8 @@ export default function AdminServicesPage() {
                       </div>
                       <div className="flex-1">
                         <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Fermeture</label>
-                        <input 
-                          type="time" 
+                        <input
+                          type="time"
                           value={formData.workingHoursEnd}
                           onChange={(e) => setFormData({ ...formData, workingHoursEnd: e.target.value })}
                           className="w-full bg-white border border-gray-100 py-3 px-4 rounded-xl text-lg font-black text-[#321B13] focus:outline-none focus:border-[#BC9C6C]"

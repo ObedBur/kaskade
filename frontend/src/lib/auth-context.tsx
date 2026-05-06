@@ -11,6 +11,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  isPremium?: boolean;
   phone?: string;
   quartier?: string;
   avatarUrl?: string;
@@ -46,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('kaskade_access_token');
       if (!token) return;
 
-      // 1. Récupérer les infos fraîches du profil
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = await res.json();
         const storedUser = JSON.parse(localStorage.getItem('kaskade_user') || '{}');
         
-        // 2. Si le rôle a changé (ex: CLIENT -> PROVIDER), on rafraîchit le token
         if (userData.role !== storedUser.role) {
           const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/refresh`, {
             method: 'POST',
@@ -72,22 +71,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // 3. Mettre à jour l'état local
         localStorage.setItem('kaskade_user', JSON.stringify(userData));
         setUser(userData);
-        // On ne change pas le mode si l'utilisateur est déjà en train de l'utiliser, 
-        // sauf s'il n'avait pas de mode défini.
         if (!localStorage.getItem('kaskade_user_mode')) {
           localStorage.setItem('kaskade_user_mode', userData.role);
           setUserMode(userData.role);
         }
       }
     } catch (err) {
-      console.error("Erreur lors de la synchronisation du profil:", err);
+      console.error("Erreur profil:", err);
     }
   }, []);
 
-  // Hydrate from localStorage on mount + Sync with server
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -100,8 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           setUserMode((storedMode as UserMode) || parsedUser.role);
-          
-          // Lancer une synchro silencieuse en arrière-plan
           refreshUser();
         }
       } catch (e) {
@@ -112,7 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     };
-    
     initAuth();
   }, [refreshUser]);
 

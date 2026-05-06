@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { getMediaUrl } from "@/lib/utils";
 
 type Application = {
   id: string;
@@ -283,7 +284,7 @@ export default function AdminPrestatairePage() {
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-slate-100 bg-slate-50 flex-shrink-0 flex items-center justify-center group-hover:border-[#BC9C6C]/30 transition-colors">
                       {app.user.avatarUrl ? (
-                        <img src={app.user.avatarUrl} alt={app.user.fullName} className="w-full h-full object-cover" />
+                        <img src={getMediaUrl(app.user.avatarUrl)} alt={app.user.fullName} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-sm font-black text-slate-300">
                           {app.user.fullName.split(" ").map((n) => n[0]).join("")}
@@ -418,7 +419,7 @@ export default function AdminPrestatairePage() {
                   <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-slate-100 bg-slate-50 flex-shrink-0 flex items-center justify-center shadow-lg">
                     {selectedApp.user.avatarUrl ? (
                       <img
-                        src={selectedApp.user.avatarUrl}
+                        src={getMediaUrl(selectedApp.user.avatarUrl)}
                         alt={selectedApp.user.fullName}
                         className="w-full h-full object-cover"
                       />

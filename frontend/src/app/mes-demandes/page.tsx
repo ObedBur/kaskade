@@ -10,6 +10,7 @@ import Timing from "@/components/landing/Timing";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { getMediaUrl } from "@/lib/utils";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1581578731548-c64695cc6958?q=80&w=800";
 
@@ -23,26 +24,11 @@ export default function MesDemandesPage() {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const resolveImageUrl = (path: string | null | undefined) => {
-    if (!path) return FALLBACK_IMAGE;
-    if (path.startsWith('http')) return path;
-
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    const baseUrl = 'http://localhost:4000'; // Ton backend
-
-    // Si le chemin contient déjà "uploads", on ajoute juste le domaine
-    if (cleanPath.includes('/uploads/')) {
-      return `${baseUrl}${cleanPath}`;
-    }
-
-    // Sinon (cas où on n'a que le nom du fichier), on suit la logique backend : /uploads/services/nom_du_fichier
-    return `${baseUrl}/uploads/services${cleanPath}`;
-  };
 
   const fetchRequests = async () => {
     try {
       const res = await api.get("/requests");
-      console.log("Mes Demandes Data:", res.data); // Pour analyser la structure des images
+      console.log("Mes Demandes Data:", res.data);
       setRequests(res.data);
     } catch (err) {
       toast.error("Erreur lors du chargement de vos demandes.");
@@ -57,7 +43,6 @@ export default function MesDemandesPage() {
     }
   }, [user, authLoading]);
 
-  // Annuler une demande
   const handleCancel = async (requestId: string) => {
     if (!confirm("Voulez-vous vraiment annuler cette demande ?")) return;
     try {
@@ -69,7 +54,6 @@ export default function MesDemandesPage() {
     }
   };
 
-  // Reporter une demande (Réel)
   const handleReschedule = (request: any) => {
     setSelectedRequest(request);
     setShowReschedule(true);
@@ -183,7 +167,7 @@ export default function MesDemandesPage() {
                   {/* Image & Status */}
                   <div className="relative h-48 w-full overflow-hidden shrink-0">
                     <Image
-                      src={resolveImageUrl(req.service?.imageUrl)}
+                      src={getMediaUrl(req.service?.imageUrl) || FALLBACK_IMAGE}
                       alt={req.service?.name || "Service"}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -279,7 +263,7 @@ export default function MesDemandesPage() {
               {/* Header Image Detail */}
               <div className="relative h-64 shrink-0">
                 <Image
-                  src={resolveImageUrl(selectedRequest.service?.imageUrl)}
+                  src={getMediaUrl(selectedRequest.service?.imageUrl) || FALLBACK_IMAGE}
                   alt={selectedRequest.service?.name || "Service"}
                   fill
                   className="object-cover"

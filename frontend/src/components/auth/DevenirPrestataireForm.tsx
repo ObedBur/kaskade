@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import { getMediaUrl } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -48,7 +49,7 @@ export default function DevenirPrestataireForm() {
   // Initialize preview from existing avatar
   React.useEffect(() => {
     if (user?.avatarUrl) {
-      setAvatarPreview(user.avatarUrl);
+      setAvatarPreview(getMediaUrl(user.avatarUrl));
     }
   }, [user?.avatarUrl]);
 
@@ -87,7 +88,7 @@ export default function DevenirPrestataireForm() {
 
       const uploadedUrl = response.data.url;
       setValue('avatarUrl', uploadedUrl);
-      setAvatarPreview(uploadedUrl);
+      setAvatarPreview(getMediaUrl(uploadedUrl));
       toast.success('Photo uploadée avec succès !');
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Erreur lors de l'upload de la photo.");
@@ -95,7 +96,6 @@ export default function DevenirPrestataireForm() {
       setValue('avatarUrl', '');
     } finally {
       setIsUploading(false);
-      // Cleanup object URL
       URL.revokeObjectURL(localPreview);
     }
   };
@@ -126,7 +126,7 @@ export default function DevenirPrestataireForm() {
 
   if (isSubmitted) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white p-10 md:p-16 text-center border border-ocre/20 shadow-2xl relative overflow-hidden"
@@ -140,7 +140,7 @@ export default function DevenirPrestataireForm() {
           <p className="text-chocolat/70 text-sm leading-relaxed max-w-sm mb-10">
             Votre candidature a été soumise avec succès. Veuillez patienter pendant qu'un administrateur examine votre profil. Une fois approuvé, vos accès prestataires seront activés automatiquement.
           </p>
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="text-ocre font-black uppercase tracking-[0.2em] text-[10px] hover:text-chocolat transition-all"
           >
@@ -154,13 +154,6 @@ export default function DevenirPrestataireForm() {
   return (
     <div className="w-full mx-auto max-w-[450px] md:max-w-2xl min-[1440px]:max-w-[600px]">
       <header className="mb-12">
-        <motion.span
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-ocre font-sans text-[10px] uppercase tracking-[0.3em] mb-4 block font-black"
-        >
-          JOIN THE ELITE NETWORK
-        </motion.span>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -181,108 +174,108 @@ export default function DevenirPrestataireForm() {
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white/50 backdrop-blur-md p-8 md:p-12 border border-ocre/10 shadow-xl">
-        
+
         {/* Photo de Profil Section - File Upload */}
         <div className="flex flex-col md:flex-row items-center gap-8 pb-8 border-b border-ocre/10">
-           <div className="relative group">
-              <div 
-                className="w-24 h-24 rounded-full border-2 border-dashed border-ocre/20 overflow-hidden bg-off-white flex items-center justify-center transition-all group-hover:border-ocre/50 cursor-pointer"
-                onClick={() => !isUploading && fileInputRef.current?.click()}
-              >
-                 <AnimatePresence mode="wait">
-                   {isUploading ? (
-                     <motion.div
-                       key="uploading"
-                       initial={{ opacity: 0 }}
-                       animate={{ opacity: 1 }}
-                       exit={{ opacity: 0 }}
-                       className="flex flex-col items-center text-ocre"
-                     >
-                       <Loader2 className="w-8 h-8 animate-spin" />
-                     </motion.div>
-                   ) : avatarPreview ? (
-                     <motion.img
-                       key="preview"
-                       initial={{ opacity: 0, scale: 0.8 }}
-                       animate={{ opacity: 1, scale: 1 }}
-                       exit={{ opacity: 0, scale: 0.8 }}
-                       src={avatarPreview}
-                       alt="Preview"
-                       className="w-full h-full object-cover"
-                     />
-                   ) : (
-                     <motion.div
-                       key="placeholder"
-                       initial={{ opacity: 0 }}
-                       animate={{ opacity: 1 }}
-                       exit={{ opacity: 0 }}
-                       className="flex flex-col items-center text-ocre/30 group-hover:text-ocre/60 transition-colors"
-                     >
-                        <Camera className="w-8 h-8 mb-1" />
-                        <span className="text-[7px] font-black">PHOTO</span>
-                     </motion.div>
-                   )}
-                 </AnimatePresence>
-              </div>
-              {/* Remove button */}
-              {avatarPreview && !isUploading && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); removeAvatar(); }}
-                  className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-              {/* Camera overlay icon */}
-              <div 
-                className="absolute -bottom-2 -right-2 w-8 h-8 bg-chocolat rounded-full flex items-center justify-center text-ocre shadow-lg border border-white/10 cursor-pointer hover:bg-chocolat/80 transition-colors"
-                onClick={() => !isUploading && fileInputRef.current?.click()}
-              >
-                 <Camera className="w-3 h-3" />
-              </div>
-           </div>
-           <div className="flex-1 space-y-3 w-full">
-              <label className="text-[9px] uppercase font-black tracking-[0.2em] text-chocolat/50">
-                Photo de profil
-              </label>
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                className="hidden"
-                onChange={handleFileSelect}
-                disabled={isLoading || isUploading}
-              />
-              {/* Visible upload button */}
+          <div className="relative group">
+            <div
+              className="w-24 h-24 rounded-full border-2 border-dashed border-ocre/20 overflow-hidden bg-off-white flex items-center justify-center transition-all group-hover:border-ocre/50 cursor-pointer"
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+            >
+              <AnimatePresence mode="wait">
+                {isUploading ? (
+                  <motion.div
+                    key="uploading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center text-ocre"
+                  >
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </motion.div>
+                ) : avatarPreview ? (
+                  <motion.img
+                    key="preview"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    src={avatarPreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <motion.div
+                    key="placeholder"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center text-ocre/30 group-hover:text-ocre/60 transition-colors"
+                  >
+                    <Camera className="w-8 h-8 mb-1" />
+                    <span className="text-[7px] font-black">PHOTO</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* Remove button */}
+            {avatarPreview && !isUploading && (
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading || isUploading}
-                className="w-full bg-white border border-ocre/10 rounded-sm p-3 text-[11px] text-chocolat/60 hover:border-ocre/40 hover:text-chocolat transition-all outline-none flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={(e) => { e.stopPropagation(); removeAvatar(); }}
+                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-colors"
               >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Upload en cours...</span>
-                  </>
-                ) : avatarPreview ? (
-                  <>
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>Changer la photo</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>Choisir une photo depuis votre appareil</span>
-                  </>
-                )}
+                <X className="w-3 h-3" />
               </button>
-              <p className="text-[7px] text-chocolat/30 uppercase font-bold tracking-widest">
-                Formats acceptés : JPG, PNG, GIF, WebP — 5 Mo max.
-              </p>
-           </div>
+            )}
+            {/* Camera overlay icon */}
+            <div
+              className="absolute -bottom-2 -right-2 w-8 h-8 bg-chocolat rounded-full flex items-center justify-center text-ocre shadow-lg border border-white/10 cursor-pointer hover:bg-chocolat/80 transition-colors"
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+            >
+              <Camera className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="flex-1 space-y-3 w-full">
+            <label className="text-[9px] uppercase font-black tracking-[0.2em] text-chocolat/50">
+              Photo de profil
+            </label>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleFileSelect}
+              disabled={isLoading || isUploading}
+            />
+            {/* Visible upload button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || isUploading}
+              className="w-full bg-white border border-ocre/10 rounded-sm p-3 text-[11px] text-chocolat/60 hover:border-ocre/40 hover:text-chocolat transition-all outline-none flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Upload en cours...</span>
+                </>
+              ) : avatarPreview ? (
+                <>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Changer la photo</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Choisir une photo depuis votre appareil</span>
+                </>
+              )}
+            </button>
+            <p className="text-[7px] text-chocolat/30 uppercase font-bold tracking-widest">
+              Formats acceptés : JPG, PNG, GIF, WebP — 5 Mo max.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -322,8 +315,8 @@ export default function DevenirPrestataireForm() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           {/* Quartier */}
-           <div className="group space-y-2">
+          {/* Quartier */}
+          <div className="group space-y-2">
             <label className={`text-[9px] uppercase font-black tracking-[0.2em] transition-colors ${errors.quartier ? 'text-red-500' : 'text-chocolat/50 group-focus-within:text-ocre'}`}>
               Zone d'activité (Quartier)
             </label>
