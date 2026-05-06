@@ -333,7 +333,14 @@ export class NotificationsListener {
     try {
       const request = await this.prisma.request.findUnique({
         where: { id: payload.requestId },
-        include: { provider: true }
+        include: {
+          provider: true,
+          service: {
+            include: {
+              providers: { where: { isActive: true } }
+            }
+          }
+        }
       });
 
       if (!request) return;
@@ -346,17 +353,48 @@ export class NotificationsListener {
           type: NotificationType.PAYMENT_DEPOSIT_CONFIRMED,
           requestId: payload.requestId,
         });
+      } else {
+
+        const service = request.service;
+        let providersToNotify = service.providers;
+
+        if (providersToNotify.length === 0) {
+          this.logger.log(`Paiement reçu pour ${service.name}. Recherche de prestataires par métier (fallback)...`);
+          providersToNotify = await this.prisma.user.findMany({
+            where: {
+              role: 'PROVIDER',
+              isActive: true,
+              OR: [
+                { metier: { contains: service.name.substring(0, 4), mode: 'insensitive' } },
+                { metier: { contains: service.category.substring(0, 4), mode: 'insensitive' } },
+              ],
+            },
+          });
+        }
+
+        const notifications = providersToNotify.map((provider) => ({
+          userId: provider.id,
+          title: 'Mission PAYÉE disponible !',
+          message: `Une mission de "${service.name}" a été payée par le client. Soyez le premier à l'accepter !`,
+          type: NotificationType.REQUEST_APPROVED,
+          requestId: payload.requestId,
+        }));
+
+        if (notifications.length > 0) {
+          await this.createManyAndPush(notifications);
+          this.logger.log(`${notifications.length} prestataire(s) notifié(s) du paiement de l'acompte pour ${payload.requestId}`);
+        }
       }
 
       const admins = await this.getAdmins();
-      const notifications = admins.map((admin) => ({
+      const adminNotifications = admins.map((admin) => ({
         userId: admin.id,
         title: 'Acompte reçu',
         message: `Paiement de l'acompte (50%) confirmé pour la demande (ID: ${payload.requestId}).`,
         type: NotificationType.PAYMENT_DEPOSIT_CONFIRMED,
         requestId: payload.requestId,
       }));
-      await this.createManyAndPush(notifications);
+      await this.createManyAndPush(adminNotifications);
     } catch (error) {
       this.logger.error(`Erreur notification payment.deposit_confirmed: ${error.message}`, error.stack);
     }

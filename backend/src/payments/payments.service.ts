@@ -45,9 +45,9 @@ export class PaymentsService {
       throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
     }
 
-    if (request.status !== RequestStatus.ACCEPTED) {
+    if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.ACCEPTED) {
       throw new BadRequestException(
-        "L'acompte ne peut être versé que lorsqu'un prestataire a accepté la mission (statut ACCEPTED).",
+        "L'acompte ne peut être versé que sur une demande approuvée.",
       );
     }
 
@@ -256,8 +256,9 @@ export class PaymentsService {
 
     if (isSuccess) {
       // ─── PAIEMENT CONFIRMÉ : Transaction atomique ───────────────────────
+      // Si c'est un acompte, le statut devient ACCEPTED (Paiement reçu, prêt pour un prestataire)
       const newRequestStatus =
-        payment.type === 'DEPOSIT' ? RequestStatus.IN_PROGRESS : RequestStatus.COMPLETED;
+        payment.type === 'DEPOSIT' ? RequestStatus.ACCEPTED : RequestStatus.COMPLETED;
 
       await this.prisma.$transaction([
         // Mettre à jour le Payment

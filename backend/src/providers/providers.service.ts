@@ -201,9 +201,6 @@ export class ProvidersService {
     });
   }
 
-  // ─── FEATURES PROVIDER ───────────────────────────────────────────────────
-
-  // Feature A : Voir les demandes disponibles (liées à ses services)
   async findAvailableRequests(providerId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: providerId },
@@ -215,35 +212,46 @@ export class ProvidersService {
     }
 
     const assignedServiceIds = user.services.map(s => s.id);
+    this.logger.log(`🔍 [DEBUG] Provider: ${user.fullName} | Metier: ${user.metier} | assignedServices: ${assignedServiceIds.length}`);
 
-    return this.prisma.request.findMany({
+    const missions = await this.prisma.request.findMany({
       where: {
         OR: [
           { serviceId: { in: assignedServiceIds } },
           {
             service: {
               OR: [
-                { category: { contains: user.metier || '', mode: 'insensitive' } },
-                { name: { contains: user.metier || '', mode: 'insensitive' } },
+                { category: { contains: (user.metier || '').substring(0, 4), mode: 'insensitive' } },
+                { name: { contains: (user.metier || '').substring(0, 4), mode: 'insensitive' } },
               ]
             }
           }
         ],
-        status: { in: [RequestStatus.APPROVED, RequestStatus.PENDING] },
+        status: RequestStatus.ACCEPTED,
       },
       include: {
         service: true,
         client: {
-          select: { id: true, fullName: true, quartier: true },
+          select: { 
+            id: true, 
+            fullName: true, 
+            quartier: true, 
+            phone: true, 
+            avatarUrl: true,
+            bio: true,
+            isVerified: true,
+            createdAt: true
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    this.logger.log(`${missions.length} mission(s) disponible(s) trouvée(s) pour ce prestataire.`);
+    return missions;
   }
 
-  // Feature B : Accepter une mission
   async acceptRequest(requestId: string, providerId: string) {
-    // Vérifier que le prestataire existe et récupérer son statut de disponibilité
     const provider = await this.prisma.user.findUnique({
       where: { id: providerId },
       include: { services: true },
@@ -253,12 +261,9 @@ export class ProvidersService {
       throw new BadRequestException('Action non autorisée.');
     }
 
-    // Règle : mission unique (le prestataire ne peut pas accepter s'il est déjà en mission)
     if (provider.status === Status.EN_MISSION) {
       throw new BadRequestException('Vous êtes déjà assigné à une mission en cours.');
     }
-
-    // Récupérer la demande
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
     });
@@ -267,7 +272,7 @@ export class ProvidersService {
       throw new NotFoundException('Demande introuvable.');
     }
 
-    if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.PENDING) {
+    if (request.status !== RequestStatus.ACCEPTED) {
       throw new BadRequestException('Cette demande n\'est plus disponible.');
     }
 
@@ -298,7 +303,7 @@ export class ProvidersService {
       this.prisma.request.update({
         where: { id: requestId },
         data: {
-          status: RequestStatus.ACCEPTED,
+          status: RequestStatus.IN_PROGRESS,
           providerId: providerId,
           acceptedAt: new Date(),
         },

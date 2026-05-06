@@ -49,7 +49,7 @@ export class RequestsService {
         serviceId,
         clientId,
         price: service.price,
-        status: RequestStatus.PENDING
+        status: RequestStatus.APPROVED
       },
       include: { service: true, client: true },
     });
