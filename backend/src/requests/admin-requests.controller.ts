@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, UseGuards, Logger } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, UseGuards, Logger } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -27,9 +27,9 @@ export class AdminRequestsController {
 
   // Approuver une demande (le prix est automatiquement lu depuis le Service)
   @Patch(':id/approve')
-  approve(@Param('id') id: string) {
+  approve(@Param('id') id: string, @Body() body?: { price?: number }) {
     this.logger.log(`ADMIN : Approbation de la demande ID: ${id}`);
-    return this.requestsService.approve(id);
+    return this.requestsService.approve(id, body?.price);
   }
 
   // Rejeter une demande

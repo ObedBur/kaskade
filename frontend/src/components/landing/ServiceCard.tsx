@@ -28,6 +28,13 @@ interface SchedulePlan {
   instructions?: string;
 }
 
+const getSubscriptionEndsAt = (plan: SchedulePlan) => {
+  const start = plan.startDate ? new Date(plan.startDate) : new Date();
+  const end = new Date(start);
+  end.setDate(end.getDate() + (plan.frequency === "WEEKLY" ? 7 : 30));
+  return end.toISOString();
+};
+
 // MODAL DE PAIEMENT MOBILE MONEY
 function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { service: Service; onClose: () => void; onSuccess: (phone: string, op: string) => void; schedulePlan?: SchedulePlan | null }) {
   const [method, setMethod] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
@@ -305,6 +312,14 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
 
           {/* Reserve Button Area */}
           <div className="mt-auto border-t border-zinc-200 pt-5 shrink-0 space-y-3">
+            {/* Standard reserve */}
+            <button
+              onClick={onReserve}
+              className="w-full bg-chocolat text-white py-4 sm:py-5 px-6 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 shadow-lg active:scale-[0.99]"
+            >
+              RÉSERVER MAINTENANT <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
             {/* Premium CTA */}
             <button
               onClick={onTiming}
@@ -315,19 +330,11 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
                   <Star className="w-4 h-4 text-ocre fill-current" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[10px] font-black text-chocolat uppercase tracking-widest">Offre Premium</p>
-                  <p className="text-[9px] font-bold text-chocolat/40 mt-0.5">Planifier un abonnement récurrent</p>
+                  <p className="text-[10px] font-black text-chocolat uppercase tracking-widest">Abonnement régulier</p>
+                  <p className="text-[9px] font-bold text-chocolat/40 mt-0.5">Hebdo ou mensuel, prix validé par Kaskade</p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 text-ocre transition-transform group-hover:translate-x-1 shrink-0" />
-            </button>
-
-            {/* Standard reserve */}
-            <button
-              onClick={onReserve}
-              className="w-full bg-chocolat text-white py-4 sm:py-5 px-6 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-3 shadow-lg active:scale-[0.99]"
-            >
-              VERIFIER DISPONIBILITES <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -480,15 +487,18 @@ export default function ServiceCardBento({ service }: { service: Service }) {
               } else {
                 const loadingToast = toast.loading("Envoi de votre demande d'abonnement...");
                 try {
+                  const subscriptionEndsAt = getSubscriptionEndsAt(updatedPlan);
+
                   await api.post('/requests', {
                     serviceId: service.id,
                     description: updatedPlan.description,
                     address: updatedPlan.address,
-                    scheduledAt: new Date().toISOString(),
+                    scheduledAt: updatedPlan.startDate ? new Date(updatedPlan.startDate).toISOString() : new Date().toISOString(),
                     scheduleFrequency: updatedPlan.frequency,
                     scheduleDay: updatedPlan.day,
                     scheduleTime: updatedPlan.time,
-                    notes: `Durée souhaitée: ${updatedPlan.duration}h. Demande d'abonnement récurrent.`,
+                    subscriptionEndsAt,
+                    notes: `Durée souhaitée: ${updatedPlan.duration}h. Fin prévue: ${new Date(subscriptionEndsAt).toLocaleString('fr-FR')}. Demande d'abonnement récurrent.`,
                   });
 
                   toast.success("Demande envoyée ! Votre dossier est en cours d'étude.", {

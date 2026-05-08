@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,14 +15,30 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 @Injectable()
 export class RequestsService {
   private readonly logger = new Logger(RequestsService.name);
+  private readonly subscriptionAlertMs = 24 * 60 * 60 * 1000;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
   ) { }
 
+  private getSubscriptionEndsAt(frequency?: string | null, scheduledAt?: string | Date | null, providedEnd?: string | Date | null) {
+    if (frequency !== 'WEEKLY' && frequency !== 'MONTHLY') return null;
+
+    if (providedEnd) {
+      const end = new Date(providedEnd);
+      if (!Number.isNaN(end.getTime())) return end;
+    }
+
+    const start = scheduledAt ? new Date(scheduledAt) : new Date();
+    const end = new Date(start);
+    end.setDate(end.getDate() + (frequency === 'WEEKLY' ? 7 : 30));
+    return end;
+  }
+
   async create(clientId: string, createRequestDto: any) {
     const { serviceId, phoneNumber, operator, ...requestData } = createRequestDto;
+    const isPremiumRequest = ['WEEKLY', 'MONTHLY'].includes(requestData.scheduleFrequency);
 
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
@@ -32,41 +49,128 @@ export class RequestsService {
       throw new BadRequestException('Le service spécifié est introuvable.');
     }
 
-    if (!service.price) {
+    if (!isPremiumRequest && !service.price) {
       throw new BadRequestException('Le prix du service n\'est pas défini.');
     }
-    const requiredDeposit = service.price * 0.5;
 
-    this.logger.log(`[PAIEMENT INITIÉ] Demande de ${requiredDeposit}$ via ${operator || 'MOBILE MONEY'} pour le numéro ${phoneNumber}`);
+    const scheduledAt = new Date(requestData.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('La date de planification est invalide.');
+    }
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    this.logger.log(`[WEBHOOK REÇU] Paiement de ${requiredDeposit}$ confirmé par l'opérateur.`);
+    const subscriptionEndsAt = this.getSubscriptionEndsAt(
+      requestData.scheduleFrequency,
+      scheduledAt,
+      requestData.subscriptionEndsAt,
+    );
 
     const request = await this.prisma.request.create({
       data: {
         ...requestData,
+        scheduledAt,
+        subscriptionEndsAt,
         serviceId,
         clientId,
-        price: service.price,
-        status: RequestStatus.APPROVED
+        price: isPremiumRequest ? null : service.price,
+        status: isPremiumRequest ? RequestStatus.PENDING : RequestStatus.APPROVED
       },
       include: { service: true, client: true },
     });
 
-    this.logger.log(
-      `COMMANDE VALIDÉE : Demande ID ${request.id} créée suite au paiement de ${requiredDeposit}$.`
-    );
+    this.logger.log(`Demande ID ${request.id} créée (${isPremiumRequest ? 'premium à chiffrer' : 'ponctuelle'}).`);
 
-    this.eventEmitter.emit('request.created', { requestId: request.id, clientId });
+    if (isPremiumRequest) {
+      this.eventEmitter.emit('subscription.quote_requested', {
+        requestId: request.id,
+        clientId,
+        serviceName: service.name,
+        frequency: requestData.scheduleFrequency,
+      });
+    } else {
+      this.eventEmitter.emit('request.created', { requestId: request.id, clientId });
+    }
 
     return request;
+  }
+
+  @Cron('*/5 * * * *')
+  async monitorRecurringSubscriptions() {
+    const now = new Date();
+    const alertLimit = new Date(now.getTime() + this.subscriptionAlertMs);
+
+    const requests = await this.prisma.request.findMany({
+      where: {
+        scheduleFrequency: { in: ['WEEKLY', 'MONTHLY'] },
+        status: {
+          in: [
+            RequestStatus.APPROVED,
+            RequestStatus.ACCEPTED,
+            RequestStatus.IN_PROGRESS,
+            RequestStatus.AWAITING_FINAL,
+          ],
+        },
+        OR: [
+          { subscriptionEndsAt: { lte: alertLimit } },
+          { subscriptionEndsAt: null },
+        ],
+      },
+      select: {
+        id: true,
+        scheduledAt: true,
+        scheduleFrequency: true,
+        subscriptionEndsAt: true,
+        subscriptionEndingNotifiedAt: true,
+        subscriptionEndedAt: true,
+      },
+    });
+
+    for (const request of requests) {
+      const endsAt = this.getSubscriptionEndsAt(
+        request.scheduleFrequency,
+        request.scheduledAt,
+        request.subscriptionEndsAt,
+      );
+
+      if (!endsAt) continue;
+
+      if (!request.subscriptionEndsAt) {
+        await this.prisma.request.update({
+          where: { id: request.id },
+          data: { subscriptionEndsAt: endsAt },
+        });
+      }
+
+      if (!request.subscriptionEndingNotifiedAt && endsAt <= alertLimit) {
+        await this.prisma.request.update({
+          where: { id: request.id },
+          data: { subscriptionEndingNotifiedAt: now },
+        });
+        this.eventEmitter.emit('subscription.ending', {
+          requestId: request.id,
+          endsAt: endsAt.toISOString(),
+        });
+      }
+
+      if (!request.subscriptionEndedAt && endsAt <= now) {
+        await this.prisma.request.update({
+          where: { id: request.id },
+          data: {
+            status: RequestStatus.COMPLETED,
+            subscriptionEndedAt: now,
+          },
+        });
+        this.eventEmitter.emit('subscription.ended', {
+          requestId: request.id,
+          endsAt: endsAt.toISOString(),
+        });
+      }
+    }
   }
 
   async findMyRequests(clientId: string) {
     return this.prisma.request.findMany({
       where: { clientId },
-      include: { service: true },
+      include: { service: true, provider: true, payments: { where: { status: 'SUCCESS' }, take: 1 } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -143,7 +247,7 @@ export class RequestsService {
     return request;
   }
 
-  async approve(id: string) {
+  async approve(id: string, quotedPrice?: number) {
     const request = await this.findOne(id);
 
     if (request.status !== RequestStatus.PENDING) {
@@ -151,7 +255,16 @@ export class RequestsService {
     }
 
     const service = await this.prisma.service.findUnique({ where: { id: request.serviceId } });
-    const price = service?.price ?? 0;
+    const isPremiumRequest = ['WEEKLY', 'MONTHLY'].includes(request.scheduleFrequency || '');
+    const price = isPremiumRequest ? Number(quotedPrice) : (quotedPrice ? Number(quotedPrice) : service?.price ?? 0);
+
+    if (!Number.isFinite(price) || price <= 0) {
+      throw new BadRequestException(
+        isPremiumRequest
+          ? 'Un prix valide est obligatoire pour approuver un abonnement premium.'
+          : 'Le prix de la demande est invalide.',
+      );
+    }
 
     const updatedRequest = await this.prisma.request.update({
       where: { id },
@@ -159,7 +272,15 @@ export class RequestsService {
     });
 
     this.logger.log(`Demande ${id} APPROUVÉE par l'admin (Prix fixé: ${price})`);
-    this.eventEmitter.emit('request.approved', { requestId: updatedRequest.id, serviceId: updatedRequest.serviceId });
+    if (isPremiumRequest) {
+      this.eventEmitter.emit('subscription.quote_approved', {
+        requestId: updatedRequest.id,
+        clientId: updatedRequest.clientId,
+        price,
+      });
+    } else {
+      this.eventEmitter.emit('request.approved', { requestId: updatedRequest.id, serviceId: updatedRequest.serviceId });
+    }
 
     return updatedRequest;
   }

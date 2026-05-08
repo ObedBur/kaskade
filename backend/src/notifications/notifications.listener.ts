@@ -206,6 +206,46 @@ export class NotificationsListener {
     }
   }
 
+  @OnEvent('subscription.quote_requested')
+  async handleSubscriptionQuoteRequested(payload: { requestId: string; clientId: string; serviceName: string; frequency: string }) {
+    try {
+      const admins = await this.getAdmins();
+      const notifications = admins.map((admin) => ({
+        userId: admin.id,
+        title: 'Abonnement premium à chiffrer',
+        message: `Un client demande un abonnement ${payload.frequency} pour "${payload.serviceName}". Validez un prix avant paiement.`,
+        type: NotificationType.SUBSCRIPTION_QUOTE_REQUESTED,
+        requestId: payload.requestId,
+      }));
+      await this.createManyAndPush(notifications);
+
+      await this.createAndPush({
+        userId: payload.clientId,
+        title: 'Demande premium reçue',
+        message: 'Votre demande d’abonnement est en attente de validation du prix par notre équipe.',
+        type: NotificationType.SUBSCRIPTION_QUOTE_REQUESTED,
+        requestId: payload.requestId,
+      });
+    } catch (error) {
+      this.logger.error(`Erreur notification subscription.quote_requested: ${error.message}`, error.stack);
+    }
+  }
+
+  @OnEvent('subscription.quote_approved')
+  async handleSubscriptionQuoteApproved(payload: { requestId: string; clientId: string; price: number }) {
+    try {
+      await this.createAndPush({
+        userId: payload.clientId,
+        title: 'Prix premium validé',
+        message: `Votre abonnement premium a été validé à ${payload.price}. Vous pouvez maintenant procéder au paiement.`,
+        type: NotificationType.SUBSCRIPTION_QUOTE_APPROVED,
+        requestId: payload.requestId,
+      });
+    } catch (error) {
+      this.logger.error(`Erreur notification subscription.quote_approved: ${error.message}`, error.stack);
+    }
+  }
+
   @OnEvent('request.approved')
   async handleRequestApproved(payload: { requestId: string; serviceId: string }) {
     try {
@@ -472,6 +512,85 @@ export class NotificationsListener {
       await this.createManyAndPush(notifications);
     } catch (error) {
       this.logger.error(`Erreur notification payment.final_confirmed: ${error.message}`, error.stack);
+    }
+  }
+
+  @OnEvent('subscription.ending')
+  async handleSubscriptionEnding(payload: { requestId: string; endsAt: string }) {
+    try {
+      const request = await this.prisma.request.findUnique({
+        where: { id: payload.requestId },
+        include: {
+          client: true,
+          provider: true,
+          service: {
+            include: {
+              providers: { where: { isActive: true } },
+            },
+          },
+        },
+      });
+
+      if (!request) return;
+
+      const endsAt = new Date(payload.endsAt).toLocaleString('fr-FR');
+      const admins = await this.getAdmins();
+      const providers = request.provider ? [request.provider] : request.service.providers;
+      const recipients = new Map<string, { id: string }>();
+
+      admins.forEach((admin) => recipients.set(admin.id, admin));
+      providers.forEach((provider) => recipients.set(provider.id, provider));
+
+      await this.createManyAndPush(
+        Array.from(recipients.values()).map((user) => ({
+          userId: user.id,
+          title: 'Abonnement bientôt terminé',
+          message: `L'abonnement ${request.service.name} de ${request.client.fullName} se termine le ${endsAt}.`,
+          type: NotificationType.SUBSCRIPTION_ENDING,
+          requestId: payload.requestId,
+        })),
+      );
+    } catch (error) {
+      this.logger.error(`Erreur notification subscription.ending: ${error.message}`, error.stack);
+    }
+  }
+
+  @OnEvent('subscription.ended')
+  async handleSubscriptionEnded(payload: { requestId: string; endsAt: string }) {
+    try {
+      const request = await this.prisma.request.findUnique({
+        where: { id: payload.requestId },
+        include: {
+          client: true,
+          provider: true,
+          service: {
+            include: {
+              providers: { where: { isActive: true } },
+            },
+          },
+        },
+      });
+
+      if (!request) return;
+
+      const admins = await this.getAdmins();
+      const providers = request.provider ? [request.provider] : request.service.providers;
+      const recipients = new Map<string, { id: string }>();
+
+      admins.forEach((admin) => recipients.set(admin.id, admin));
+      providers.forEach((provider) => recipients.set(provider.id, provider));
+
+      await this.createManyAndPush(
+        Array.from(recipients.values()).map((user) => ({
+          userId: user.id,
+          title: 'Abonnement terminé',
+          message: `L'abonnement ${request.service.name} de ${request.client.fullName} est terminé. La demande a été clôturée automatiquement.`,
+          type: NotificationType.SUBSCRIPTION_ENDED,
+          requestId: payload.requestId,
+        })),
+      );
+    } catch (error) {
+      this.logger.error(`Erreur notification subscription.ended: ${error.message}`, error.stack);
     }
   }
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
-import { Clock, Play, CheckCircle2, Search, Loader2, CreditCard, AlertCircle, Calendar, Trash2, Edit3, MapPin, FileText, X, ChevronRight, Star } from "lucide-react";
+import { Clock, Play, CheckCircle2, Search, Loader2, CreditCard, AlertCircle, Calendar, Trash2, Edit3, MapPin, FileText, X, ChevronRight, Star, Smartphone } from "lucide-react";
 import Footer from "@/components/landing/Footer";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,153 @@ import { getMediaUrl } from "@/lib/utils";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1581578731548-c64695cc6958?q=80&w=800";
 
+function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClose: () => void; onPaid: () => void }) {
+  const [operator, setOperator] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phase, setPhase] = useState<'INITIAL' | 'INITIATING' | 'WAITING_USSD'>('INITIAL');
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(60);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const amount = request.price ? request.price * 0.5 : 0;
+
+  const handlePay = async () => {
+    const cleanPhone = phoneNumber.trim().replace(/\s/g, '');
+
+    if (!operator) {
+      toast.error("Veuillez choisir un opérateur.");
+      return;
+    }
+
+    if (!/^[89][0-9]{8}$/.test(cleanPhone)) {
+      toast.error("Veuillez entrer les 9 chiffres après le +243.");
+      return;
+    }
+
+    setPhase('INITIATING');
+    try {
+      const res = await api.post('/payments/initiate/deposit', {
+        requestId: request.id,
+        phoneNumber: `+243${cleanPhone}`,
+        operator,
+        currency: 'USD',
+      });
+
+      setPaymentId(res.data.paymentId);
+      setPhase('WAITING_USSD');
+      setCountdown(60);
+      toast.info("Consultez votre téléphone pour confirmer le paiement.", { id: 'premium-payment', duration: 60000 });
+    } catch (err: any) {
+      setPhase('INITIAL');
+      toast.error(err.response?.data?.message || "Erreur lors du paiement premium.");
+    }
+  };
+
+  useEffect(() => {
+    if (phase !== 'WAITING_USSD' || !paymentId) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/payments/status/${paymentId}`);
+        if (res.data.status === 'SUCCESS') {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          toast.dismiss('premium-payment');
+          toast.success("Abonnement premium payé avec succès !");
+          onPaid();
+        } else if (res.data.status === 'FAILED') {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          toast.dismiss('premium-payment');
+          setPhase('INITIAL');
+          toast.error("Paiement échoué.");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 3000);
+
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          toast.dismiss('premium-payment');
+          setPhase('INITIAL');
+          toast.error("Délai dépassé.");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [phase, paymentId, onPaid]);
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-chocolat/80 backdrop-blur-xl">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="w-full max-w-md rounded-[32px] bg-white p-6 shadow-2xl"
+      >
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-ocre">Paiement premium</p>
+            <h3 className="mt-1 text-2xl font-black uppercase tracking-tighter text-chocolat">{request.service?.name}</h3>
+          </div>
+          <button onClick={onClose} disabled={phase === 'WAITING_USSD'} className="rounded-2xl bg-zinc-100 p-3 text-chocolat disabled:opacity-50">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mb-6 rounded-2xl bg-chocolat p-5 text-white">
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/50">Acompte premium 50%</p>
+          <p className="mt-1 text-4xl font-black tracking-tighter">${amount.toLocaleString()}</p>
+        </div>
+
+        <div className="mb-5 grid grid-cols-3 gap-2">
+          {(['AIRTEL', 'ORANGE', 'MPESA'] as const).map((op) => (
+            <button
+              key={op}
+              onClick={() => setOperator(op)}
+              className={`rounded-xl border-2 px-3 py-3 text-[10px] font-black uppercase ${operator === op ? 'border-ocre bg-ocre/10 text-ocre' : 'border-zinc-100 text-chocolat/60'}`}
+            >
+              {op}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative mb-6">
+          <div className="pointer-events-none absolute left-4 top-1/2 flex -translate-y-1/2 items-center gap-2 text-chocolat/50">
+            <Smartphone className="h-4 w-4" />
+            <span className="border-r border-zinc-200 pr-2 text-sm font-bold">+243</span>
+          </div>
+          <input
+            value={phoneNumber}
+            maxLength={9}
+            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+            placeholder="812345678"
+            className="w-full rounded-xl border border-zinc-100 bg-off-white py-4 pl-24 pr-4 text-sm font-bold tracking-widest outline-none focus:border-ocre"
+          />
+        </div>
+
+        <button
+          onClick={handlePay}
+          disabled={phase !== 'INITIAL'}
+          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-chocolat py-5 text-[11px] font-black uppercase tracking-[0.2em] text-white disabled:opacity-50"
+        >
+          {phase === 'INITIATING' && <><Loader2 className="h-4 w-4 animate-spin" /> Initiation...</>}
+          {phase === 'WAITING_USSD' && <><Loader2 className="h-4 w-4 animate-spin" /> Confirmez sur téléphone ({countdown}s)</>}
+          {phase === 'INITIAL' && <>Payer l'abonnement</>}
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function MesDemandesPage() {
   const { user, isLoading: authLoading } = useRequireAuth();
   const [requests, setRequests] = useState<any[]>([]);
@@ -23,6 +170,7 @@ export default function MesDemandesPage() {
   const [showReschedule, setShowReschedule] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState<any>(null);
 
 
   const fetchRequests = async () => {
@@ -184,7 +332,7 @@ export default function MesDemandesPage() {
                     </div>
 
                     <div className="absolute bottom-4 right-4">
-                      <p className="text-white text-xl font-black tracking-tighter">${req.price}</p>
+                      <p className="text-white text-xl font-black tracking-tighter">{req.price ? `$${req.price}` : 'Prix à valider'}</p>
                     </div>
                   </div>
 
@@ -304,7 +452,9 @@ export default function MesDemandesPage() {
                   </div>
                   <div className="p-5 bg-off-white rounded-3xl border border-zinc-100 text-right">
                     <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest mb-1">Montant Total</p>
-                    <p className="text-2xl font-black text-chocolat tracking-tighter">${selectedRequest.price}</p>
+                    <p className="text-2xl font-black text-chocolat tracking-tighter">
+                      {selectedRequest.price ? `$${selectedRequest.price}` : "À valider"}
+                    </p>
                   </div>
                 </div>
 
@@ -322,9 +472,14 @@ export default function MesDemandesPage() {
                     <div>
                       <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-widest">Planning & Fréquence</p>
                       <p className="text-sm font-bold text-chocolat">
-                        {selectedRequest.scheduleFrequency === "ONCE" ? "Intervention ponctuelle" : `Abonnement ${selectedRequest.scheduleFrequency}`}
+                        {selectedRequest.scheduleFrequency ? `Abonnement ${selectedRequest.scheduleFrequency}` : "Intervention ponctuelle"}
                         {selectedRequest.scheduleDay && ` • Chaque ${selectedRequest.scheduleDay} à ${selectedRequest.scheduleTime}`}
                       </p>
+                      {selectedRequest.subscriptionEndsAt && (
+                        <p className="mt-1 text-xs font-bold text-chocolat/50">
+                          Fin prévue: {new Date(selectedRequest.subscriptionEndsAt).toLocaleString('fr-FR')}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -341,7 +496,20 @@ export default function MesDemandesPage() {
 
                 {/* Footer Actions Modal */}
                 <div className="pt-8 border-t border-zinc-100 flex flex-wrap gap-4">
-                  {selectedRequest.status === "ACCEPTED" && (
+                  {selectedRequest.scheduleFrequency && selectedRequest.status === "PENDING" && (
+                    <div className="w-full rounded-2xl border border-ocre/20 bg-ocre/5 p-5 text-sm font-bold text-chocolat">
+                      Prix premium en attente de validation par l'administration.
+                    </div>
+                  )}
+                  {selectedRequest.scheduleFrequency && selectedRequest.status === "APPROVED" && selectedRequest.price && (
+                    <button
+                      onClick={() => { setPaymentRequest(selectedRequest); setShowDetailModal(false); }}
+                      className="flex-1 bg-ocre text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-ocre/20 hover:scale-[1.02] transition-all"
+                    >
+                      Payer l'abonnement
+                    </button>
+                  )}
+                  {!selectedRequest.scheduleFrequency && selectedRequest.status === "ACCEPTED" && (
                     <button
                       onClick={() => { handlePayment(selectedRequest.id, 'deposit'); setShowDetailModal(false); }}
                       className="flex-1 bg-ocre text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-ocre/20 hover:scale-[1.02] transition-all"
@@ -373,6 +541,19 @@ export default function MesDemandesPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {paymentRequest && (
+          <PremiumPaymentModal
+            request={paymentRequest}
+            onClose={() => setPaymentRequest(null)}
+            onPaid={() => {
+              setPaymentRequest(null);
+              fetchRequests();
+            }}
+          />
         )}
       </AnimatePresence>
     </main>

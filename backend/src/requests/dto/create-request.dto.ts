@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsDateString, IsUUID, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsUUID, IsOptional, IsIn } from 'class-validator';
 
 export class CreateRequestDto {
   @IsUUID()
@@ -27,6 +27,7 @@ export class CreateRequestDto {
 
   // Planning premium (optionnel)
   @IsString()
+  @IsIn(['WEEKLY', 'MONTHLY'])
   @IsOptional()
   scheduleFrequency?: string;
 
@@ -37,4 +38,12 @@ export class CreateRequestDto {
   @IsString()
   @IsOptional()
   scheduleTime?: string;
+
+  @IsDateString()
+  @IsOptional()
+  subscriptionEndsAt?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
 }

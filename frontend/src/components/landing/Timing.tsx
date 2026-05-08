@@ -16,7 +16,7 @@ interface TimingProps {
     onConfirm: (plan: SchedulePlan) => void;
 }
 
-type Frequency = "ONCE" | "WEEKLY" | "MONTHLY";
+type Frequency = "WEEKLY" | "MONTHLY";
 
 interface SchedulePlan {
     frequency: Frequency;
@@ -38,7 +38,7 @@ interface PlanOption {
 const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
 
 export default function Timing({ service, onClose, onConfirm }: TimingProps) {
-    const [frequency, setFrequency] = useState<Frequency>("ONCE");
+    const [frequency, setFrequency] = useState<Frequency>("WEEKLY");
     const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
     const [selectedDay, setSelectedDay] = useState<number>(new Date().getDate());
     const [selectedTime, setSelectedTime] = useState("09:00");
@@ -98,17 +98,11 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
 
     const plans: PlanOption[] = [
         {
-            id: "ONCE",
-            label: "Une fois",
-            desc: "Ponctuel",
-            icon: <Zap className="w-5 h-5" />,
-            badge: "Populaire",
-        },
-        {
             id: "WEEKLY",
             label: "Hebdo",
             desc: "1×/semaine",
             icon: <Calendar className="w-5 h-5" />,
+            badge: "Premium",
         },
         {
             id: "MONTHLY",
@@ -119,12 +113,14 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
     ];
     const handleConfirm = () => {
         const fullDate = new Date(selectedMonth.year, selectedMonth.month, selectedDay);
+        const [hours, minutes] = selectedTime.split(":").map(Number);
+        fullDate.setHours(hours, minutes, 0, 0);
         const dayLabel = fullDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
         const weekday = fullDate.toLocaleDateString('fr-FR', { weekday: 'long' });
 
         onConfirm({
             frequency,
-            day: frequency === "ONCE" ? `${selectedDay}` : (frequency === "WEEKLY" ? weekday : `${selectedDay}`),
+            day: frequency === "WEEKLY" ? weekday : `${selectedDay}`,
             time: selectedTime,
             duration,
             dateLabel: `${dayLabel} (${weekday})`,
@@ -161,7 +157,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                             </span>
                         </div>
                         <h2 className="text-xl sm:text-3xl font-black text-chocolat uppercase tracking-tighter leading-tight">
-                            Planifier le <span className="text-ocre italic font-serif lowercase">passage.</span>
+                            Planifier votre <span className="text-ocre italic font-serif lowercase">abonnement.</span>
                         </h2>
                     </div>
                     <button
@@ -180,10 +176,10 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                         <div className="flex items-center gap-2">
                             <Zap className="w-4 h-4 text-ocre" />
                             <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
-                                Fréquence de service
+                                Récurrence de service
                             </p>
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             {plans.map((plan) => {
                                 const active = frequency === plan.id;
                                 return (
@@ -256,7 +252,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                             {/* Day Grid */}
                             <div className="bg-zinc-50/50 border border-zinc-100 rounded-[32px] p-5 sm:p-6">
                                 <p className="text-[9px] font-black text-chocolat/30 uppercase tracking-[0.2em] mb-4 text-center">
-                                    Date de passage souhaitée
+                                    Début souhaité de l'abonnement
                                 </p>
                                 <div className="grid grid-cols-7 gap-2">
                                     {daysInMonth.map((day) => {
@@ -313,7 +309,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                         <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-ocre" />
                             <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
-                                Durée de l'intervention
+                                Durée par intervention
                             </p>
                         </div>
                         <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
@@ -337,7 +333,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                         <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-ocre" />
                             <p className="text-[10px] font-black text-chocolat/40 uppercase tracking-[0.2em]">
-                                Créneau horaire
+                                Créneau récurrent
                             </p>
                         </div>
                         <div className="grid grid-cols-5 gap-2">
@@ -376,7 +372,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                             <Calendar className="w-5 h-5 text-ocre" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[9px] font-bold text-chocolat/30 uppercase tracking-[0.2em] mb-0.5">Planning finalisé</p>
+                            <p className="text-[9px] font-bold text-chocolat/30 uppercase tracking-[0.2em] mb-0.5">Abonnement planifié</p>
                             <p className="text-[13px] font-black text-chocolat uppercase tracking-tight truncate">
                                 {selectedPlanLabel}
                                 {` • ${selectedDay} ${selectedMonth.name}`}
@@ -389,7 +385,7 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                         onClick={handleConfirm}
                         className="w-full bg-chocolat text-white py-5 rounded-[24px] font-black text-[12px] uppercase tracking-[0.3em] hover:bg-ocre hover:text-chocolat transition-all flex items-center justify-center gap-4 shadow-2xl shadow-chocolat/20 group active:scale-[0.98]"
                     >
-                        Confirmer le planning
+                        Confirmer l'abonnement
                         <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1.5" />
                     </button>
                 </div>

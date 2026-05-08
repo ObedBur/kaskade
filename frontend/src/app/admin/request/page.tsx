@@ -15,6 +15,11 @@ type RequestItem = {
   amount: string;
   status: string;
   date: string;
+  price?: number | null;
+  scheduleFrequency?: string | null;
+  scheduleDay?: string | null;
+  scheduleTime?: string | null;
+  subscriptionEndsAt?: string | null;
   avatarUrl?: string | null;
 };
 
@@ -23,6 +28,7 @@ export default function AdminRequestsPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
 
   const [search, setSearch] = useState("");
 
@@ -43,6 +49,11 @@ export default function AdminRequestsPage() {
             amount: r.price ? `${r.price.toLocaleString()} ${currency}` : 'Non fixé',
             status: r.status,
             date: new Date(r.createdAt).toLocaleDateString('fr-FR'),
+            price: r.price ?? null,
+            scheduleFrequency: r.scheduleFrequency ?? null,
+            scheduleDay: r.scheduleDay ?? null,
+            scheduleTime: r.scheduleTime ?? null,
+            subscriptionEndsAt: r.subscriptionEndsAt ?? null,
             avatarUrl: r.client?.avatarUrl || null
           };
         });
@@ -64,20 +75,35 @@ export default function AdminRequestsPage() {
     req.service.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleStatusChange = async (requestId: string, nextStatus: string) => {
+  const handleStatusChange = async (request: RequestItem, nextStatus: string) => {
     try {
       if (nextStatus === 'APPROVED') {
-        await api.patch(`/admin/requests/${requestId}/approve`);
+        const isPremium = request.scheduleFrequency === 'WEEKLY' || request.scheduleFrequency === 'MONTHLY';
+        const quotedPrice = Number(priceInputs[request.id]);
+
+        if (isPremium && (!Number.isFinite(quotedPrice) || quotedPrice <= 0)) {
+          toast.error("Veuillez saisir un prix premium valide avant d'approuver.");
+          return;
+        }
+
+        await api.patch(`/admin/requests/${request.id}/approve`, isPremium ? { price: quotedPrice } : {});
         toast.success("Demande approuvée avec succès ! ✅");
       } else {
-        await api.patch(`/admin/requests/${requestId}/reject`);
+        await api.patch(`/admin/requests/${request.id}/reject`);
         toast.success("Demande rejetée.");
       }
 
       // Mettre à jour l'état local pour un retour immédiat
       setRequests(prev => prev.map(req =>
-        req.id === requestId
-          ? { ...req, status: nextStatus === 'APPROVED' ? 'APPROVED' : 'REJECTED' }
+        req.id === request.id
+          ? {
+            ...req,
+            status: nextStatus === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+            ...(nextStatus === 'APPROVED' && priceInputs[request.id] ? {
+              price: Number(priceInputs[request.id]),
+              amount: `${Number(priceInputs[request.id]).toLocaleString()} FC`,
+            } : {}),
+          }
           : req
       ));
     } catch (err) {
@@ -152,15 +178,32 @@ export default function AdminRequestsPage() {
                     <div className="min-w-0">
                       <h5 className="font-bold text-sm tracking-tight whitespace-normal">{req.service} <span className="text-slate-200 mx-1 sm:mx-2">•</span> {req.client}</h5>
                       <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1 whitespace-normal">{req.id.slice(0, 8)}... — {req.date}</p>
+                      {req.scheduleFrequency && (
+                        <p className="text-[10px] text-[#BC9C6C] uppercase font-black tracking-widest mt-2">
+                          Premium {req.scheduleFrequency} • {req.scheduleDay} {req.scheduleTime && `à ${req.scheduleTime}`}
+                          {req.subscriptionEndsAt && ` • fin ${new Date(req.subscriptionEndsAt).toLocaleDateString('fr-FR')}`}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-row flex-wrap items-center justify-between sm:justify-end w-full md:w-auto gap-4 pl-0 sm:pl-16 md:pl-0">
                     <p className="font-black text-sm mr-2">{req.amount}</p>
 
-                    {req.status === 'EN ATTENTE' ? (
-                      <div className="flex items-center gap-2">
+                    {req.status === 'PENDING' ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {req.scheduleFrequency && (
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="Prix"
+                            value={priceInputs[req.id] || ""}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => setPriceInputs(prev => ({ ...prev, [req.id]: e.target.value }))}
+                            className="w-28 rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs font-black outline-none focus:border-[#BC9C6C]"
+                          />
+                        )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleStatusChange(req.id, 'APPROVED'); }}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(req, 'APPROVED'); }}
                           className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm group/btn"
                           title="Approuver la demande"
                         >
@@ -171,7 +214,7 @@ export default function AdminRequestsPage() {
                           <Check className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleStatusChange(req.id, 'REJECTED'); }}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(req, 'REJECTED'); }}
                           className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm group/btn"
                           title="Rejeter la demande"
                         >
@@ -179,8 +222,8 @@ export default function AdminRequestsPage() {
                         </button>
                       </div>
                     ) : (
-                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${req.status === 'TERMINÉ' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                        req.status === 'REJETÉ' ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${req.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                        req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700 border-rose-200' :
                           'bg-amber-100 text-amber-700 border-amber-200'
                         }`}>
                         {req.status}
