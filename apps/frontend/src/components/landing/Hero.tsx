@@ -23,7 +23,7 @@ export default function Hero() {
     }, []);
 
     return (
-        <section className="relative pt-[120px] pb-24 md:pt-[160px] md:pb-48 min-h-[90vh] flex items-center bg-off-white overflow-hidden">
+        <section className="relative pt-[120px] pb-16 md:pt-[160px] md:pb-24 min-h-[75vh] flex items-center bg-off-white overflow-hidden">
 
             {/* Arcture Visual Monolith Slider (Right relative to content) */}
             <div className="absolute right-0 top-0 w-full lg:w-[60%] h-full z-0 overflow-hidden pointer-events-none">
@@ -83,7 +83,7 @@ export default function Hero() {
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
-                        className="max-w-[700px] bg-white shadow-2xl flex flex-col md:flex-row items-stretch md:items-center group p-1"
+                        className="max-w-[900px] bg-white shadow-2xl flex flex-col md:flex-row items-stretch md:items-center group p-1"
                     >
                         <div className="flex-1 flex items-center px-6 py-4 border-b md:border-b-0 md:border-r border-ocre/10">
                             <Search className="text-ocre mr-4 w-5 h-5" />

@@ -10,10 +10,10 @@ export const FreelanceMockUI = () => (
     </div>
     <div className="flex items-center gap-4 relative z-0">
       <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shadow-inner">
-        <Image src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80" alt="Sophie L." fill className="object-cover" sizes="56px" />
+        <Image src="https://images.unsplash.com/photo-1531123897727-8f129e1bf98c?auto=format&fit=crop&w=150&q=80" alt="Amina K." fill className="object-cover" sizes="56px" />
       </div>
       <div>
-        <h4 className="text-[#2C1E16] font-bold text-base">Sophie L.</h4>
+        <h4 className="text-[#2C1E16] font-bold text-base">Amina K.</h4>
         <p className="text-[#2C1E16]/60 text-xs font-medium mb-1">Directrice Artistique</p>
         <div className="flex gap-1" aria-label="5 étoiles">
           {[1, 2, 3, 4, 5].map((star) => <Star key={star} className="w-3.5 h-3.5 text-[#D4AF37] fill-[#D4AF37]" />)}

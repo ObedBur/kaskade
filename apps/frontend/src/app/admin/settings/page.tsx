@@ -31,13 +31,13 @@ export default function AdminSettingsPage() {
   }, [isAuthenticated]);
 
   if (authLoading || (isAuthenticated && dataLoading)) {
-    return <div className="p-12 flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
   }
 
   if (!isAuthenticated) return null;
 
   return (
-    <div className="p-12">
+    <div className="">
       <header className="mb-16">
         <h1 className="text-4xl font-black tracking-tight mb-2">Paramètres du Compte</h1>
         <p className="text-slate-400 text-sm font-medium">Gérez vos informations administrateur et la sécurité de l'interface.</p>

@@ -11,9 +11,11 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UpdateUserDto } from '../users/dto/update-user.dto';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { MailService } from '../mail/mail.service';
 import { RedisService } from '../redis/redis.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -26,13 +28,14 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
     private readonly redisService: RedisService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async register(createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
     
     // Génération OTP (6 chiffres)
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = this.generateOtp();
     
     // Stockage dans Redis (Expire après 10 min)
     await this.redisService.set(`otp:${user.email}`, otp, 600);
@@ -42,7 +45,6 @@ export class AuthService {
       await this.mailService.sendVerificationEmail(user.email, user.fullName, otp, user.role);
     } catch (error) {
       this.logger.error(`Échec de l'envoi de l'e-mail à ${user.email}`, error);
-      // On continue quand même, l'utilisateur pourra demander un renvoi d'OTP plus tard
     }
 
     return {
@@ -64,6 +66,12 @@ export class AuthService {
     
     // Supprimer l'OTP
     await this.redisService.del(`otp:${email}`);
+
+    // Émettre un événement pour notifier le module Notifications
+    const user = await this.usersService.findByEmail(email);
+    if (user) {
+      this.eventEmitter.emit('auth.registered', { userId: user.id });
+    }
 
     return { message: 'Compte vérifié avec succès. Vous pouvez maintenant vous connecter.' };
   }
@@ -121,7 +129,7 @@ export class AuthService {
     if (!user) throw new BadRequestException('Utilisateur non trouvé');
     if (user.isVerified) throw new BadRequestException('Compte déjà vérifié');
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = this.generateOtp();
     await this.redisService.set(`otp:${email}`, otp, 600);
 
     await this.mailService.sendVerificationEmail(email, user.fullName, otp, user.role);
@@ -205,6 +213,15 @@ export class AuthService {
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return tokens;
+  }
+
+  async updateMe(userId: string, updateUserDto: UpdateUserDto) {
+    return this.usersService.update(userId, updateUserDto);
+  }
+
+  /** Génère un code OTP numérique à 6 chiffres. */
+  private generateOtp(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   private async updateRefreshToken(

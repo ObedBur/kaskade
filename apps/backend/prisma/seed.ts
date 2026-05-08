@@ -1,10 +1,16 @@
+import 'dotenv/config';
 import { PrismaClient, Role } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
 import { fakerFR as faker } from '@faker-js/faker';
 
-const prisma = new PrismaClient();
+// Récupérez l'URL et créez l'adaptateur
+const connectionString = process.env.DATABASE_URL!;
+const adapter = new PrismaPg({ connectionString });
 
-const CATEGORIES = ["ÉLECTRICITÉ", "MÉNAGE", "ARCHITECTURE", "TECH", "BIEN-ÊTRE", "PLOMBERIE"];
+// Passez l'adaptateur au constructeur (obligatoire en v7)
+const prisma = new PrismaClient({ adapter });
+
 
 const CATEGORY_IMAGES: Record<string, string[]> = {
   "ÉLECTRICITÉ": ["1621905230536-3e974249a002", "1581092921461-7d13c1f0163a"],
@@ -30,72 +36,15 @@ async function main() {
       fullName: 'Julian Thorne (Admin)',
       phone: '+243990000000',
       role: Role.ADMIN,
-      city: 'Goma',
+      quartier: 'Goma',
       isVerified: true,
       isActive: true,
     },
   });
-  console.log(` Admin: ${admin.email}`);
+  console.log(`✅ Admin: ${admin.email}`);
 
-  // 2. PROVIDER
-  const provider = await prisma.user.upsert({
-    where: { email: 'provider@gmail.com' },
-    update: {},
-    create: {
-      email: 'provider@gmail.com',
-      password: passwordHash,
-      fullName: 'Provider (Prestataire)',
-      phone: '+243991111111',
-      role: Role.PROVIDER,
-      city: 'Goma',
-      isVerified: true,
-      isActive: true,
-    },
-  });
-  console.log(` Provider: ${provider.email}`);
 
-  // 3. CLIENT
-  const client = await prisma.user.upsert({
-    where: { email: 'client@gmail.com' },
-    update: {},
-    create: {
-      email: 'client@gmail.com',
-      password: passwordHash,
-      fullName: 'Client (Client)',
-      phone: '+243992222222',
-      role: Role.CLIENT,
-      city: 'Goma',
-      isVerified: true,
-      isActive: true,
-    },
-  });
-  console.log(`✅ Client: ${client.email}`);
-
-  // 4. SERVICES
-  console.log('📦 Création des services...');
-  
-  // Supprimer les services existants pour faire un seed propre
-  await prisma.service.deleteMany({});
-
-  for (let i = 0; i < 12; i++) {
-    const category = faker.helpers.arrayElement(CATEGORIES);
-    const imageId = faker.helpers.arrayElement(CATEGORY_IMAGES[category]);
-    
-    await prisma.service.create({
-      data: {
-        title: faker.person.jobTitle() + " " + faker.company.catchPhraseAdjective(),
-        description: faker.lorem.sentence(12),
-        category: category,
-        price: faker.number.int({ min: 10, max: 150 }),
-        // @ts-ignore
-        image: `https://images.unsplash.com/photo-${imageId}?auto=format&fit=crop&w=800&q=80`,
-        providerId: provider.id,
-        isActive: true,
-      }
-    });
-  }
-
-  console.log(' Seed terminé avec succès !');
+  console.log('✅ Seed des utilisateurs terminé avec succès!');
 }
 
 main()

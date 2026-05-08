@@ -11,8 +11,16 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "i.pravatar.cc",
       },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "4000",
+        pathname: "/uploads/**",
+      },
     ],
   },
+  output: 'standalone',
+  outputFileTracingRoot: __dirname,
 };
 
-export default nextConfig;
+export default nextConfig;                         

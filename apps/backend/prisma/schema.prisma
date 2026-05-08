@@ -10,145 +10,190 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   password      String
-  fullName      String
-  phone         String    @unique
+  fullName      String    
+  phone         String    @unique 
+  
+  quartier      String    
+  
   role          Role      @default(CLIENT)
-  city          String    @default("Goma")
-  isVerified    Boolean   @default(false)
+  status        Status    @default(DISPONIBLE) 
+  isPremium     Boolean   @default(false)    
+  
+  metier        String?   
+  experience    String?   @db.Text 
+  bio           String?   @db.Text 
+  avatarUrl     String?   
+  
+  isVerified    Boolean   @default(false) 
   isActive      Boolean   @default(true)
-  refreshToken  String?
+  refreshToken  String?   
+  
+  // Relations
+  clientRequests       Request[]           @relation("ClientRequests")
+  providerRequests     Request[]           @relation("ProviderRequests")
+  providerApplications ProviderApplication[]
+  services             Service[]
+  notifications        Notification[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  // Relations
-  services         Service[]       @relation("ProviderServices")
-  clientRequests   Request[]       @relation("ClientRequests")
-  providerRequests Request[]       @relation("ProviderRequests")
-  adminRequests    Request[]       @relation("AdminRequests")
-  reviews          ServiceReview[]
-  notifications    Notification[]
+  @@index([email])
+  @@index([phone])
+  @@index([quartier]) 
 }
 
-// ─────────────────────────────────────────────
-// NOTIFICATIONS
-// ─────────────────────────────────────────────
-model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String
-  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
-  isRead    Boolean  @default(false)
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  link      String?  // Lien optionnel (ex: /demandes/id)
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-// ─────────────────────────────────────────────
-// SERVICE
-// ─────────────────────────────────────────────
+// Catalogue de services gérés par l'admin
 model Service {
   id          String    @id @default(uuid())
-  title       String
-  description String
-  category    String
-  price       Float
-  image       String?
+  name        String    
+  category    String    
+  description String?   @db.Text
+  price       Float?    
+  currency    String    @default("USD")
   isActive    Boolean   @default(true)
 
-  providerId  String
-  provider    User      @relation("ProviderServices", fields: [providerId], references: [id])
+  imageKey    String?   
+  workingHoursStart String  @default("06:00")
+  workingHoursEnd   String  @default("18:00")
 
+  // relations
   requests    Request[]
-  reviews     ServiceReview[]
+  providers   User[]
+  notifications Notification[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([category])
 }
 
-// ─────────────────────────────────────────────
-// REQUEST (Flux principal Client -> Admin -> Prestataire)
-// ─────────────────────────────────────────────
+model Payment {
+  id              String   @id @default(uuid())
+  requestId       String
+  clientId        String
+  amount          Float
+  currency        String   @default("USD") 
+  operator        String   // AIRTEL, ORANGE, MPESA
+  phoneNumber     String   
+  
+  // Champs spécifiques Mbiyo Pay
+  mbiyoRef        String?  @unique // Référence de transaction retournée par Mbiyo
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  type            String   // DEPOSIT (Acompte 50%) ou FINAL (Solde 50%)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  request         Request  @relation(fields: [requestId], references: [id])
+}
+
+// Demande de service créée par un CLIENT
 model Request {
-  id           String        @id @default(uuid())
-  status       RequestStatus @default(PENDING)
-  message      String?       // Message initial du client
+  id          String        @id @default(uuid())
+  clientId    String
+  serviceId   String
+  providerId  String?
 
-  // Planning
-  scheduledAt  DateTime?     // Date/heure du rendez-vous
-  expiresAt    DateTime?     // Expiration automatique de la demande
+  description String        @db.Text
+  address     String
+  scheduledAt DateTime
 
-  // Séquestre
-  escrowAmount Float?        // Montant bloqué en séquestre (en $)
-  isPaid       Boolean       @default(false)
+  // Planning premium (optionnel)
+  scheduleFrequency  String?   // DAILY, WEEKLY, MONTHLY
+  scheduleDay        String?   // "Lun", "Mar", ... ou "1"-"31" ou "Tous les jours"
+  scheduleTime       String?   // "08:00", "09:00", etc.
 
-  // Clés étrangères
-  clientId     String
-  client       User          @relation("ClientRequests", fields: [clientId], references: [id])
+  price       Float?
+  currency    String    @default("USD")
+  acceptedAt  DateTime?
 
-  providerId   String?
-  provider     User?         @relation("ProviderRequests", fields: [providerId], references: [id])
+  status      RequestStatus @default(PENDING)
 
-  adminId      String?       // Admin qui a approuvé/rejeté
-  admin        User?         @relation("AdminRequests", fields: [adminId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  serviceId    String
-  service      Service       @relation(fields: [serviceId], references: [id])
-
-  review       ServiceReview?
-
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  // Relations
+  client      User          @relation("ClientRequests", fields: [clientId], references: [id])
+  provider    User?         @relation("ProviderRequests", fields: [providerId], references: [id])
+  service     Service       @relation(fields: [serviceId], references: [id])
+  payments    Payment[]
+  notifications Notification[]
 
   @@index([clientId])
+  @@index([serviceId])
   @@index([providerId])
   @@index([status])
-  @@index([expiresAt])
 }
 
-// ─────────────────────────────────────────────
-// AVIS / REVIEWS
-// ─────────────────────────────────────────────
-model ServiceReview {
-  id         String   @id @default(uuid())
-  rating     Int      // 1 à 5
-  comment    String?
+// Candidature pour devenir Prestataire
+model ProviderApplication {
+  id          String        @id @default(uuid())
+  
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  
+  motivation  String        @db.Text
+  status      RequestStatus @default(PENDING) 
+  
+  notifications Notification[]
 
-  requestId  String   @unique
-  request    Request  @relation(fields: [requestId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  authorId   String
-  author     User     @relation(fields: [authorId], references: [id])
-
-  serviceId  String
-  service    Service  @relation(fields: [serviceId], references: [id])
-
-  createdAt  DateTime @default(now())
+  @@index([userId])
+  @@index([status])
 }
 
-// ─────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────
 enum Role {
   CLIENT
   PROVIDER
   ADMIN
 }
 
-enum RequestStatus {
-  PENDING     // Demande créée, en attente de validation admin
-  APPROVED    // Approuvée par l'admin, en attente du prestataire
-  SCHEDULED   // Prestataire a fixé la date du rendez-vous
-  CONFIRMED   // Client a confirmé le rendez-vous + paiement séquestre
-  COMPLETED   // Prestation terminée et validée par le client
-  REJECTED    // Rejetée par admin ou prestataire
-  EXPIRED     // Délai d'expiration dépassé (géré par un cron job)
+enum Status {
+  DISPONIBLE    
+  EN_MISSION    
+  INDISPONIBLE  
 }
+
+// Workflow des demandes de service et applications
+enum RequestStatus {
+  PENDING          // Demande créée par le client
+  APPROVED         // Admin a approuvé + prix fixé
+  REJECTED         // Admin a rejeté
+  ACCEPTED         // Provider a accepté (en attente de l'acompte)
+  IN_PROGRESS      // Acompte (50%) versé, mission active
+  AWAITING_FINAL   // Provider a terminé, en attente du paiement final
+  COMPLETED        // Paiement final (50%) reçu, mission clôturée
+}
+
+// Notifications In-App 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String   // Ex: AUTH_WELCOME, PROVIDER_APPLY, REQUEST_CREATED...
+  isRead    Boolean  @default(false)
+  
+  // Relations optionnelles vers les ressources
+  requestId         String?   // Pour demandes de service (REQUEST_*)
+  serviceId         String?   // Pour services (SERVICE_*)
+  providerAppId     String?   // Pour candidatures prestataire (PROVIDER_*)
+  
+  createdAt DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request           Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  service           Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  providerApp       ProviderApplication? @relation(fields: [providerAppId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([requestId])
+  @@index([serviceId])
+  @@index([providerAppId])
+}
+

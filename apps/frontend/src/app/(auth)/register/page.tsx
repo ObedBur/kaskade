@@ -9,7 +9,7 @@ export default function RegisterPage() {
     <div className="flex flex-col min-h-screen bg-off-white font-sans overflow-hidden">
       <AuthHeader />
 
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-[1.2fr_1fr] pt-24">
+      <main className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr] pt-24">
         <AuthHero />
         <div className="flex items-center justify-center p-6 md:p-12 lg:p-24 bg-off-white">
           <RegisterForm />

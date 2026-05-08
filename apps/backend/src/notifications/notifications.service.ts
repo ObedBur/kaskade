@@ -1,83 +1,142 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { RequestStatusChangedEvent } from '../requests/events/request-status.event';
-import { RequestStatus } from '@prisma/client';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationType } from './notification-type.enum';
+
+interface CreateNotificationPayload {
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  requestId?: string;
+  serviceId?: string;
+  providerAppId?: string;
+}
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  @OnEvent('request.status.changed')
-  async handleRequestStatusChanged(event: RequestStatusChangedEvent) {
-    const { requestId, oldStatus, newStatus } = event;
-
-    this.logger.log(` NOTIFICATION : Demande #${requestId} est passée de ${oldStatus} à ${newStatus}`);
-
-    // Récupérer les détails de la requête pour avoir les IDs utilisateur
-    const request = await this.prisma.request.findUnique({
-      where: { id: requestId },
-      include: { service: true },
+  // Création avec support des relations vers ressources
+  async createNotification(data: CreateNotificationPayload) {
+    const notification = await this.prisma.notification.create({
+      data: {
+        userId: data.userId,
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        requestId: data.requestId,
+        serviceId: data.serviceId,
+        providerAppId: data.providerAppId,
+      },
     });
-
-    if (!request) return;
-
-    const title = 'Mise à jour de votre demande';
-    let message = '';
-    let type = 'INFO';
-
-    switch (newStatus) {
-      case RequestStatus.PENDING:
-        message = `Votre demande pour "${request.service.title}" a été bien reçue. Elle est en cours de validation par un admin.`;
-        await this.createNotification(request.clientId, title, message, 'INFO', `/mes-demandes/${requestId}`);
-        break;
-
-      case RequestStatus.APPROVED:
-        message = `Votre demande pour "${request.service.title}" a été approuvée par l'admin. Le prestataire va vous contacter.`;
-        await this.createNotification(request.clientId, title, message, 'SUCCESS', `/mes-demandes/${requestId}`);
-        break;
-      
-      case RequestStatus.SCHEDULED:
-        message = `Un rendez-vous a été proposé pour votre intervention. Merci de le confirmer.`;
-        await this.createNotification(request.clientId, "Rendez-vous proposé", message, 'WARNING', `/mes-demandes/${requestId}`);
-        break;
-
-      case RequestStatus.CONFIRMED:
-        message = `Rendez-vous confirmé ! Le paiement est sécurisé sous séquestre.`;
-        await this.createNotification(request.clientId, "Paiement sécurisé", message, 'SUCCESS', `/mes-demandes/${requestId}`);
-        if (request.providerId) {
-          await this.createNotification(request.providerId, "Nouvelle intervention confirmée", "Un nouveau rendez-vous a été confirmé par le client.", 'SUCCESS', `/demandes/${requestId}`);
-        }
-        break;
-
-      case RequestStatus.COMPLETED:
-        message = `La prestation est marquée comme terminée. Merci pour votre confiance !`;
-        await this.createNotification(request.clientId, "Prestation terminée", message, 'SUCCESS', `/mes-demandes/${requestId}`);
-        break;
-
-      case RequestStatus.REJECTED:
-        message = `Votre demande a été refusée ou annulée.`;
-        await this.createNotification(request.clientId, "Demande refusée", message, 'ERROR');
-        break;
-    }
+    this.logger.log(`Notification créée pour l'utilisateur ${data.userId}: ${data.title} (${data.type})`);
+    return notification;
   }
 
-  private async createNotification(userId: string, title: string, message: string, type: string = 'INFO', link?: string) {
-    try {
-      await this.prisma.notification.create({
-        data: {
-          userId,
-          title,
-          message,
-          type,
-          link,
+  // Création massive avec support des relations — retourne les objets créés (avec IDs)
+  async createManyNotifications(data: CreateNotificationPayload[]) {
+    const notifications = await Promise.all(
+      data.map(d =>
+        this.prisma.notification.create({
+          data: {
+            userId: d.userId,
+            title: d.title,
+            message: d.message,
+            type: d.type,
+            requestId: d.requestId,
+            serviceId: d.serviceId,
+            providerAppId: d.providerAppId,
+          },
+        }),
+      ),
+    );
+    this.logger.log(`${notifications.length} notifications créées en masse.`);
+    return notifications;
+  }
+
+  // Lister les notifications d'un utilisateur avec relations et pagination
+  async findAllForUser(userId: string, options?: { page: number; limit: number }) {
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [notifications, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        include: {
+          request: true,
+          service: true,
+          providerApp: true,
         },
-      });
-      this.logger.debug(`[Notification saved] User: ${userId} | ${title}`);
-    } catch (err) {
-      this.logger.error("Erreur lors de la sauvegarde de la notification", err);
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where: { userId } }),
+    ]);
+
+    return {
+      data: notifications,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // Compteur de notifications non lues
+  async getUnreadCount(userId: string) {
+    const count = await this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
+    return { unreadCount: count };
+  }
+
+  // Marquer une notification comme lue
+  async markAsRead(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification introuvable');
     }
+
+    if (notification.userId !== userId) {
+      throw new NotFoundException('Notification non autorisée');
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+  }
+
+  // Tout marquer comme lu
+  async markAllAsRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  // Supprimer une notification
+  async deleteNotification(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification introuvable');
+    }
+
+    if (notification.userId !== userId) {
+      throw new NotFoundException('Notification non autorisée');
+    }
+
+    await this.prisma.notification.delete({ where: { id: notificationId } });
+    return { message: 'Notification supprimée' };
   }
 }

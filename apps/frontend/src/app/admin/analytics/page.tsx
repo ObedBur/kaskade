@@ -35,13 +35,13 @@ export default function AdminAnalyticsPage() {
   }, [isAuthenticated]);
 
   if (authLoading || (isAuthenticated && dataLoading)) {
-    return <div className="p-12 flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
   }
 
   if (!isAuthenticated) return null;
 
   return (
-    <div className="p-12">
+    <div className="">
       <header className="flex justify-between items-center mb-16 gap-8">
         <div>
           <h1 className="text-4xl font-black tracking-tight mb-2">Analyse du Marché</h1>

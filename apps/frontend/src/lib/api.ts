@@ -24,6 +24,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('kaskade_access_token');
+        localStorage.removeItem('kaskade_user');
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   }
 );

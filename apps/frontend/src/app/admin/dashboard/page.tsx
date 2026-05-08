@@ -1,288 +1,249 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Search, Bell, Plus, Loader2, Check, X } from "lucide-react";
-import { motion } from "framer-motion";
-import { toast } from "sonner";
+import React, { useEffect, useState } from 'react';
+import api from '@/lib/api';
+import Link from 'next/link';
 import { useAdminGuard } from "@/lib/use-admin-guard";
-import api from "@/lib/api";
+import {
+  Users,
+  Briefcase,
+  MessageSquare,
+  TrendingUp,
+  AlertCircle,
+  Clock,
+  UserPlus,
+  LayoutDashboard,
+  Loader2
+} from 'lucide-react';
 
-type StatItem = { label: string; value: string; trend: string; color: string; isNegative?: boolean; };
-type ActivityItem = { id: string; name: string; email: string; type: string; status: string; amount: string; };
-type CategoryItem = { label: string; value: string; color: string; };
+interface DashboardStats {
+  users: { total: number; clients: number; providers: number };
+  requests: { total: number; pending: number; inProgress: number; completed: number };
+  services: { total: number };
+  revenue: Record<string, number>;
+}
+
+interface RecentActivity {
+  recentRequests: any[];
+  recentUsers: any[];
+}
 
 export default function AdminDashboardPage() {
-  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
-  const [dataLoading, setDataLoading] = useState(true);
-  
-  const [stats, setStats] = useState<StatItem[]>([]);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading: authLoading, isAuthenticated, user } = useAdminGuard();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activity, setActivity] = useState<RecentActivity | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    
-    const fetchDashboard = async () => {
+    if (!isAuthenticated || user?.role !== 'ADMIN') return;
+
+    const fetchData = async () => {
       try {
-        const res = await api.get('/admin/dashboard');
-        setStats(res.data.stats || []);
-        setActivities(res.data.activities || []);
-        setCategories(res.data.categories || []);
-      } catch (err) {
-        console.error(err);
-        setError("Impossible de charger les données du tableau de bord. Vérifiez que le backend est en ligne.");
+        const [statsRes, activityRes] = await Promise.all([
+          api.get('/admin/dashboard/stats'),
+          api.get('/admin/dashboard/activity')
+        ]);
+        setStats(statsRes.data);
+        setActivity(activityRes.data);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
       } finally {
-        setDataLoading(false);
+        setLoading(false);
       }
     };
-
-    fetchDashboard();
+    fetchData();
   }, [isAuthenticated]);
 
-  const handleStatusChange = async (requestId: string, nextStatus: string) => {
-    try {
-      await api.patch(`/requests/${requestId}/status`, { status: nextStatus });
-      
-      // Mettre à jour l'état local
-      setActivities(prev => prev.map(act => 
-        act.id === requestId 
-          ? { ...act, status: nextStatus === 'APPROVED' ? 'VÉRIFIÉ' : 'REJETÉ' } 
-          : act
-      ));
-      
-      toast.success(nextStatus === 'APPROVED' ? "Demande approuvée ! ✅" : "Demande rejetée.");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erreur lors de l'action.");
-    }
-  };
-
-  if (authLoading || (isAuthenticated && dataLoading)) {
-    return <div className="p-12 flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-[#BC9C6C]" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#321B13]">Synchronisation des données...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) return null;
 
+  const revenue = stats?.revenue || { USD: 0, CDF: 0 };
+  const hasUSD = (revenue.USD || 0) > 0;
+  const hasCDF = (revenue.CDF || 0) > 0;
+
+  const topCards = [
+    {
+      title: "Revenue",
+      value: hasUSD ? `${revenue.USD.toLocaleString('fr-FR')} $` : (hasCDF ? `${revenue.CDF.toLocaleString('fr-FR')} FC` : '0 FC'),
+      sub: (hasUSD && hasCDF) ? `+ ${revenue.CDF.toLocaleString('fr-FR')} FC` : "C.A Plateforme",
+      icon: TrendingUp,
+      color: "text-green-600"
+    },
+    { title: "Demandes", value: stats?.requests.total || 0, sub: `${stats?.requests.pending || 0} en attente`, icon: MessageSquare, color: "text-blue-600" },
+    { title: "Prestataires", value: stats?.users.providers || 0, sub: "Actifs", icon: Briefcase, color: "text-[#BC9C6C]" },
+    { title: "Clients", value: stats?.users.clients || 0, sub: "Clients inscrits", icon: Users, color: "text-purple-600" },
+    { title: "Alertes", value: stats?.requests.pending || 0, sub: "Prioritaires", icon: AlertCircle, color: "text-red-500" },
+  ];
+
   return (
-    <div className="p-12">
-      {/* Barre de Navigation Supérieure */}
-      <header className="flex justify-between items-center mb-16 gap-8">
-        <div className="flex-1 max-w-xl group relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#FF6B00] transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Rechercher des analyses, des héros ou des transactions..." 
-            className="w-full bg-white border border-slate-100 rounded-full py-5 px-14 text-sm focus:outline-none focus:ring-4 focus:ring-[#FF6B00]/5 hover:border-slate-200 transition-all font-medium"
-          />
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <button className="relative w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm hover:shadow-md transition-all">
-            <Bell className="w-5 h-5 text-slate-400" />
-            <span className="absolute top-3 right-3 w-2 h-2 bg-[#FF6B00] rounded-full border-2 border-white"></span>
-          </button>
-          <div className="h-10 w-px bg-slate-200"></div>
-          <div className="flex items-center gap-4 bg-white border border-slate-100 pl-4 pr-2 py-2 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group">
-            <span className="text-sm font-bold tracking-tight text-slate-600">Profil Administrateur</span>
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#BC9C6C]">
-              <img src="https://i.pravatar.cc/150?u=admin" alt="Admin avatar" className="w-full h-full object-cover" />
+    <div className="space-y-8 font-sans">
+
+      {/* 5 Stats Cards - Top Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+        {topCards.map((card, index) => (
+          <div
+            key={index}
+            className="bg-white p-6 border border-gray-100 rounded-none shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group"
+          >
+            <div className="flex justify-between items-start">
+              <div className={`p-2 bg-gray-50 rounded-none group-hover:scale-110 transition-transform`}>
+                <card.icon className={`w-5 h-5 ${card.color}`} />
+              </div>
+              <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">Live</span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-[#321B13]">{card.value}</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{card.title}</p>
+            </div>
+            <div className="pt-4 border-t border-gray-50">
+              <p className="text-[9px] text-gray-500 italic">{card.sub}</p>
             </div>
           </div>
-        </div>
-      </header>
+        ))}
+      </div>
 
-      {error ? (
-        <div className="bg-rose-50 border border-rose-200 text-rose-600 p-8 rounded-3xl text-center font-bold">
-          {error}
-        </div>
-      ) : (
-      <section className="space-y-12">
-        {/* Cartes KPI */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((kpi, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-2xl shadow-slate-200/40 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">{kpi.label}</span>
-                <span className={`text-[10px] font-black uppercase flex items-center gap-1 ${kpi.isNegative ? 'text-slate-400' : 'text-[#FF6B00]'}`}>
-                 {kpi.isNegative ? '↘' : '↗'} {kpi.trend}
-                </span>
-              </div>
-              <h3 className="text-3xl lg:text-5xl font-extrabold tracking-tighter mb-4">{kpi.value}</h3>
-              
-              {/* Simulation de Micro-Graphique */}
-              <div className="flex gap-1 items-end h-12">
-                {[40, 70, 30, 80, 50, 90, 60, 45].map((height, idx) => (
-                  <div 
-                    key={idx}
-                    className="bg-slate-50 flex-1 rounded-sm group-hover:bg-[#FF6B00]/10 transition-colors"
-                    style={{ height: `${height}%` }}
-                  />
-                ))}
-                <div className="w-8 h-10 bg-[#FF6B00] rounded-sm shadow-lg shadow-[#FF6B00]/20"></div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Zone du Graphique */}
-          <div className="lg:col-span-2 bg-white rounded-[48px] p-12 border border-slate-100 shadow-2xl shadow-slate-200/40">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-12 gap-6">
-              <div>
-                <h4 className="text-2xl font-black tracking-tight mb-1">Volume des Services</h4>
-                <p className="text-slate-400 text-sm font-medium">Métriques d'interaction réelles par catégorie</p>
-              </div>
-              <div className="bg-slate-50 p-1.5 rounded-2xl flex gap-1">
-                <button className="px-5 py-2 text-xs font-bold text-[#FF6B00] bg-white rounded-xl shadow-sm transition-all">Hebdomadaire</button>
-                <button className="px-5 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-all">Mensuel</button>
-              </div>
-            </div>
-            <div className="w-full h-80 relative overflow-hidden">
-              <svg className="w-full h-full stroke-[#FF6B00] fill-[#FF6B00]/5 transition-all" viewBox="0 0 800 200">
-                 <path d="M0,150 Q200,50 400,100 T800,50 L800,200 L0,200 Z" strokeWidth="4" fill="url(#gradient)" />
-                 <defs>
-                   <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="0%" stopColor="#FF6B00" stopOpacity="0.2" />
-                     <stop offset="100%" stopColor="#FF6B00" stopOpacity="0" />
-                   </linearGradient>
-                 </defs>
-                 <circle cx="480" cy="75" r="5" className="fill-white stroke-[#FF6B00] stroke-[3]" />
-              </svg>
-            </div>
-            <div className="flex justify-between px-4 mt-6">
-               {['LUN','MAR','MER','JEU','VEN','SAM','DIM'].map((day) => (
-                 <span key={day} className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{day}</span>
-               ))}
-            </div>
+      {/* Middle Row - Proportional Widths ALIGNED with Top Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Recent Requests (Matches 2/5 top cards = 40%) */}
+        <div className="lg:col-span-2 bg-white border border-gray-100 shadow-sm p-8 flex flex-col">
+          <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-50">
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-[#321B13]">Dernières Demandes</h2>
+            <Link href="/admin/requests" className="text-[9px] font-bold text-[#BC9C6C] hover:underline uppercase tracking-widest">Voir tout</Link>
           </div>
-
-          {/* Carte de Répartition */}
-          <div className="bg-white rounded-[48px] p-12 border border-slate-100 shadow-2xl shadow-slate-200/40 flex flex-col items-center text-center relative overflow-hidden">
-            <h4 className="text-2xl font-black tracking-tight mb-1 w-full text-left">Répartition par Catégorie</h4>
-            <p className="text-slate-400 text-sm font-medium w-full text-left mb-12">Distribution en temps réel</p>
-            
-            {categories.length > 0 ? (
-              <>
-                <div className="relative w-56 h-56 mb-12">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                     <circle cx="50" cy="50" r="40" className="fill-transparent stroke-slate-50 stroke-[12]" />
-                     <circle cx="50" cy="50" r="40" className="fill-transparent stroke-[#FF6B00] stroke-[12]" strokeDasharray="180 300" strokeLinecap="round" />
-                     <circle cx="50" cy="50" r="40" className="fill-transparent stroke-[#BC9C6C] stroke-[12]" strokeDasharray="60 300" strokeDashoffset="-180" strokeLinecap="round" />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black tracking-tighter leading-none">100%</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Parts de Marché</span>
-                  </div>
+          <div className="space-y-6 h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+            {activity?.recentRequests.map((req, i) => (
+              <div key={i} className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors group border-b border-gray-50 last:border-0">
+                <div className="w-10 h-10 bg-gray-100 flex items-center justify-center rounded-none group-hover:bg-[#BC9C6C]/10">
+                  <Clock className="w-4 h-4 text-gray-400 group-hover:text-[#BC9C6C]" />
                 </div>
-
-                <div className="space-y-4 w-full">
-                  {categories.map((item, i) => (
-                    <div key={i} className="flex justify-between items-center group cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full group-hover:scale-125 transition-all" style={{ backgroundColor: item.color || "#BC9C6C" }}></div>
-                        <span className="text-xs font-bold text-slate-500">{item.label}</span>
-                      </div>
-                      <span className="text-xs font-black">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="py-10 text-slate-400 font-bold tracking-widest text-xs uppercase text-center">
-                 Aucun service créé
-              </div>
-            )}
-            
-            <button className="absolute bottom-8 right-8 w-14 h-14 bg-[#FF6B00] text-white rounded-2xl flex items-center justify-center shadow-xl shadow-[#FF6B00]/20 hover:scale-110 active:scale-95 transition-all">
-              <Plus className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-
-        {/* Tableau d'Activité */}
-        <div className="bg-white rounded-[48px] p-12 border border-slate-100 shadow-2xl shadow-slate-200/40 relative overflow-hidden overflow-x-auto">
-           <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6">
-             <div>
-                <h4 className="text-3xl font-black tracking-tight mb-2">Activité Récente</h4>
-                <p className="text-slate-400 text-sm font-medium">Flux réel des transactions globales</p>
-             </div>
-           </div>
-
-           {activities.length > 0 ? (
-           <table className="w-full min-w-[700px]">
-             <thead className="border-b border-slate-100">
-               <tr className="text-left">
-                 <th className="pb-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest px-4">Prestataire</th>
-                 <th className="pb-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest">Type de Service</th>
-                 <th className="pb-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest text-center">Statut</th>
-                 <th className="pb-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest text-right px-4">Montant</th>
-               </tr>
-             </thead>
-             <tbody className="divide-y divide-slate-50">
-               {activities.map((row, i) => (
-                 <tr key={i} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
-                   <td className="py-8 px-4 flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-[10px] bg-slate-100 text-[#FF6B00] group-hover:bg-[#FF6B00] group-hover:text-white transition-all">
-                       {row.name !== "En attente" ? row.name.split(' ').map((n: string)=>n[0]).join('') : "?"}
-                     </div>
-                     <div>
-                       <p className="font-bold text-sm">{row.name}</p>
-                       <p className="text-[10px] text-slate-400 font-medium">{row.email}</p>
-                     </div>
-                   </td>
-                   <td className="py-8">
-                     <p className="text-xs font-bold text-slate-600">{row.type}</p>
-                   </td>
-                   <td className="py-8 text-center">
-                    {row.status === 'EN ATTENTE' ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleStatusChange(row.id, 'APPROVED'); }}
-                          className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                          title="Approuver"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleStatusChange(row.id, 'REJECTED'); }}
-                          className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
-                          title="Rejeter"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black border ${
-                        row.status === 'VÉRIFIÉ' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                        row.status === 'EN ATTENTE' ? 'bg-slate-50 text-slate-400 border-slate-100' :
-                        'bg-rose-50 text-rose-500 border-rose-100'
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-[11px] font-black text-[#321B13] truncate uppercase">{req.service?.name}</p>
+                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-none uppercase tracking-tighter ${req.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
                       }`}>
-                        {row.status}
-                      </span>
-                    )}
-                  </td>
-                   <td className="py-8 text-right px-4 text-sm font-black text-slate-700">
-                     {row.amount}
-                   </td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-           ) : (
-             <div className="py-20 text-center text-slate-300 font-bold uppercase tracking-widest">
-                Aucune activité trouvée
-             </div>
-           )}
+                      {req.status}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-medium">Par {req.client?.fullName}</p>
+                  <p className="text-[9px] text-gray-300 mt-1">{new Date(req.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            ))}
+            {(!activity?.recentRequests || activity.recentRequests.length === 0) && (
+              <div className="py-20 text-center text-gray-400 text-[10px] uppercase tracking-widest">Aucune demande récente</div>
+            )}
+          </div>
         </div>
-      </section>
-      )}
+
+        {/* Recent Users (Matches 2/5 top cards = 40%) */}
+        <div className="lg:col-span-2 bg-white border border-gray-100 shadow-sm p-8 flex flex-col">
+          <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-50">
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-[#321B13]">Nouveaux Inscrits</h2>
+            <Link href="/admin/users" className="text-[9px] font-bold text-[#BC9C6C] hover:underline uppercase tracking-widest">Gestion</Link>
+          </div>
+          <div className="space-y-6 h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+            {activity?.recentUsers.map((u, i) => (
+              <div key={i} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors group border-b border-gray-50 last:border-0">
+                <div className="w-10 h-10 bg-gray-100 flex items-center justify-center rounded-none group-hover:bg-[#BC9C6C]/10">
+                  <UserPlus className="w-4 h-4 text-gray-400 group-hover:text-[#BC9C6C]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-black text-[#321B13] uppercase">{u.fullName}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{u.email}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[8px] font-black px-2 py-1 bg-gray-50 text-gray-400 uppercase tracking-widest border border-gray-100">
+                    {u.role}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Status Breakdown (Matches 1/5 top card = 20%) */}
+        <div className="lg:col-span-1 bg-white border border-gray-100 shadow-sm p-8 flex flex-col">
+          <h2 className="text-xs font-black uppercase tracking-[0.3em] text-[#321B13] mb-8 pb-4 border-b border-gray-50 w-full text-left">Résumé</h2>
+          <div className="space-y-10 w-full flex-1 flex flex-col justify-start pt-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-end">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Terminées</p>
+                <p className="text-lg font-black text-green-600">{stats?.requests.completed || 0}</p>
+              </div>
+              <div className="w-full bg-gray-50 h-[3px]">
+                <div
+                  className="bg-green-600 h-full"
+                  style={{ width: `${(stats?.requests.completed || 0) / (stats?.requests.total || 1) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-end">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">En cours</p>
+                <p className="text-lg font-black text-blue-600">{stats?.requests.inProgress || 0}</p>
+              </div>
+              <div className="w-full bg-gray-50 h-[3px]">
+                <div
+                  className="bg-blue-600 h-full"
+                  style={{ width: `${(stats?.requests.inProgress || 0) / (stats?.requests.total || 1) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-end">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Attente</p>
+                <p className="text-lg font-black text-amber-500">{stats?.requests.pending || 0}</p>
+              </div>
+              <div className="w-full bg-gray-50 h-[3px]">
+                <div
+                  className="bg-amber-500 h-full"
+                  style={{ width: `${(stats?.requests.pending || 0) / (stats?.requests.total || 1) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row - Full Width */}
+      <div className="w-full bg-[#321B13] text-white p-16 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+          <LayoutDashboard className="w-64 h-64 -mr-16 -mt-16" />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="max-w-2xl">
+            <span className="text-[#BC9C6C] font-black tracking-[0.4em] text-[10px] uppercase mb-6 block">System Performance</span>
+            <h2 className="text-4xl font-black uppercase tracking-tighter leading-[0.9] mb-6">
+              REDÉFINISSEZ <br /> <span className="text-[#BC9C6C] italic serif lowercase">la gestion de services.</span>
+            </h2>
+            <p className="text-white/40 text-sm font-medium leading-relaxed">
+              Actuellement {stats?.users.total || 0} membres forment l'écosystème Kaskade. Votre rôle d'administrateur assure la fluidité des {stats?.requests.total || 0} missions en cours.
+            </p>
+          </div>
+          <div className="flex gap-6">
+            <div className="p-10 border border-white/10 bg-white/5 text-center min-w-[160px]">
+              <p className="text-3xl font-black text-white">{stats?.users.total || 0}</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#BC9C6C] mt-2">Membres</p>
+            </div>
+            <div className="p-10 border border-white/10 bg-white/5 text-center min-w-[160px]">
+              <p className="text-3xl font-black text-white">{stats?.requests.total || 0}</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#BC9C6C] mt-2">Services</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

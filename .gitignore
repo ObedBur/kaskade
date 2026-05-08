@@ -1,35 +1,29 @@
-# Monorepo root gitignore
+# Dependencies
 node_modules
+.pnpm-debug.log*
+
+# Turborepo
 .turbo
+
+# Build outputs
 dist
 .next
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.pnpm-debug.log*
-.DS_Store
-.idea
-.vscode
-*.swp
-*.swo
+out
+build
 
 # Environment files
 .env
 .env.local
 .env.*.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Database
-prisma/*.db
-prisma/*.db-journal
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
 
-# Build output
-dist
-build
-.output
-.next
-out
+# OS
+.DS_Store
+Thumbs.db

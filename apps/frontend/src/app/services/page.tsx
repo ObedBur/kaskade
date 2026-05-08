@@ -12,9 +12,8 @@ export default function ServicesPage() {
       
       {/* 
         Le ServiceExplorer est injecté ici. 
-        On ajoute un padding top pour compenser la Navbar fixe.
       */}
-      <div className="pt-20">
+      <div className="pt-20 px-4 min-[480px]:px-8 min-[1440px]:px-12">
          <motion.div
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
