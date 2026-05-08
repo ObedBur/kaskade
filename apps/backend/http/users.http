@@ -1,0 +1,169 @@
+### ============================================================
+### KASKADE - Module Users (Gestion des Utilisateurs)
+### Routes réservées ADMIN pour la gestion CRUD des comptes
+### ============================================================
+### Prérequis : auth.http exécuté → adminToken disponible
+### ============================================================
+
+@baseUrl = http://localhost:4000/api/v1
+
+### ------------------------------------------------------------
+### AUTH PRE-REQUIS (Capture Auto)
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "client@gmail.com",
+  "password": "password123"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+
+# ─── IDs à capturer ────────────────────
+@userId = {{createUser.response.body.id}}
+
+
+### ============================================================
+### U.1 - ADMIN : Créer un utilisateur directement (sans OTP)
+### Utile pour créer un admin ou un user de test rapidement
+### 
+# @name createUser
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "alice@test.com",
+  "password": "Password123",
+  "fullName": "Alice New",
+  "phone": "+33699887766",
+  "quartier": "Bandalungwa",
+  "role": "CLIENT"
+}
+
+
+### ============================================================
+### U.2 - ADMIN : Créer un utilisateur avec rôle PROVIDER
+### ============================================================
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "provider@test.com",
+  "password": "Password123!",
+  "fullName": "Bob Direct",
+  "phone": "+33611223343",
+  "quartier": "Limete",
+  "role": "PROVIDER"
+}
+
+
+### ============================================================
+### U.3 - ADMIN : Lister tous les utilisateurs
+### Retour attendu : 200 + [ { id, email, fullName, role, isVerified, ... } ]
+### Copier un ID depuis la liste dans @userId
+### ============================================================
+GET {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================================
+### U.4 - ADMIN : Voir le détail d'un utilisateur par ID
+### Les champs sensibles (password, refreshToken) sont exclus
+### Retour attendu : 200 + { id, email, fullName, role, ... }
+### ============================================================
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================================
+### U.5 - ADMIN : Modifier un utilisateur (fullName, rôle, phone...)
+### Retour attendu : 200 + { ...user mis à jour }
+### ============================================================
+PATCH {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Alice Wetu",
+  "phone": "+33600000002"
+}
+
+
+### ============================================================
+### U.6 - ADMIN : Promouvoir un utilisateur en ADMIN
+### ATTENTION : action irréversible via l'API (sans autre endpoint)
+### Retour attendu : 200 + { role: "ADMIN" }
+### ============================================================
+PATCH {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "ADMIN"
+}
+
+
+### ============================================================
+### U.7 - CAS D'ERREUR : Accéder à la liste sans être ADMIN
+### Retour attendu : 403 Forbidden
+### ============================================================
+GET {{baseUrl}}/users
+Authorization: Bearer {{clientToken}}
+
+
+### ============================================================
+### U.8 - CAS D'ERREUR : Voir un utilisateur inexistant
+### Retour attendu : 404 Not Found
+### ============================================================
+GET {{baseUrl}}/users/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================================
+### U.9 - CAS D'ERREUR : Créer un utilisateur avec email déjà existant
+### Retour attendu : 409 Conflict ou 400 Bad Request
+### ============================================================
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "client1@gmail.com",
+  "password": "Password123!",
+  "fullName": "Doublon Admin",
+  "phone": "+33600000099",
+  "quartier": "Kinshasa",
+  "role": "CLIENT"
+}
+
+
+### ============================================================
+### U.10 - CAS D'ERREUR : Modifier un utilisateur inexistant
+### Retour attendu : 404 Not Found
+### ============================================================
+PATCH {{baseUrl}}/users/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Cible introuvable"
+}

@@ -1,0 +1,139 @@
+### ============================================================
+### KASKADE - Module Services (Catalogue)
+### Workflow : ADMIN crée/gère → CLIENT/PROVIDER consultent
+### ============================================================
+### Prérequis : auth.http exécuté pour obtenir les tokens
+### ============================================================
+
+@baseUrl = http://localhost:4000/api/v1
+
+### ------------------------------------------------------------
+### AUTH PRE-REQUIS (Capture Auto)
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "obedburindi@gmail.com",
+  "password": "password123"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+
+# ─── IDs à capturer ────────────────────
+@serviceId = {{createService.response.body.id}}
+
+
+### ============================================================
+### 2.1 - Admin : Créer un nouveau service
+# @name createService
+POST {{baseUrl}}/admin/services
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Plomberie d'urgence",
+  "category": "PLOMBERIE",
+  "description": "Intervention rapide pour fuites, canalisations bouchées et installations sanitaires.",
+  "price": 120.00
+}
+
+
+### ============================================================
+### 2.2 - Admin : Créer un 2e service (pour les tests de demandes)
+### ============================================================
+POST {{baseUrl}}/admin/services
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Electricité générale",
+  "category": "ELECTRICITE",
+  "description": "Tableau électrique, prises, éclairage et dépannages.",
+  "price": 95.00
+}
+
+
+### ============================================================
+### 2.3 - CAS D'ERREUR : Créer un service en doublon
+### Retour attendu : 409 Conflict "Un service avec ce nom existe déjà"
+### ============================================================
+POST {{baseUrl}}/admin/services
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Plomberie d'urgence",
+  "category": "PLOMBERIE"
+}
+
+
+### ============================================================
+### 2.4 - Lister tous les services (PUBLIC / tous rôles)
+### Retour attendu : 200 + [ { id, name, category, isActive }, ... ]
+### ============================================================
+GET {{baseUrl}}/services
+Authorization: Bearer {{clientToken}}
+
+
+### ============================================================
+### 2.5 - Admin : Lister tous les services (vue admin)
+### ============================================================
+GET {{baseUrl}}/admin/services
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================================
+### 2.6 - Admin : Modifier un service (désactiver, changer description)
+### Retour attendu : 200 + { ...service, isActive: false }
+### ============================================================
+PATCH {{baseUrl}}/admin/services/{{serviceId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "description": "Description mise à jour - Tarif révisé.",
+  "isActive": false
+}
+
+
+### ============================================================
+### 2.7 - Admin : Réactiver un service
+### ============================================================
+PATCH {{baseUrl}}/admin/services/{{serviceId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+
+### ============================================================
+### 2.8 - CAS D'ERREUR : CLIENT essaie de créer un service
+### Retour attendu : 403 Forbidden
+### ============================================================
+POST {{baseUrl}}/admin/services
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "name": "Service non autorisé",
+  "category": "TEST"
+}

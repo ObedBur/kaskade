@@ -1,0 +1,30 @@
+{"message":"Connexion réussie","user":{"id":"c036f261-77ce-4b5f-9c16-439dd1177324","email":"kaskade@gmail.com","fullName":"Julian Thorne (Admin)","phone":"+243990000000","quartier":"Goma","role":"ADMIN","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":true,"isActive":true,"createdAt":"2026-04-07T12:37:55.613Z","updatedAt":"2026-04-09T18:07:29.343Z","deletedAt":null},"tokens":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMDM2ZjI2MS03N2NlLTRiNWYtOWMxNi00MzlkZDExNzczMjQiLCJlbWFpbCI6Imthc2thZGVAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc1ODAxMjI2LCJleHAiOjE3NzU4MDIxMjZ9.vdGFGCor-4WwppWFCtxp7HXKXL3R7IZOW_JzVqrFsVY","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMDM2ZjI2MS03N2NlLTRiNWYtOWMxNi00MzlkZDExNzczMjQiLCJlbWFpbCI6Imthc2thZGVAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc1ODAxMjI2LCJleHAiOjE3NzY0MDYwMjZ9.xso7zkoLbYkI_Vhp48HYAEsqoLLLkxBO7e9ArCFek_4"}}
+
+
+{"message":"Connexion réussie","user":{"id":"d456aa5a-1697-4016-98b5-fab0ecce531b","email":"client@gmail.com","fullName":"Client (Client)","phone":"+243992222222","quartier":"Goma","role":"CLIENT","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":true,"isActive":true,"createdAt":"2026-04-07T12:38:01.778Z","updatedAt":"2026-04-07T12:38:01.778Z","deletedAt":null},"tokens":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNDU2YWE1YS0xNjk3LTQwMTYtOThiNS1mYWIwZWNjZTUzMWIiLCJlbWFpbCI6ImNsaWVudEBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc1ODAxNDIzLCJleHAiOjE3NzU4MDIzMjN9.lPCyNaLNrpxcv8gDdYnUtFUig1PVafBe2BTpQfGMonE","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNDU2YWE1YS0xNjk3LTQwMTYtOThiNS1mYWIwZWNjZTUzMWIiLCJlbWFpbCI6ImNsaWVudEBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc1ODAxNDIzLCJleHAiOjE3NzY0MDYyMjN9.kCxeBHFEdprf4r0q3gZLqiKGMnkvLRK1LRye86bRKCM"}}
+[Nest] 12720  - 04/10/2026, 8:07:06 AM     LOG [AuthService] Connexion réussie: kaskade@gmail.com (ID: c036f261-77ce-4b5f-9c16-439dd1177324)
+[Nest] 12720  - 04/10/2026, 8:10:23 AM     LOG [AuthService] Connexion réussie: client@gmail.com (ID: d456aa5a-1697-4016-98b5-fab0ecce531b)
+
+
+{"id":"116e3fbe-c7b7-4f4f-a8c6-097b184122cf","email":"alicenew@test.com","password":"$2b$10$/xnhjQAVcCPX2K97Uuoupe4HzJhwliRMPQRE8WqCATw4KfqZFi/Im","fullName":"Alice New","phone":"+33699887766","quartier":"Bandalungwa","role":"CLIENT","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":false,"isActive":true,"refreshToken":null,"createdAt":"2026-04-10T06:11:53.350Z","updatedAt":"2026-04-10T06:11:53.350Z","deletedAt":null} 
+sans log 
+
+{"id":"e16da6b3-ef3e-4c73-a395-120fb0422ed6","email":"provider.direct@test.com","password":"$2b$10$70xvtoOF9ot4R0sOnmeSrusfEg6uzchTL0JMmE02nmjwp/vRMFYkm","fullName":"Bob Direct","phone":"+33611223344","quartier":"Limete","role":"PROVIDER","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":false,"isActive":true,"refreshToken":null,"createdAt":"2026-04-10T06:13:10.946Z","updatedAt":"2026-04-10T06:13:10.946Z","deletedAt":null}
+sans log 
+
+[{"id":"82fba320-ed28-4d0c-a2f6-760f0871c249","email":"provider@gmail.com","fullName":"Provider (Prestataire)","role":"PROVIDER","isVerified":true,"isActive":true},{"id":"c036f261-77ce-4b5f-9c16-439dd1177324","email":"kaskade@gmail.com","fullName":"Julian Thorne (Admin)","role":"ADMIN","isVerified":true,"isActive":true},{"id":"d456aa5a-1697-4016-98b5-fab0ecce531b","email":"client@gmail.com","fullName":"Client (Client)","role":"CLIENT","isVerified":true,"isActive":true},{"id":"116e3fbe-c7b7-4f4f-a8c6-097b184122cf","email":"alicenew@test.com","fullName":"Alice New","role":"CLIENT","isVerified":false,"isActive":true},{"id":"e16da6b3-ef3e-4c73-a395-120fb0422ed6","email":"provider.direct@test.com","fullName":"Bob Direct","role":"PROVIDER","isVerified":false,"isActive":true}]
+
+{"id":"116e3fbe-c7b7-4f4f-a8c6-097b184122cf","email":"alicenew@test.com","fullName":"Alice New","phone":"+33699887766","quartier":"Bandalungwa","role":"CLIENT","isVerified":false}{"id":"116e3fbe-c7b7-4f4f-a8c6-097b184122cf","email":"alicenew@test.com","fullName":"Alice New","phone":"+33699887766","quartier":"Bandalungwa","role":"CLIENT","isVerified":false}{"id":"116e3fbe-c7b7-4f4f-a8c6-097b184122cf","email":"alicenew@test.com","fullName":"Alice New","phone":"+33699887766","quartier":"Bandalungwa","role":"CLIENT","isVerified":false}
+
+{"id":"116e3fbe-c7b7-4f4f-a8c6-097b184122cf","email":"alicenew@test.com","password":"$2b$10$/xnhjQAVcCPX2K97Uuoupe4HzJhwliRMPQRE8WqCATw4KfqZFi/Im","fullName":"Alice Modifiée","phone":"+33600000001","quartier":"Bandalungwa","role":"CLIENT","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":false,"isActive":true,"refreshToken":null,"createdAt":"2026-04-10T06:11:53.350Z","updatedAt":"2026-04-10T06:14:18.996Z","deletedAt":null}
+
+{"statusCode":400,"message":["property role should not exist"],"timestamp":"2026-04-10T06:14:52.723Z"}
+refus  
+
+{"statusCode":403,"message":"Vous n'avez pas les droits nécessaires pour accéder à cette ressource.","timestamp":"2026-04-10T06:15:27.384Z"}
+
+{"statusCode":404,"message":"Resource with ID 00000000-0000-0000-0000-000000000000 not found","timestamp":"2026-04-10T06:15:42.001Z"}
+
+{"statusCode":409,"message":"Email déjà utilisé","timestamp":"2026-04-10T06:17:37.996Z"}
+
+{"statusCode":404,"message":"Resource with ID 00000000-0000-0000-0000-000000000000 not found","timestamp":"2026-04-10T06:17:59.883Z"}

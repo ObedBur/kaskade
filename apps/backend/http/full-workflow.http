@@ -1,0 +1,136 @@
+### ============================================================
+### KASKADE - WORKFLOW COMPLET (7 ÉTAPES)
+### Du dépôt de la demande à la clôture finale
+### ============================================================
+
+@baseUrl = http://localhost:4000/api/v1
+
+### ------------------------------------------------------------
+### 0. AUTHENTIFICATION DES ACTEURS
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "kaskade@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginClient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "client@gmail.com",
+  "password": "password123"
+}
+
+###
+
+# @name loginProvider
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "provider@gmail.com",
+  "password": "password123"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.tokens.accessToken}}
+@clientToken = {{loginClient.response.body.tokens.accessToken}}
+@providerToken = {{loginProvider.response.body.tokens.accessToken}}
+
+### ------------------------------------------------------------
+### 1. PRÉPARATION : Créer un Service (Admin)
+### ------------------------------------------------------------
+
+# @name createService
+POST {{baseUrl}}/services
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Peinture Intérieure",
+  "category": "TRAVAUX",
+  "description": "Peinture complète de murs et plafonds.",
+  "price": 150000
+}
+
+@serviceId = {{createService.response.body.id}}
+
+### ------------------------------------------------------------
+### 2. ÉTAPE 1 : Créer une Demande (Client) -> Statut: PENDING
+### ------------------------------------------------------------
+
+# @name createRequest
+POST {{baseUrl}}/requests
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "serviceId": "{{serviceId}}",
+  "description": "Repeindre mon salon en blanc cassé.",
+  "address": "Quartier Volcan, Goma",
+  "scheduledAt": "2026-06-15T09:00:00Z"
+}
+
+@requestId = {{createRequest.response.body.id}}
+
+### ------------------------------------------------------------
+### 3. ÉTAPE 2 : Approuver la Demande (Admin) -> Statut: APPROVED
+### ------------------------------------------------------------
+
+PATCH {{baseUrl}}/admin/requests/{{requestId}}/approve
+Authorization: Bearer {{adminToken}}
+
+### ------------------------------------------------------------
+### 4. ÉTAPE 3 : Accepter la Mission (Provider) -> Statut: ACCEPTED
+### ------------------------------------------------------------
+
+PATCH {{baseUrl}}/providers/requests/{{requestId}}/accept
+Authorization: Bearer {{providerToken}}
+
+### ------------------------------------------------------------
+### 5. ÉTAPE 4 : Payer l'Acompte 50% (Client) -> Statut: IN_PROGRESS
+### ------------------------------------------------------------
+
+# @name payDeposit
+POST {{baseUrl}}/payments/mock/deposit
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "requestId": "{{requestId}}"
+}
+
+### ------------------------------------------------------------
+### 6. ÉTAPE 5 : Marquer comme Terminé (Provider) -> Statut: AWAITING_FINAL
+### ------------------------------------------------------------
+
+PATCH {{baseUrl}}/providers/requests/{{requestId}}/complete
+Authorization: Bearer {{providerToken}}
+
+### ------------------------------------------------------------
+### 7. ÉTAPE 6 : Payer le Solde Final 50% (Client) -> Statut: COMPLETED
+### ------------------------------------------------------------
+
+POST {{baseUrl}}/payments/mock/final
+Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "requestId": "{{requestId}}"
+}
+
+### ------------------------------------------------------------
+### 8. VÉRIFICATION : Voir les Notifications finales (Client)
+### ------------------------------------------------------------
+
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{clientToken}}

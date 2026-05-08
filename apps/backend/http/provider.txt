@@ -1,0 +1,42 @@
+{"message":"Connexion réussie","user":{"id":"c036f261-77ce-4b5f-9c16-439dd1177324","email":"kaskade@gmail.com","fullName":"Julian Thorne (Admin)","phone":"+243990000000","quartier":"Goma","role":"ADMIN","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":true,"isActive":true,"createdAt":"2026-04-07T12:37:55.613Z","updatedAt":"2026-04-10T06:07:06.277Z","deletedAt":null},"tokens":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMDM2ZjI2MS03N2NlLTRiNWYtOWMxNi00MzlkZDExNzczMjQiLCJlbWFpbCI6Imthc2thZGVAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc1ODAxOTM2LCJleHAiOjE3NzU4MDI4MzZ9.X11B1aH-zFz-u43fU2yJcf1LqYleqJfxeOiab0k_g90","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMDM2ZjI2MS03N2NlLTRiNWYtOWMxNi00MzlkZDExNzczMjQiLCJlbWFpbCI6Imthc2thZGVAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc1ODAxOTM2LCJleHAiOjE3NzY0MDY3MzZ9.dlAf42NWr-VZAyPxEzV8-K7FFpWtasHgZemJIPiydkw"}}
+
+{"message":"Connexion réussie","user":{"id":"d456aa5a-1697-4016-98b5-fab0ecce531b","email":"client@gmail.com","fullName":"Client (Client)","phone":"+243992222222","quartier":"Goma","role":"CLIENT","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":true,"isActive":true,"createdAt":"2026-04-07T12:38:01.778Z","updatedAt":"2026-04-10T06:10:23.820Z","deletedAt":null},"tokens":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNDU2YWE1YS0xNjk3LTQwMTYtOThiNS1mYWIwZWNjZTUzMWIiLCJlbWFpbCI6ImNsaWVudEBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc1ODAzMjY4LCJleHAiOjE3NzU4MDQxNjh9.BAFtKvIt_Un8dBJazF64BpLF0qx8wlpqey5NXe56x_k","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNDU2YWE1YS0xNjk3LTQwMTYtOThiNS1mYWIwZWNjZTUzMWIiLCJlbWFpbCI6ImNsaWVudEBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc1ODAzMjY4LCJleHAiOjE3NzY0MDgwNjh9.vyxZepSQePAXghMgPQevLjfOLVMoTYBFYKX6pW4kGyE"}}
+[Nest] 12720  - 04/10/2026, 8:18:56 AM     LOG [AuthService] Connexion réussie: kaskade@gmail.com (ID: c036f261-77ce-4b5f-9c16-439dd1177324)
+[Nest] 12720  - 04/10/2026, 8:41:08 AM     LOG [AuthService] Connexion réussie: client@gmail.com (ID: d456aa5a-1697-4016-98b5-fab0ecce531b)
+
+{"statusCode":400,"message":["property experience should not exist","property metier should not exist"],"timestamp":"2026-04-10T06:42:15.270Z"}
+
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Access-Control-Allow-Origin: http://localhost:3000
+Vary: Origin
+Access-Control-Allow-Credentials: true
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 1775801581596543
+Date: Fri, 10 Apr 2026 06:42:37 GMT
+Connection: close
+Content-Length: 0
+
+requete sans contenues
+
+{"statusCode":401,"message":"Unauthorized","timestamp":"2026-04-10T06:43:23.838Z"}
+
+{"statusCode":401,"message":"Unauthorized","timestamp":"2026-04-10T06:44:12.626Z"}
+
+{"message":"Connexion réussie","user":{"id":"c036f261-77ce-4b5f-9c16-439dd1177324","email":"kaskade@gmail.com","fullName":"Julian Thorne (Admin)","phone":"+243990000000","quartier":"Goma","role":"ADMIN","status":"DISPONIBLE","isPremium":false,"metier":null,"experience":null,"bio":null,"isVerified":true,"isActive":true,"createdAt":"2026-04-07T12:37:55.613Z","updatedAt":"2026-04-10T06:44:28.855Z","deletedAt":null},"tokens":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMDM2ZjI2MS03N2NlLTRiNWYtOWMxNi00MzlkZDExNzczMjQiLCJlbWFpbCI6Imthc2thZGVAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc1ODAzNDcyLCJleHAiOjE3NzU4MDQzNzJ9.gs0L3nJFeDqPoiT6XXz_IaeESoBN3PSScEKZMVFirOc","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMDM2ZjI2MS03N2NlLTRiNWYtOWMxNi00MzlkZDExNzczMjQiLCJlbWFpbCI6Imthc2thZGVAZ21haWwuY29tIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzc1ODAzNDcyLCJleHAiOjE3NzY0MDgyNzJ9.NS_1tNRB_BFPvl9udkjy2E-sLv4mEOQgd_skgw-qA70"}}
+
+1.3 -> []
+
+{"statusCode":404,"message":"Candidature introuvable","timestamp":"2026-04-10T06:45:38.236Z"}
