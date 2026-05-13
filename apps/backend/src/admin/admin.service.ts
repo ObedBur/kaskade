@@ -20,12 +20,12 @@ export class AdminService {
       this.prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
       this.prisma.request.count({
         where: {
-          status: { in: ['PENDING', 'APPROVED', 'SCHEDULED', 'CONFIRMED'] },
+          status: { in: ['PENDING', 'APPROVED', 'ACCEPTED', 'IN_PROGRESS'] },
         },
       }),
       this.prisma.request.aggregate({
         where: { status: 'COMPLETED' },
-        _sum: { escrowAmount: true },
+        _sum: { price: true },
       }),
       this.prisma.request.findMany({
         take: 5,
@@ -60,7 +60,7 @@ export class AdminService {
     const stats = [
       {
         label: 'Revenu Total',
-        value: `$${(totalRevenueResult._sum.escrowAmount || 0).toLocaleString()}`,
+        value: `$${(totalRevenueResult._sum?.price || 0).toLocaleString()}`,
         trend: '+12%',
         color: '#FF6B00',
       },
@@ -88,10 +88,10 @@ export class AdminService {
       id: req.id,
       name: req.provider?.fullName || 'En attente',
       email: req.client.email,
-      type: req.service.title,
+      type: req.service.name,
       status: req.status === 'COMPLETED' ? 'VÉRIFIÉ' : 
               req.status === 'REJECTED' ? 'SUSPENDU' : 'EN ATTENTE',
-      amount: req.escrowAmount ? `$${req.escrowAmount}` : '$0.00',
+      amount: req.price ? `$${req.price}` : '$0.00',
     }));
 
     return { stats, activities, categories };
@@ -137,8 +137,8 @@ export class AdminService {
     const requests = requestsData.map((req) => ({
       id: req.id,
       client: req.client.fullName,
-      service: req.service.title,
-      amount: req.escrowAmount ? `$${req.escrowAmount.toLocaleString()}` : '$0.00',
+      service: req.service.name,
+      amount: req.price ? `$${req.price.toLocaleString()}` : '$0.00',
       status: req.status === 'COMPLETED' ? 'TERMINÉ' : 
               req.status === 'PENDING' ? 'EN ATTENTE' : 
               req.status === 'REJECTED' ? 'REJETÉ' : 'VÉRIFIÉ',
@@ -155,23 +155,23 @@ export class AdminService {
     const [totalRevenue, escrow, requestsData] = await Promise.all([
       this.prisma.request.aggregate({
         where: { status: 'COMPLETED' },
-        _sum: { escrowAmount: true },
+        _sum: { price: true },
       }),
       this.prisma.request.aggregate({
-        where: { status: { in: ['CONFIRMED', 'SCHEDULED'] } },
-        _sum: { escrowAmount: true },
+        where: { status: { in: ['ACCEPTED', 'IN_PROGRESS'] } },
+        _sum: { price: true },
       }),
       this.prisma.request.findMany({
         take: 10,
         orderBy: { updatedAt: 'desc' },
-        where: { escrowAmount: { not: null } },
+        where: { price: { not: null } },
       }),
     ]);
 
-    const revSum = totalRevenue._sum.escrowAmount || 0;
+    const revSum = totalRevenue._sum?.price || 0;
     const stats = [
       { label: 'Solde Total', value: `$${revSum.toLocaleString()}`, trend: '+12%', color: '#FF6B00' },
-      { label: 'En Séquestre', value: `$${(escrow._sum.escrowAmount || 0).toLocaleString()}`, trend: '+4%', color: '#BC9C6C' },
+      { label: 'En Séquestre', value: `$${(escrow._sum?.price || 0).toLocaleString()}`, trend: '+4%', color: '#BC9C6C' },
       { label: 'Payé Prestataires', value: `$${(revSum * 0.8).toLocaleString()}`, trend: '+8%', color: '#321B13' },
       { label: 'Commissions', value: `$${(revSum * 0.2).toLocaleString()}`, trend: '+15%', color: '#FF6B00' },
     ];
@@ -179,7 +179,7 @@ export class AdminService {
     const transactions = requestsData.map((req) => ({
       id: req.id.slice(-4),
       type: 'PAIEMENT',
-      amount: `+$${req.escrowAmount?.toLocaleString()}`,
+      amount: `+$${req.price?.toLocaleString() ?? '0'}`,
       status: req.status === 'COMPLETED' ? 'RÉUSSI' : 'EN ATTENTE',
       date: new Date(req.updatedAt).toLocaleDateString('fr-FR', {
         day: 'numeric',
@@ -192,10 +192,10 @@ export class AdminService {
   }
 
   async getAnalytics() {
-    const usersData = await this.prisma.user.findMany({ select: { city: true } });
+    const usersData = await this.prisma.user.findMany({ select: { quartier: true } });
     
     const cityCounts = usersData.reduce((acc, curr) => {
-      const city = curr.city || "Goma";
+      const city = curr.quartier || "Goma";
       acc[city] = (acc[city] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

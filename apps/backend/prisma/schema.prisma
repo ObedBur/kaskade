@@ -13,7 +13,7 @@ model User {
   fullName      String    
   phone         String    @unique 
   
-  quartier      String    
+  quartier      String    @default("")
   
   role          Role      @default(CLIENT)
   status        Status    @default(DISPONIBLE) 
