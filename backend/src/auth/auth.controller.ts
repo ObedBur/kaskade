@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Get,
   Patch,
+  Delete,
   Logger,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -104,5 +105,12 @@ export class AuthController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.authService.updateMe(userId, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  async deactivateMe(@CurrentUser('id') userId: string) {
+    return this.authService.deactivateAccount(userId);
   }
 }

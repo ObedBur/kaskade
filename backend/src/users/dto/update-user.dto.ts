@@ -20,6 +20,9 @@ export class UpdateUserDto {
   quartier?: string;
 
   @IsOptional()
+  avatarUrl?: string;
+
+  @IsOptional()
   @IsEnum(Role)
   role?: Role;
 

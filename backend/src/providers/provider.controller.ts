@@ -35,6 +35,11 @@ export class ProviderController {
     return this.providersService.getMyMissions(providerId);
   }
 
+  @Get('calendar')
+  getProviderCalendar(@CurrentUser('id') providerId: string) {
+    return this.providersService.getProviderCalendar(providerId);
+  }
+
   @Get('requests')
   findAvailableRequests(@CurrentUser('id') providerId: string) {
     return this.providersService.findAvailableRequests(providerId);

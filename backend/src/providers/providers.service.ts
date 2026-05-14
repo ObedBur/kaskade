@@ -150,6 +150,9 @@ export class ProvidersService {
 
   async findAllApplications() {
     return this.prisma.providerApplication.findMany({
+      where: {
+        user: { deletedAt: null },
+      },
       include: {
         user: {
           select: {
@@ -464,5 +467,136 @@ export class ProvidersService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async getProviderCalendar(providerId: string) {
+    const STATUS_COLORS: Record<string, string> = {
+      ACCEPTED: '#BC9C6C',
+      IN_PROGRESS: '#321B13',
+      AWAITING_FINAL: '#6B5B45',
+      COMPLETED: '#4CAF50',
+      PENDING: '#9E9E9E',
+      APPROVED: '#BC9C6C',
+    };
+
+    const STATUS_LABELS: Record<string, string> = {
+      ACCEPTED: 'Acceptée',
+      IN_PROGRESS: 'En cours',
+      AWAITING_FINAL: 'Finalisée',
+      COMPLETED: 'Terminée',
+      PENDING: 'En attente',
+      APPROVED: 'Approuvée',
+    };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const windowStart = new Date(today);
+    windowStart.setDate(windowStart.getDate() - 7); // 7 jours passés
+    const windowEnd = new Date(today);
+    windowEnd.setDate(windowEnd.getDate() + 30); // 30 jours futurs
+
+    const missions = await this.prisma.request.findMany({
+      where: {
+        providerId,
+        status: {
+          in: [
+            RequestStatus.ACCEPTED,
+            RequestStatus.IN_PROGRESS,
+            RequestStatus.AWAITING_FINAL,
+            RequestStatus.COMPLETED,
+          ],
+        },
+        scheduledAt: { gte: windowStart, lte: windowEnd },
+      },
+      include: {
+        service: { select: { id: true, name: true, category: true } },
+        client: { select: { id: true, fullName: true, phone: true, quartier: true } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+
+    // Regrouper par date
+    const eventsByDate: Record<string, any[]> = {};
+    for (const m of missions) {
+      const dateStr = m.scheduledAt.toISOString().split('T')[0];
+      if (!eventsByDate[dateStr]) eventsByDate[dateStr] = [];
+      eventsByDate[dateStr].push({
+        id: m.id,
+        title: m.service?.name || 'Mission',
+        category: m.service?.category,
+        client: m.client?.fullName,
+        clientPhone: m.client?.phone,
+        clientQuartier: m.client?.quartier,
+        address: m.address,
+        time: m.scheduleTime || m.scheduledAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        duration: 2,
+        status: m.status,
+        statusLabel: STATUS_LABELS[m.status] || m.status,
+        color: STATUS_COLORS[m.status] || '#BC9C6C',
+        price: m.price,
+        isRecurring: !!m.scheduleFrequency && m.scheduleFrequency !== 'ONCE',
+        frequency: m.scheduleFrequency,
+      });
+    }
+
+    // Construire la structure semaine par semaine
+    const DAY_NAMES = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const DAY_NAMES_FULL = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const weeks: any[] = [];
+    let cursor = new Date(windowStart);
+    // Aligner sur le lundi de la semaine de début
+    const startDow = cursor.getDay();
+    cursor.setDate(cursor.getDate() - (startDow === 0 ? 6 : startDow - 1));
+
+    let weekNum = 1;
+    while (cursor <= windowEnd) {
+      const weekDays: any[] = [];
+      for (let d = 0; d < 7; d++) {
+        const dateStr = cursor.toISOString().split('T')[0];
+        const dayIndex = cursor.getDay();
+        weekDays.push({
+          date: dateStr,
+          dayName: DAY_NAMES[dayIndex],
+          dayNameFull: DAY_NAMES_FULL[dayIndex],
+          isToday: dateStr === today.toISOString().split('T')[0],
+          isPast: cursor < today,
+          isSunday: dayIndex === 0,
+          events: eventsByDate[dateStr] || [],
+        });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      const fmt = (s: string) => new Date(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      weeks.push({
+        weekNumber: weekNum++,
+        label: `${fmt(weekDays[0].date)} — ${fmt(weekDays[6].date)}`,
+        days: weekDays,
+        totalEvents: weekDays.reduce((acc, d) => acc + d.events.length, 0),
+      });
+    }
+
+    const upcomingEvents = missions
+      .filter(m => m.scheduledAt >= today)
+      .slice(0, 5)
+      .map(m => ({
+        id: m.id,
+        title: m.service?.name,
+        date: m.scheduledAt.toISOString().split('T')[0],
+        time: m.scheduleTime || '—',
+        status: m.status,
+        color: STATUS_COLORS[m.status] || '#BC9C6C',
+        client: m.client?.fullName,
+      }));
+
+    return {
+      providerId,
+      window: {
+        from: windowStart.toISOString().split('T')[0],
+        to: windowEnd.toISOString().split('T')[0],
+      },
+      totalMissions: missions.length,
+      upcomingEvents,
+      weeks,
+    };
   }
 }

@@ -49,7 +49,7 @@ export class RequestsService {
       throw new BadRequestException('Le service spécifié est introuvable.');
     }
 
-    if (!isPremiumRequest && !service.price) {
+    if (!isPremiumRequest && (service.price === null || service.price === undefined)) {
       throw new BadRequestException('Le prix du service n\'est pas défini.');
     }
 
@@ -417,10 +417,15 @@ export class RequestsService {
     });
 
     const occupiedKeys = new Set<string>();
-    activeRequests.forEach((req) => {
-      if (req.providerId && req.scheduledAt && req.scheduleTime) {
+    activeRequests.forEach((req, idx) => {
+      if (req.scheduledAt && req.scheduleTime) {
         const dateStr = req.scheduledAt.toISOString().split('T')[0];
-        occupiedKeys.add(`${dateStr}|${req.scheduleTime}|${req.providerId}`);
+        // Si un prestataire est assigné, on bloque son slot spécifique
+        // Si pas de prestataire, on consomme quand même 1 slot du pool
+        const slotKey = req.providerId
+          ? `${dateStr}|${req.scheduleTime}|${req.providerId}`
+          : `${dateStr}|${req.scheduleTime}|unassigned-${idx}`;
+        occupiedKeys.add(slotKey);
       }
     });
 

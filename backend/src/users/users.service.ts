@@ -80,6 +80,7 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         email: true,
@@ -94,5 +95,14 @@ export class UsersService {
         createdAt: true,
       },
     });
+  }
+
+  async softDelete(id: string) {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+    this.logger.log(`Utilisateur supprimé (soft delete) : ${user.email} (ID: ${id})`);
+    return user;
   }
 }

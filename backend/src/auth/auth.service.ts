@@ -219,6 +219,10 @@ export class AuthService {
     return this.usersService.update(userId, updateUserDto);
   }
 
+  async deactivateAccount(userId: string) {
+    return this.usersService.softDelete(userId);
+  }
+
   /** Génère un code OTP numérique à 6 chiffres. */
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();

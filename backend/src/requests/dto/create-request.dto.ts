@@ -27,7 +27,7 @@ export class CreateRequestDto {
 
   // Planning premium (optionnel)
   @IsString()
-  @IsIn(['WEEKLY', 'MONTHLY'])
+  @IsIn(['ONCE', 'WEEKLY', 'MONTHLY'])
   @IsOptional()
   scheduleFrequency?: string;
 

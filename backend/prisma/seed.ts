@@ -42,6 +42,23 @@ async function main() {
     },
   });
   console.log(`✅ Admin: ${admin.email}`);
+  
+  // 2. CLIENT
+  const client = await prisma.user.upsert({
+    where: { email: 'client@gmail.com' },
+    update: {},
+    create: {
+      email: 'client@gmail.com',
+      password: passwordHash,
+      fullName: 'Client Test',
+      phone: '+243990000001',
+      role: Role.CLIENT,
+      quartier: 'Goma',
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  console.log(`✅ Client: ${client.email}`);
 
 
   console.log('✅ Seed des utilisateurs terminé avec succès!');

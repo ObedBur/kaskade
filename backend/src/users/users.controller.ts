@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, HttpCode, HttpStatus, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Delete, Param, UseGuards, HttpCode, HttpStatus, NotFoundException, Logger } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -51,5 +51,17 @@ export class UsersController {
       throw new NotFoundException(`Resource with ID ${id} not found`);
     }
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  async remove(@Param('id') id: string) {
+    this.logger.log(`Requête ADMIN : Suppression de l'utilisateur ID: ${id}`);
+    const user = await this.usersService.findOneSafe(id);
+    if (!user) {
+      this.logger.warn(`Échec suppression : Utilisateur ID ${id} introuvable`);
+      throw new NotFoundException(`Resource with ID ${id} not found`);
+    }
+    return this.usersService.softDelete(id);
   }
 }
