@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  fullName      String    
+  phone         String    @unique 
+  
+  quartier      String    @default("")
+  
+  role          Role      @default(CLIENT)
+  status        Status    @default(DISPONIBLE) 
+  isPremium     Boolean   @default(false)    
+  
+  metier        String?   
+  experience    String?   @db.Text 
+  bio           String?   @db.Text 
+  avatarUrl     String?   
+  
+  isVerified    Boolean   @default(false) 
+  isActive      Boolean   @default(true)
+  refreshToken  String?   
+  
+  // Relations
+  clientRequests       Request[]           @relation("ClientRequests")
+  providerRequests     Request[]           @relation("ProviderRequests")
+  providerApplications ProviderApplication[]
+  services             Service[]
+  notifications        Notification[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@index([email])
+  @@index([phone])
+  @@index([quartier]) 
+}
+
+// Catalogue de services gérés par l'admin
+model Service {
+  id          String    @id @default(uuid())
+  name        String    
+  category    String    
+  description String?   @db.Text
+  price       Float?    
+  currency    String    @default("USD")
+  isActive    Boolean   @default(true)
+
+  imageKey    String?   
+  workingHoursStart String  @default("06:00")
+  workingHoursEnd   String  @default("18:00")
+
+  // relations
+  requests    Request[]
+  providers   User[]
+  notifications Notification[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([category])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  requestId       String
+  clientId        String
+  amount          Float
+  currency        String   @default("USD") 
+  operator        String   // AIRTEL, ORANGE, MPESA
+  phoneNumber     String   
+  
+  // Champs spécifiques Mbiyo Pay
+  mbiyoRef        String?  @unique // Référence de transaction retournée par Mbiyo
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  type            String   // DEPOSIT (Acompte 50%) ou FINAL (Solde 50%)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  request         Request  @relation(fields: [requestId], references: [id])
+}
+
+// Demande de service créée par un CLIENT
+model Request {
+  id          String        @id @default(uuid())
+  clientId    String
+  serviceId   String
+  providerId  String?
+
+  description String        @db.Text
+  address     String
+  scheduledAt DateTime
+
+  // Planning premium (optionnel)
+  scheduleFrequency  String?   // DAILY, WEEKLY, MONTHLY
+  scheduleDay        String?   // "Lun", "Mar", ... ou "1"-"31" ou "Tous les jours"
+  scheduleTime       String?   // "08:00", "09:00", etc.
+
+  price       Float?
+  currency    String    @default("USD")
+  acceptedAt  DateTime?
+
+  status      RequestStatus @default(PENDING)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  client      User          @relation("ClientRequests", fields: [clientId], references: [id])
+  provider    User?         @relation("ProviderRequests", fields: [providerId], references: [id])
+  service     Service       @relation(fields: [serviceId], references: [id])
+  payments    Payment[]
+  notifications Notification[]
+
+  @@index([clientId])
+  @@index([serviceId])
+  @@index([providerId])
+  @@index([status])
+}
+
+// Candidature pour devenir Prestataire
+model ProviderApplication {
+  id          String        @id @default(uuid())
+  
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  
+  motivation  String        @db.Text
+  status      RequestStatus @default(PENDING) 
+  
+  notifications Notification[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum Role {
+  CLIENT
+  PROVIDER
+  ADMIN
+}
+
+enum Status {
+  DISPONIBLE    
+  EN_MISSION    
+  INDISPONIBLE  
+}
+
+// Workflow des demandes de service et applications
+enum RequestStatus {
+  PENDING          // Demande créée par le client
+  APPROVED         // Admin a approuvé + prix fixé
+  REJECTED         // Admin a rejeté
+  ACCEPTED         // Provider a accepté (en attente de l'acompte)
+  IN_PROGRESS      // Acompte (50%) versé, mission active
+  AWAITING_FINAL   // Provider a terminé, en attente du paiement final
+  COMPLETED        // Paiement final (50%) reçu, mission clôturée
+}
+
+// Notifications In-App 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String   // Ex: AUTH_WELCOME, PROVIDER_APPLY, REQUEST_CREATED...
+  isRead    Boolean  @default(false)
+  
+  // Relations optionnelles vers les ressources
+  requestId         String?   // Pour demandes de service (REQUEST_*)
+  serviceId         String?   // Pour services (SERVICE_*)
+  providerAppId     String?   // Pour candidatures prestataire (PROVIDER_*)
+  
+  createdAt DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request           Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  service           Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  providerApp       ProviderApplication? @relation(fields: [providerAppId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([requestId])
+  @@index([serviceId])
+  @@index([providerAppId])
+}
+
