@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, Clock, CheckCircle2, X, Loader2, Users, AlertCircle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Calendar, Clock, CheckCircle2, X, Loader2, Users, AlertCircle, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
 
@@ -51,23 +51,49 @@ interface PooledCalendarProps {
 export default function PooledCalendar({ serviceId, onClose, onConfirm }: PooledCalendarProps) {
   const [data, setData] = useState<PooledCalendarData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [selected, setSelected] = useState<SelectedSlot | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchAvailability = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/requests/availability/pooled/${serviceId}`);
+      setData(res.data);
+      setLastUpdated(new Date());
+      if (isRefresh && selected) {
+        const week = res.data.weeks?.find((w: any) =>
+          w.days.some((d: any) => d.date === selected.date)
+        );
+        const day = week?.days.find((d: any) => d.date === selected.date);
+        const slot = day?.slots.find((s: any) => s.time === selected.time);
+        if (slot && !slot.available) {
+          setSelected(null);
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Impossible de charger les disponibilités.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAvailability = async () => {
-      try {
-        const res = await api.get(`/requests/availability/pooled/${serviceId}`);
-        setData(res.data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Impossible de charger les disponibilités.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAvailability();
   }, [serviceId]);
+
+  const getLastUpdatedLabel = () => {
+    if (!lastUpdated) return '';
+    const secs = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+    if (secs < 10) return 'A l’instant';
+    if (secs < 60) return `il y a ${secs}s`;
+    return `il y a ${Math.floor(secs / 60)}min`;
+  };
 
   const currentWeek = data?.weeks[currentWeekIndex];
   const totalWeeks = data?.weeks.length ?? 0;
@@ -125,12 +151,28 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
               </p>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-3 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-[#321B13] transition-all active:scale-95"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              {lastUpdated && (
+                <p className="text-[9px] text-[#321B13]/30 font-medium mb-1">{getLastUpdatedLabel()}</p>
+              )}
+              <button
+                onClick={() => fetchAvailability(true)}
+                disabled={refreshing || loading}
+                title="Actualiser les disponibilités"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest bg-zinc-50 hover:bg-zinc-100 text-[#321B13]/60 hover:text-[#321B13] rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                Actualiser
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-3 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-[#321B13] transition-all active:scale-95"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -154,7 +196,7 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                   Service momentanément indisponible
                 </p>
                 <p className="text-sm text-[#321B13]/40 font-medium leading-relaxed">
-                  Nous n'avons pas encore de prestataires actifs assignés à ce service dans votre zone. 
+                  Nous n'avons pas encore de prestataires actifs assignés à ce service dans votre zone.
                   Revenez plus tard ou contactez le support.
                 </p>
               </div>
@@ -199,31 +241,28 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                       className={`flex flex-col items-center gap-1 ${day.isSunday ? "opacity-30" : ""}`}
                     >
                       <span
-                        className={`text-[8px] font-black uppercase tracking-widest ${
-                          day.isToday ? "text-[#BC9C6C]" : "text-[#321B13]/40"
-                        }`}
+                        className={`text-[8px] font-black uppercase tracking-widest ${day.isToday ? "text-[#BC9C6C]" : "text-[#321B13]/40"
+                          }`}
                       >
                         {day.dayName.slice(0, 3)}
                       </span>
 
                       <span
-                        className={`text-sm font-black w-8 h-8 flex items-center justify-center rounded-xl transition-all ${
-                          day.isToday
+                        className={`text-sm font-black w-8 h-8 flex items-center justify-center rounded-xl transition-all ${day.isToday
                             ? "bg-[#BC9C6C] text-white"
-                            : day.isSunday 
-                              ? "bg-zinc-100 text-zinc-400 cursor-not-allowed" 
+                            : day.isSunday
+                              ? "bg-zinc-100 text-zinc-400 cursor-not-allowed"
                               : "text-[#321B13]/70"
-                        } ${isSelected ? "ring-2 ring-[#321B13]" : ""}`}
+                          } ${isSelected ? "ring-2 ring-[#321B13]" : ""}`}
                       >
                         {new Date(day.date).getDate()}
                       </span>
 
                       <div
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          day.isSunday 
-                            ? "bg-zinc-200" 
+                        className={`w-1.5 h-1.5 rounded-full ${day.isSunday
+                            ? "bg-zinc-200"
                             : (hasAvailableSlot ? "bg-emerald-400" : "bg-zinc-200")
-                        }`}
+                          }`}
                       />
                     </div>
                   );
@@ -272,11 +311,10 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                                   whileHover={{ scale: 1.03 }}
                                   whileTap={{ scale: 0.97 }}
                                   onClick={() => handleSlotClick(day, slot)}
-                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black transition-all ${
-                                    isSlotSelected
+                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black transition-all ${isSlotSelected
                                       ? "bg-[#321B13] border-[#321B13] text-white shadow-lg shadow-[#321B13]/20"
                                       : "bg-white border-zinc-200 text-[#321B13] hover:border-[#BC9C6C] hover:bg-[#BC9C6C]/5"
-                                  }`}
+                                    }`}
                                 >
                                   <Clock className="w-3.5 h-3.5" />
                                   {slot.time}
@@ -299,16 +337,16 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                   {!currentWeek.days.some(
                     (d) => !d.isWeekend && d.slots.some((s) => s.available)
                   ) && (
-                    <div className="text-center py-12 text-[#321B13]/30">
-                      <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-black uppercase tracking-widest">
-                        Aucun créneau disponible cette semaine
-                      </p>
-                      <p className="text-xs mt-1">
-                        Essayez la semaine suivante
-                      </p>
-                    </div>
-                  )}
+                      <div className="text-center py-12 text-[#321B13]/30">
+                        <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm font-black uppercase tracking-widest">
+                          Aucun créneau disponible cette semaine
+                        </p>
+                        <p className="text-xs mt-1">
+                          Essayez la semaine suivante
+                        </p>
+                      </div>
+                    )}
                 </motion.div>
               </AnimatePresence>
             </div>

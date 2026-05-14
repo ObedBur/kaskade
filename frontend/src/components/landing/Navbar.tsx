@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, Search, Bell, ChevronDown, Home, Settings, FileText } from "lucide-react";
+import { Menu, X, Search, Bell, ChevronDown, Home, Settings, FileText, User, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getMediaUrl } from "@/lib/utils";
 
@@ -11,6 +11,8 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Accueil");
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,6 +20,16 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const navLinks = user?.role === 'ADMIN' ? [] : [
@@ -80,20 +92,64 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  <Link href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} className="flex items-center gap-3 cursor-pointer group">
-                    <div className="flex flex-col items-end hidden lg:flex">
-                      <span className="text-[10px] font-black tracking-widest uppercase text-white">{user.fullName}</span>
-                      <span className="text-[8px] text-white/50 tracking-[0.2em] font-bold">{user.role}</span>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden outline outline-2 outline-transparent group-hover:outline-ocre/50 transition-all">
-                      {user.avatarUrl ? (
-                        <img src={getMediaUrl(user.avatarUrl)} alt={user.fullName} className="w-full h-full object-cover" />
-                      ) : (
-                        user.fullName.charAt(0)
-                      )}
-                    </div>
-                    <ChevronDown className="hidden lg:block h-3 w-3 text-white/40 group-hover:text-ocre transition-colors" />
-                  </Link>
+                  <div className="relative" ref={profileMenuRef}>
+                    <button 
+                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                      className="flex items-center gap-3 cursor-pointer group focus:outline-none"
+                    >
+                      <div className="flex flex-col items-end hidden lg:flex">
+                        <span className="text-[10px] font-black tracking-widest uppercase text-white">{user.fullName}</span>
+                        <span className="text-[8px] text-white/50 tracking-[0.2em] font-bold">{user.role}</span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden outline outline-2 outline-transparent group-hover:outline-ocre/50 transition-all">
+                        {user.avatarUrl ? (
+                          <img src={getMediaUrl(user.avatarUrl)} alt={user.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          user.fullName.charAt(0)
+                        )}
+                      </div>
+                      <ChevronDown className={`hidden lg:block h-3 w-3 text-white/40 group-hover:text-ocre transition-all duration-300 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Menu déroulant profil */}
+                    {isProfileMenuOpen && (
+                      <div className="absolute right-0 mt-4 w-56 bg-chocolat border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="px-4 py-3 border-b border-white/5 lg:hidden">
+                          <p className="text-sm font-bold text-white truncate">{user.fullName}</p>
+                          <p className="text-[10px] text-white/50 uppercase tracking-wider">{user.role}</p>
+                        </div>
+                        <div className="p-1.5 flex flex-col gap-0.5">
+                          <Link 
+                            href={user.role === 'PROVIDER' ? "/prestataire/profil" : "/client/profil"}
+                            onClick={() => setIsProfileMenuOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-white/70 hover:text-ocre hover:bg-white/5 rounded-md transition-colors"
+                          >
+                            <User className="w-4 h-4" />
+                            Mon profil
+                          </Link>
+                          <Link 
+                            href="/parametres"
+                            onClick={() => setIsProfileMenuOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-white/70 hover:text-ocre hover:bg-white/5 rounded-md transition-colors"
+                          >
+                            <Settings className="w-4 h-4" />
+                            Paramètres
+                          </Link>
+                          <div className="h-px bg-white/5 my-1 mx-2" />
+                          <button 
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              logout();
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 text-xs font-bold uppercase tracking-wide text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors w-full text-left"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Se déconnecter
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <Link

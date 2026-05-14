@@ -20,6 +20,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminGuard } from "@/lib/use-admin-guard";
@@ -82,6 +83,7 @@ export default function AdminPrestatairePage() {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteConfirmApp, setDeleteConfirmApp] = useState<Application | null>(null);
   const ITEMS_PER_PAGE = 10;
 
   const fetchApplications = async () => {
@@ -132,6 +134,23 @@ export default function AdminPrestatairePage() {
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Erreur lors du rejet.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteProvider = async (app: Application) => {
+    setActionLoading(`delete-${app.id}`);
+    try {
+      await api.delete(`/users/${app.user.id}`);
+      toast.success("Utilisateur supprimé avec succès.");
+      setApplications(prev => prev.filter(a => a.user.id !== app.user.id));
+      if (selectedApp?.id === app.id) {
+        setSelectedApp(null);
+      }
+      setDeleteConfirmApp(null);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Erreur lors de la suppression.");
     } finally {
       setActionLoading(null);
     }
@@ -531,45 +550,60 @@ export default function AdminPrestatairePage() {
 
               {/* Footer Actions — Fixed at bottom */}
               <div className="border-t border-slate-100 px-8 md:px-10 py-5 bg-slate-50/80 backdrop-blur-sm flex-shrink-0">
-                {selectedApp.status === "PENDING" ? (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
-                    <button
-                      onClick={() => handleApprove(selectedApp.id)}
-                      disabled={actionLoading === selectedApp.id}
-                      className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-emerald-500/20"
-                    >
-                      {actionLoading === selectedApp.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                      Approuver la candidature
-                    </button>
-                    <button
-                      onClick={() => handleReject(selectedApp.id)}
-                      disabled={actionLoading === selectedApp.id}
-                      className="flex-1 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-red-500 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-50 transition-all active:scale-[0.98] disabled:opacity-50"
-                    >
-                      {actionLoading === selectedApp.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <XCircle className="w-4 h-4" />
-                      )}
-                      Rejeter la candidature
-                    </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 w-full">
+                  {/* Left Actions */}
+                  <div className="flex-1">
+                    {selectedApp.status === "PENDING" ? (
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                        <button
+                          onClick={() => handleApprove(selectedApp.id)}
+                          disabled={actionLoading === selectedApp.id}
+                          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                        >
+                          {actionLoading === selectedApp.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4" />
+                          )}
+                          Approuver
+                        </button>
+                        <button
+                          onClick={() => handleReject(selectedApp.id)}
+                          disabled={actionLoading === selectedApp.id}
+                          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-red-500 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-50 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {actionLoading === selectedApp.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          Rejeter
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        {(() => {
+                          const config = statusConfig[selectedApp.status];
+                          const StatusIcon = config.icon;
+                          return (
+                            <span className={`flex items-center gap-2 text-sm font-bold ${config.color}`}>
+                              <StatusIcon className="w-4 h-4" />
+                              Candidature {config.label.toLowerCase()}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    {(() => {
-                      const config = statusConfig[selectedApp.status];
-                      const StatusIcon = config.icon;
-                      return (
-                        <span className={`flex items-center gap-2 text-sm font-bold ${config.color}`}>
-                          <StatusIcon className="w-4 h-4" />
-                          Candidature {config.label.toLowerCase()}
-                        </span>
-                      );
-                    })()}
+                  {/* Right Actions */}
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => setDeleteConfirmApp(selectedApp)}
+                      className="px-5 py-3 bg-white text-red-500 border border-red-100 rounded-xl font-bold text-xs hover:bg-red-50 transition-all flex items-center gap-2 shadow-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Supprimer
+                    </button>
                     <button
                       onClick={() => setSelectedApp(null)}
                       className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all"
@@ -577,12 +611,53 @@ export default function AdminPrestatairePage() {
                       Fermer
                     </button>
                   </div>
-                )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal de suppression */}
+      {deleteConfirmApp && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !actionLoading && setDeleteConfirmApp(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 overflow-hidden">
+            <button
+              onClick={() => !actionLoading && setDeleteConfirmApp(null)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+            <div className="flex flex-col items-center text-center mb-8 mt-4">
+              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-black text-[#321B13] mb-2">Supprimer ce prestataire ?</h3>
+              <p className="text-sm text-slate-500">
+                Êtes-vous sûr de vouloir supprimer <strong className="text-[#321B13]">{deleteConfirmApp.user.fullName}</strong> ? Cette action cachera cet utilisateur de la plateforme.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmApp(null)}
+                disabled={!!actionLoading}
+                className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleDeleteProvider(deleteConfirmApp)}
+                disabled={!!actionLoading}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 transition-colors disabled:opacity-50 shadow-lg shadow-red-500/20"
+              >
+                {actionLoading === `delete-${deleteConfirmApp.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

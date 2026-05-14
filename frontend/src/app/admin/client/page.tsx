@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import api from '@/lib/api';
 import {
   Users,
@@ -19,7 +20,10 @@ import {
   BarChart3,
   MapPin,
   Target,
-  Phone
+  Phone,
+  Trash2,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import {
   AreaChart,
@@ -61,6 +65,8 @@ export default function ClientDashboard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userToDelete, setUserToDelete] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchData = useCallback(async (isSync = false) => {
     try {
@@ -87,6 +93,22 @@ export default function ClientDashboard() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await api.delete(`/users/${userToDelete.id}`);
+      setClients(clients.filter(c => c.id !== userToDelete.id));
+      toast.success("Client supprimé avec succès.");
+      setUserToDelete(null);
+    } catch (error) {
+      console.error("Erreur suppression:", error);
+      toast.error("Erreur lors de la suppression du client.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const filteredClients = clients.filter(c =>
     c.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -339,12 +361,22 @@ export default function ClientDashboard() {
                         </div>
                       </td>
                       <td className="py-8 text-right">
-                        <button
-                          onClick={() => router.push(`/admin/client?id=${client.id}`)}
-                          className="p-4 bg-white border border-[#321B13]/5 rounded-2xl hover:bg-[#321B13] hover:text-white transition-all transform group-hover:translate-x-1 shadow-sm hover:shadow-xl"
-                        >
-                          <ArrowRight className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => router.push(`/admin/client?id=${client.id}`)}
+                            className="p-4 bg-white border border-[#321B13]/5 rounded-2xl hover:bg-[#321B13] hover:text-white transition-all transform group-hover:translate-x-1 shadow-sm hover:shadow-xl"
+                            title="Voir les détails"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setUserToDelete(client)}
+                            className="p-4 bg-white border border-red-100 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm hover:shadow-xl"
+                            title="Supprimer ce client"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -368,6 +400,48 @@ export default function ClientDashboard() {
 
         </div>
       </div>
+
+      {/* Modal de suppression */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !deleteLoading && setUserToDelete(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 overflow-hidden">
+            <button
+              onClick={() => !deleteLoading && setUserToDelete(null)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+            <div className="flex flex-col items-center text-center mb-8 mt-4">
+              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-black text-[#321B13] mb-2">Supprimer ce client ?</h3>
+              <p className="text-sm text-slate-500">
+                Êtes-vous sûr de vouloir supprimer <strong className="text-[#321B13]">{userToDelete.fullName}</strong> ? Cette action cachera cet utilisateur de la plateforme.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setUserToDelete(null)}
+                disabled={deleteLoading}
+                className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deleteLoading}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 transition-colors disabled:opacity-50 shadow-lg shadow-red-500/20"
+              >
+                {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

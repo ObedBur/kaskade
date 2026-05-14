@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   LogOut,
-  RefreshCcw
+  RefreshCcw,
+  Calendar
 } from "lucide-react";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useAuth } from "@/lib/auth-context";
@@ -55,10 +56,11 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Calendrier", href: "/dashboard/calendrier", icon: Calendar },
     { name: "Missions Disponibles", href: "/dashboard/missions", icon: Briefcase, badge: availableCount },
     { name: "Mes Missions", href: "/dashboard/mes-missions", icon: ClipboardList },
     { name: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: unreadNotifs },
-    { name: "Profil", href: "/dashboard/profil", icon: User },
+    { name: "Profil", href: "/prestataire/profil", icon: User },
   ];
 
   if (!user) return null;

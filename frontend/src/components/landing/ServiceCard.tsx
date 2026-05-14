@@ -320,22 +320,24 @@ function ServiceDetailsModal({ service, onClose, onReserve, onTiming }: { servic
               RÉSERVER MAINTENANT <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Premium CTA */}
-            <button
-              onClick={onTiming}
-              className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-chocolat/5 to-ocre/5 border border-ocre/20 rounded-2xl px-5 py-4 hover:border-ocre/40 hover:bg-ocre/10 transition-all group active:scale-[0.99]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-ocre/10 rounded-xl">
-                  <Star className="w-4 h-4 text-ocre fill-current" />
+            {/* Premium CTA - Only show if service has a price */}
+            {service.price > 0 && (
+              <button
+                onClick={onTiming}
+                className="w-full flex items-center justify-between gap-3 bg-gradient-to-r from-chocolat/5 to-ocre/5 border border-ocre/20 rounded-2xl px-5 py-4 hover:border-ocre/40 hover:bg-ocre/10 transition-all group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-ocre/10 rounded-xl">
+                    <Star className="w-4 h-4 text-ocre fill-current" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-chocolat uppercase tracking-widest">Abonnement régulier</p>
+                    <p className="text-[9px] font-bold text-chocolat/40 mt-0.5">Hebdo ou mensuel, prix validé par Kaskade</p>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <p className="text-[10px] font-black text-chocolat uppercase tracking-widest">Abonnement régulier</p>
-                  <p className="text-[9px] font-bold text-chocolat/40 mt-0.5">Hebdo ou mensuel, prix validé par Kaskade</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-ocre transition-transform group-hover:translate-x-1 shrink-0" />
-            </button>
+                <ArrowRight className="w-4 h-4 text-ocre transition-transform group-hover:translate-x-1 shrink-0" />
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -482,8 +484,34 @@ export default function ServiceCardBento({ service }: { service: Service }) {
               setSchedulePlan(updatedPlan);
 
               if (updatedPlan.frequency === "ONCE") {
-                toast.success("Planning et adresse enregistrés !");
-                setShowPayment(true);
+                if (service.price > 0) {
+                  toast.success("Planning et adresse enregistrés !");
+                  setShowPayment(true);
+                } else {
+                  // Direct booking for FREE services
+                  const loadingToast = toast.loading("Envoi de votre demande gratuite...");
+                  try {
+                    await api.post('/requests', {
+                      serviceId: service.id,
+                      description: updatedPlan.description || `Demande gratuite: ${service.name}`,
+                      address: updatedPlan.address,
+                      scheduledAt: updatedPlan.startDate ? new Date(updatedPlan.startDate).toISOString() : new Date().toISOString(),
+                      scheduleFrequency: "ONCE",
+                      scheduleDay: updatedPlan.day,
+                      scheduleTime: updatedPlan.time,
+                      notes: updatedPlan.instructions,
+                    });
+
+                    toast.success("Demande enregistrée avec succès !", {
+                      id: loadingToast,
+                    });
+                    setSchedulePlan(null);
+                  } catch (error: any) {
+                    toast.error(error.response?.data?.message || "Erreur lors de la réservation.", {
+                      id: loadingToast,
+                    });
+                  }
+                }
               } else {
                 const loadingToast = toast.loading("Envoi de votre demande d'abonnement...");
                 try {

@@ -20,11 +20,13 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { getMediaUrl } from "@/lib/utils";
 
+const FALLBACK_SERVICE_IMAGE = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80";
+
 interface ServiceCategory {
   id: string;
   name: string;
   category: string;
-  imageUrl: string;
+  imageUrl: string | null;
   isActive: boolean;
 }
 
@@ -176,7 +178,7 @@ export default function AvailableMissionsPage() {
             >
               <div className="aspect-[4/3] bg-gray-50 overflow-hidden relative">
                 <img
-                  src={getMediaUrl(category.imageUrl)}
+                  src={getMediaUrl(category.imageUrl) || FALLBACK_SERVICE_IMAGE}
                   alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
