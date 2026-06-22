@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         port: "4000",
         pathname: "/uploads/**",
       },
+      // Ajouté pour permettre le chargement d'images depuis le backend en production
+      {
+        protocol: "https",
+        hostname: process.env.NEXT_PUBLIC_BACKEND_HOSTNAME || "**",
+        pathname: "/uploads/**",
+      },
     ],
   },
   output: 'standalone',

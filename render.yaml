@@ -6,7 +6,7 @@ services:
     startCommand: pnpm run render:start
     envVars:
       - key: NODE_VERSION
-        value: 20.x
+        value: 24.14.1
       - key: PNPM_VERSION
         value: 10.32.1
       - key: DATABASE_URL
