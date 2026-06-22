@@ -11,7 +11,7 @@
     "start": "turbo start",
     "backend:dev": "pnpm --filter @kaskade/backend run dev",
     "frontend:dev": "pnpm --filter @kaskade/frontend run dev",
-    "render:build": "pnpm install --prod=false && pnpm --filter @kaskade/backend exec prisma generate && pnpm --filter @kaskade/backend exec prisma migrate deploy && NODE_OPTIONS='--max-old-space-size=4096' pnpm --filter @kaskade/backend build",
+    "render:build": "NODE_ENV=development pnpm install --no-frozen-lockfile && pnpm --filter @kaskade/backend exec prisma generate && pnpm --filter @kaskade/backend exec prisma migrate deploy && pnpm --filter @kaskade/backend build",
     "render:start": "cd apps/backend && pnpm start:prod"
   },
   "devDependencies": {
