@@ -7,8 +7,20 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
+import { execSync } from 'child_process'; 
 
 async function bootstrap() {
+  // 2. AJOUT : Synchronisation automatique de la base de données au démarrage
+  try {
+    Logger.log('🔄 Synchronisation de la base de données avec Prisma...', 'Bootstrap');
+    
+    execSync('npx prisma migrate deploy', { stdio: 'inherit' }); 
+    
+    Logger.log('✅ Base de données synchronisée avec succès !', 'Bootstrap');
+  } catch (error) {
+    Logger.error('❌ Échec de la synchronisation de la base de données', error, 'Bootstrap');
+  }
+
   // Ensure uploads directories exist
   const avatarDir = join(process.cwd(), 'uploads', 'avatars');
   const serviceDir = join(process.cwd(), 'uploads', 'services');
@@ -24,8 +36,15 @@ async function bootstrap() {
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
+
+  // 3. CORRECTION CORS (Gère le problème des multiples origines)
+  const frontendUrlStr = process.env.FRONTEND_URL;
+  const allowedOrigins = frontendUrlStr 
+    ? frontendUrlStr.split(',').map(url => url.trim())
+    : 'http://localhost:3000';
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     credentials: true,
   });
