@@ -11,6 +11,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Accueil");
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,7 +28,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-chocolat border-b border-white/5 font-sans">
+    <header className="fixed top-0 w-full z-50 bg-chocolat border-b border-white/5">
       <div className="arcture-container h-16 flex items-center justify-between">
 
         <Link href="/" className="flex items-center gap-2 group">
@@ -80,20 +81,47 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  <Link href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} className="flex items-center gap-3 cursor-pointer group">
-                    <div className="flex flex-col items-end hidden lg:flex">
-                      <span className="text-[10px] font-black tracking-widest uppercase text-white">{user.fullName}</span>
-                      <span className="text-[8px] text-white/50 tracking-[0.2em] font-bold">{user.role}</span>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden outline outline-2 outline-transparent group-hover:outline-ocre/50 transition-all">
-                      {user.avatarUrl ? (
-                        <img src={getMediaUrl(user.avatarUrl)} alt={user.fullName} className="w-full h-full object-cover" />
-                      ) : (
-                        user.fullName.charAt(0)
-                      )}
-                    </div>
-                    <ChevronDown className="hidden lg:block h-3 w-3 text-white/40 group-hover:text-ocre transition-colors" />
-                  </Link>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <div className="flex flex-col items-end hidden lg:flex">
+                        <span className="text-[10px] font-black tracking-widest uppercase text-white">{user.fullName}</span>
+                        <span className="text-[8px] text-white/50 tracking-[0.2em] font-bold">{user.role}</span>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden outline outline-2 outline-transparent group-hover:outline-ocre/50 transition-all">
+                        {user.avatarUrl ? (
+                          <img src={getMediaUrl(user.avatarUrl)} alt={user.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          user.fullName.charAt(0)
+                        )}
+                      </div>
+                      <ChevronDown className={`hidden lg:block h-3 w-3 text-white/40 group-hover:text-ocre transition-all ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isProfileMenuOpen && (
+                      <div className="absolute right-0 mt-4 w-48 bg-chocolat border border-white/10 rounded-md shadow-xl py-1 flex flex-col overflow-hidden">
+                        <Link 
+                          href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} 
+                          className="px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                        >
+                          Tableau de bord
+                        </Link>
+                        <hr className="border-white/5 my-1" />
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsProfileMenuOpen(false);
+                          }}
+                          className="px-4 py-3 text-xs text-left text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors font-bold uppercase tracking-widest"
+                        >
+                          Se déconnecter
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <Link
