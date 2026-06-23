@@ -7,21 +7,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
-import { execSync } from 'child_process'; 
 
 async function bootstrap() {
-  // 2. AJOUT : Synchronisation automatique de la base de données au démarrage
-  try {
-    Logger.log('🔄 Synchronisation de la base de données avec Prisma...', 'Bootstrap');
-    
-    execSync('npx prisma migrate deploy', { stdio: 'inherit' }); 
-    
-    Logger.log('✅ Base de données synchronisée avec succès !', 'Bootstrap');
-  } catch (error) {
-    Logger.error('❌ Échec de la synchronisation de la base de données', error, 'Bootstrap');
-  }
-
-  // Ensure uploads directories exist
+  // 1. Initialisation des dossiers d'uploads (maintenu)
   const avatarDir = join(process.cwd(), 'uploads', 'avatars');
   const serviceDir = join(process.cwd(), 'uploads', 'services');
   
@@ -31,8 +19,10 @@ async function bootstrap() {
     }
   });
 
+  // 2. Création de l'application (Une seule déclaration)
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // 3. Sécurité et CORS
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
@@ -48,7 +38,8 @@ async function bootstrap() {
     credentials: true,
     optionsSuccessStatus: 200,
   });
-  // Serve uploaded files statically (outside of api/v1 prefix)
+
+  // 4. Configuration des assets et du préfixe
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
@@ -64,8 +55,9 @@ async function bootstrap() {
     }),
   );
 
+  // 5. Démarrage
   const port = process.env.PORT ?? 4000;
   await app.listen(port, '0.0.0.0');
-  Logger.log(`🚀 Application running on port ${port}`, 'Bootstrap');
+  Logger.log(`🚀 Application running on port ${port}`, 'Bootstrap'); 
 }
 void bootstrap();
