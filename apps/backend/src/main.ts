@@ -37,18 +37,17 @@ async function bootstrap() {
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
 
-  // 3. CORRECTION CORS (Gère le problème des multiples origines)
   const frontendUrlStr = process.env.FRONTEND_URL;
   const allowedOrigins = frontendUrlStr 
-    ? frontendUrlStr.split(',').map(url => url.trim())
+    ? frontendUrlStr.split(',').map(url => url.trim().replace(/\/$/, '')) 
     : 'http://localhost:3000';
 
   app.enableCors({
     origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
     credentials: true,
+    optionsSuccessStatus: 200,
   });
-
   // Serve uploaded files statically (outside of api/v1 prefix)
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
