@@ -60,7 +60,7 @@ export default function DashboardLayout({
     { name: "Missions Disponibles", href: "/dashboard/missions", icon: Briefcase, badge: availableCount },
     { name: "Mes Missions", href: "/dashboard/mes-missions", icon: ClipboardList },
     { name: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: unreadNotifs },
-    { name: "Profil", href: "/prestataire/profil", icon: User },
+    { name: "Profil", href: "/dashboard/profil", icon: User },
   ];
 
   if (!user) return null;
