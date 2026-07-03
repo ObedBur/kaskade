@@ -229,4 +229,133 @@ export class AdminService {
       }
     };
   }
+
+  async getDashboardStats() {
+    const [
+      totalUsers,
+      clients,
+      providers,
+      totalRequests,
+      pendingRequests,
+      inProgressRequests,
+      completedRequests,
+      totalServices,
+      completedRequestsData,
+      allUsers,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { role: 'CLIENT' } }),
+      this.prisma.user.count({ where: { role: 'PROVIDER' } }),
+      this.prisma.request.count(),
+      this.prisma.request.count({ where: { status: 'PENDING' } }),
+      this.prisma.request.count({ where: { status: 'IN_PROGRESS' } }),
+      this.prisma.request.count({ where: { status: 'COMPLETED' } }),
+      this.prisma.service.count({ where: { isActive: true } }),
+      this.prisma.request.findMany({
+        where: { status: 'COMPLETED', price: { not: null } },
+        select: { price: true, currency: true },
+      }),
+      this.prisma.user.findMany({ select: { quartier: true } }),
+    ]);
+
+    const revenue: Record<string, number> = {};
+    for (const req of completedRequestsData) {
+      const currency = req.currency || 'USD';
+      revenue[currency] = (revenue[currency] || 0) + (req.price || 0);
+    }
+
+    // Compute topQuartier
+    const quartierCounts: Record<string, number> = {};
+    for (const u of allUsers) {
+      const q = u.quartier || 'Inconnu';
+      quartierCounts[q] = (quartierCounts[q] || 0) + 1;
+    }
+    const topQuartier = Object.entries(quartierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '---';
+    const conversionRate = totalUsers > 0 ? Math.round((totalRequests / totalUsers) * 100) : 0;
+
+    return {
+      users: {
+        total: totalUsers,
+        clients,
+        providers,
+        conversionRate,
+        topQuartier,
+      },
+      requests: {
+        total: totalRequests,
+        pending: pendingRequests,
+        inProgress: inProgressRequests,
+        completed: completedRequests,
+      },
+      services: {
+        total: totalServices,
+      },
+      revenue,
+    };
+  }
+
+  async getDashboardGrowth() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const users = await this.prisma.user.findMany({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Group by date (YYYY-MM-DD)
+    const countsByDate: Record<string, number> = {};
+    for (const u of users) {
+      const date = u.createdAt.toISOString().split('T')[0];
+      countsByDate[date] = (countsByDate[date] || 0) + 1;
+    }
+
+    // Build array of last 30 days
+    const result: { date: string; count: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      result.push({ date: dateStr, count: countsByDate[dateStr] || 0 });
+    }
+
+    return result;
+  }
+
+  async getRecentActivity() {
+    const [recentRequests, recentUsers] = await Promise.all([
+      this.prisma.request.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          client: {
+            select: {
+              fullName: true,
+            },
+          },
+          service: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      this.prisma.user.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+        },
+      }),
+    ]);
+
+    return {
+      recentRequests,
+      recentUsers,
+    };
+  }
 }

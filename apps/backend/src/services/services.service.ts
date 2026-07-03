@@ -12,17 +12,36 @@ export class ServicesService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private withImageUrl<T extends { imageKey?: string | null }>(service: T) {
+    return {
+      ...service,
+      imageUrl: service.imageKey
+        ? `/uploads/services/${service.imageKey}`
+        : null,
+    };
+  }
+
   async findAll() {
-    return this.prisma.service.findMany({
+    const services = await this.prisma.service.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
     });
+
+    return services.map((service) => this.withImageUrl(service));
+  }
+
+  async findAllForAdmin() {
+    const services = await this.prisma.service.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return services.map((service) => this.withImageUrl(service));
   }
 
   async findOne(id: string) {
     const service = await this.prisma.service.findUnique({ where: { id } });
     if (!service) throw new NotFoundException('Service introuvable.');
-    return service;
+    return this.withImageUrl(service);
   }
 
   async create(data: {
@@ -38,17 +57,20 @@ export class ServicesService {
     return this.prisma.service.create({ data });
   }
 
-  async update(id: string, data: Partial<{
-    name: string;
-    category: string;
-    description: string;
-    price: number;
-    currency: string;
-    isActive: boolean;
-    workingHoursStart: string;
-    workingHoursEnd: string;
-    imageKey: string;
-  }>) {
+  async update(
+    id: string,
+    data: Partial<{
+      name: string;
+      category: string;
+      description: string;
+      price: number;
+      currency: string;
+      isActive: boolean;
+      workingHoursStart: string;
+      workingHoursEnd: string;
+      imageKey: string;
+    }>,
+  ) {
     await this.findOne(id);
     return this.prisma.service.update({ where: { id }, data });
   }

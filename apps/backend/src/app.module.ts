@@ -15,7 +15,7 @@ import { ServicesModule } from './services/services.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RequestsModule } from './requests/requests.module';
 import { PaymentsModule } from './payments/payments.module';
-import { AdminDashboardModule } from './admin/dashboard/admin-dashboard.module';
+import { AdminModule } from './admin/admin.module';
 import { AdminFinancialsModule } from './admin/financials/admin-financials.module';
 import { UploadsModule } from './uploads/uploads.module';
 @Module({
@@ -43,7 +43,7 @@ import { UploadsModule } from './uploads/uploads.module';
     ServicesModule,
     NotificationsModule,
     PaymentsModule,
-    AdminDashboardModule,
+    AdminModule,
     AdminFinancialsModule,
     UploadsModule,
   ],
@@ -54,4 +54,4 @@ import { UploadsModule } from './uploads/uploads.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

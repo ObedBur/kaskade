@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
 import { getMediaUrl } from "@/lib/utils";
+import { RequestsSkeleton } from "@/components/admin/Skeleton";
 
 type RequestItem = {
   id: string;
@@ -113,7 +114,7 @@ export default function AdminRequestsPage() {
   };
 
   if (authLoading || (isAuthenticated && dataLoading)) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
+    return <RequestsSkeleton />;
   }
 
   if (!isAuthenticated) return null;

@@ -23,13 +23,14 @@ import {
   Home,
   Calendar,
   Clock,
-  Info
+  Info,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import { toast } from "sonner";
 import { getMediaUrl } from "@/lib/utils";
+import { ServicesSkeleton } from "@/components/admin/Skeleton";
 
 interface ServiceCategory {
   id: string;
@@ -46,12 +47,32 @@ interface ServiceCategory {
 }
 
 const CATEGORY_EXAMPLES = [
-  { name: "Coiffure", icon: Scissors, desc: "Services liés aux cheveux et soins capillaires" },
-  { name: "Plomberie", icon: Droplets, desc: "Réparations, installations et dépannages sanitaires" },
-  { name: "Électricité", icon: Zap, desc: "Installation et maintenance électrique" },
-  { name: "Peinture", icon: Paintbrush, desc: "Peinture intérieure, extérieure et décoration" },
+  {
+    name: "Coiffure",
+    icon: Scissors,
+    desc: "Services liés aux cheveux et soins capillaires",
+  },
+  {
+    name: "Plomberie",
+    icon: Droplets,
+    desc: "Réparations, installations et dépannages sanitaires",
+  },
+  {
+    name: "Électricité",
+    icon: Zap,
+    desc: "Installation et maintenance électrique",
+  },
+  {
+    name: "Peinture",
+    icon: Paintbrush,
+    desc: "Peinture intérieure, extérieure et décoration",
+  },
   { name: "Ménage", icon: Home, desc: "Nettoyage professionnel et entretien" },
-  { name: "BTP / Construction", icon: Hammer, desc: "Travaux de bâtiment et rénovation" }
+  {
+    name: "BTP / Construction",
+    icon: Hammer,
+    desc: "Travaux de bâtiment et rénovation",
+  },
 ];
 
 export default function AdminServicesPage() {
@@ -62,9 +83,12 @@ export default function AdminServicesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
-  const [categoryToDelete, setCategoryToDelete] = useState<ServiceCategory | null>(null);
-  const [selectedCategoryForSchedule, setSelectedCategoryForSchedule] = useState<ServiceCategory | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<ServiceCategory | null>(null);
+  const [categoryToDelete, setCategoryToDelete] =
+    useState<ServiceCategory | null>(null);
+  const [selectedCategoryForSchedule, setSelectedCategoryForSchedule] =
+    useState<ServiceCategory | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -78,7 +102,7 @@ export default function AdminServicesPage() {
     workingHoursStart: "06:00",
     workingHoursEnd: "18:00",
     isActive: true,
-    imageKey: ""
+    imageKey: "",
   });
 
   const fetchCategories = async () => {
@@ -86,7 +110,6 @@ export default function AdminServicesPage() {
       const res = await api.get("/admin/services");
       setCategories(res.data);
     } catch (error) {
-      console.error("Error fetching categories:", error);
       toast.error("Impossible de charger les catégories.");
     } finally {
       setLoading(false);
@@ -111,9 +134,11 @@ export default function AdminServicesPage() {
         workingHoursStart: cat.workingHoursStart || "06:00",
         workingHoursEnd: cat.workingHoursEnd || "18:00",
         isActive: cat.isActive,
-        imageKey: cat.imageKey || ""
+        imageKey: cat.imageKey || "",
       });
-      setPreviewUrl(cat.imageKey ? getMediaUrl(`/uploads/services/${cat.imageKey}`) : null);
+      setPreviewUrl(
+        cat.imageKey ? getMediaUrl(`/uploads/services/${cat.imageKey}`) : null,
+      );
     } else {
       setEditingCategory(null);
       setFormData({
@@ -125,18 +150,18 @@ export default function AdminServicesPage() {
         workingHoursStart: "06:00",
         workingHoursEnd: "18:00",
         isActive: true,
-        imageKey: ""
+        imageKey: "",
       });
       setPreviewUrl(null);
     }
     setIsModalOpen(true);
   };
 
-  const applyExample = (example: typeof CATEGORY_EXAMPLES[0]) => {
+  const applyExample = (example: (typeof CATEGORY_EXAMPLES)[0]) => {
     setFormData({
       ...formData,
       name: example.name,
-      description: example.desc
+      description: example.desc,
     });
   };
 
@@ -150,7 +175,7 @@ export default function AdminServicesPage() {
 
     try {
       const res = await api.post("/uploads/service", uploadData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData({ ...formData, imageKey: res.data.filename });
       setPreviewUrl(getMediaUrl(res.data.url));
@@ -208,7 +233,7 @@ export default function AdminServicesPage() {
     try {
       await api.patch(`/admin/services/${selectedCategoryForSchedule.id}`, {
         workingHoursStart: formData.workingHoursStart,
-        workingHoursEnd: formData.workingHoursEnd
+        workingHoursEnd: formData.workingHoursEnd,
       });
       toast.success("Horaires mis à jour !");
       setIsScheduleModalOpen(false);
@@ -220,21 +245,16 @@ export default function AdminServicesPage() {
     }
   };
 
-  const filteredCategories = categories.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const filteredCategories = categories.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-10 h-10 animate-spin text-[#BC9C6C]" />
-      </div>
-    );
+    return <ServicesSkeleton />;
   }
 
   return (
     <div className="space-y-8 md:space-y-12 w-full min-w-0 pb-20">
-
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="min-w-0 flex-1">
@@ -270,18 +290,47 @@ export default function AdminServicesPage() {
       {/* Stats Quick View */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
-          { label: "Total Catégories", value: categories.length, icon: LayoutGrid, color: "bg-gray-50 text-gray-400" },
-          { label: "Actives", value: categories.filter(c => c.isActive).length, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
-          { label: "Inactives", value: categories.filter(c => !c.isActive).length, icon: XCircle, color: "bg-red-50 text-red-500" },
-          { label: "Nouveau (Mois)", value: 0, icon: Plus, color: "bg-blue-50 text-blue-500" },
+          {
+            label: "Total Catégories",
+            value: categories.length,
+            icon: LayoutGrid,
+            color: "bg-gray-50 text-gray-400",
+          },
+          {
+            label: "Actives",
+            value: categories.filter((c) => c.isActive).length,
+            icon: CheckCircle2,
+            color: "bg-green-50 text-green-600",
+          },
+          {
+            label: "Inactives",
+            value: categories.filter((c) => !c.isActive).length,
+            icon: XCircle,
+            color: "bg-red-50 text-red-500",
+          },
+          {
+            label: "Nouveau (Mois)",
+            value: 0,
+            icon: Plus,
+            color: "bg-blue-50 text-blue-500",
+          },
         ].map((stat, i) => (
-          <div key={i} className="bg-white p-4 md:p-6 border border-gray-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-h-[110px] md:min-h-0">
-            <div className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl shrink-0 ${stat.color}`}>
+          <div
+            key={i}
+            className="bg-white p-4 md:p-6 border border-gray-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-h-[110px] md:min-h-0"
+          >
+            <div
+              className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl shrink-0 ${stat.color}`}
+            >
               <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xl md:text-2xl font-black text-[#321B13] truncate">{stat.value}</p>
-              <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-1 truncate">{stat.label}</p>
+              <p className="text-xl md:text-2xl font-black text-[#321B13] truncate">
+                {stat.value}
+              </p>
+              <p className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-1 truncate">
+                {stat.label}
+              </p>
             </div>
           </div>
         ))}
@@ -312,14 +361,27 @@ export default function AdminServicesPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleOpenModal(cat)} className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 hover:text-[#BC9C6C] transition-colors"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleOpenDeleteModal(cat)} className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  <button
+                    onClick={() => handleOpenModal(cat)}
+                    className="p-2 hover:bg-gray-50 rounded-lg text-gray-400 hover:text-[#BC9C6C] transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleOpenDeleteModal(cat)}
+                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              <h3 className="text-xl font-black text-[#321B13] uppercase tracking-tighter mb-2">{cat.name}</h3>
+              <h3 className="text-xl font-black text-[#321B13] uppercase tracking-tighter mb-2">
+                {cat.name}
+              </h3>
               <p className="text-[10px] text-gray-400 leading-relaxed line-clamp-2 mb-6">
-                {cat.description || "Aucune description définie pour cette catégorie."}
+                {cat.description ||
+                  "Aucune description définie pour cette catégorie."}
               </p>
 
               <div className="flex items-center gap-2 mb-4">
@@ -334,10 +396,10 @@ export default function AdminServicesPage() {
               <button
                 onClick={() => {
                   setSelectedCategoryForSchedule(cat);
-                  setFormData(prev => ({
+                  setFormData((prev) => ({
                     ...prev,
                     workingHoursStart: cat.workingHoursStart || "06:00",
-                    workingHoursEnd: cat.workingHoursEnd || "18:00"
+                    workingHoursEnd: cat.workingHoursEnd || "18:00",
                   }));
                   setIsScheduleModalOpen(true);
                 }}
@@ -348,11 +410,17 @@ export default function AdminServicesPage() {
               </button>
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] ${cat.isActive ? "text-green-600" : "text-red-500"}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${cat.isActive ? "bg-green-600 animate-pulse" : "bg-red-500"}`} />
+                <div
+                  className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] ${cat.isActive ? "text-green-600" : "text-red-500"}`}
+                >
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${cat.isActive ? "bg-green-600 animate-pulse" : "bg-red-500"}`}
+                  />
                   {cat.isActive ? "Actif" : "Inactif"}
                 </div>
-                <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">ID: {cat.id.slice(0, 8)}</span>
+                <span className="text-[8px] font-bold text-gray-300 uppercase tracking-widest">
+                  ID: {cat.id.slice(0, 8)}
+                </span>
               </div>
             </div>
           </motion.div>
@@ -361,7 +429,9 @@ export default function AdminServicesPage() {
         {filteredCategories.length === 0 && (
           <div className="col-span-full py-20 text-center flex flex-col items-center gap-4 bg-gray-50/50 rounded-[2rem] border border-dashed border-gray-200">
             <AlertTriangle className="w-10 h-10 text-gray-200" />
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 italic">Aucune catégorie définie</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 italic">
+              Aucune catégorie définie
+            </p>
           </div>
         )}
       </div>
@@ -375,7 +445,10 @@ export default function AdminServicesPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6"
           >
-            <div className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
+            <div
+              className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md"
+              onClick={() => setIsModalOpen(false)}
+            />
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
@@ -386,20 +459,27 @@ export default function AdminServicesPage() {
                 <div className="flex justify-between items-start mb-6 md:mb-8">
                   <div>
                     <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#321B13] uppercase tracking-tighter">
-                      {editingCategory ? "Modifier Catégorie" : "Nouvelle Catégorie"}
+                      {editingCategory
+                        ? "Modifier Catégorie"
+                        : "Nouvelle Catégorie"}
                     </h2>
                     <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#BC9C6C] mt-1 md:mt-2">
                       Définir un nouveau type de service
                     </p>
                   </div>
-                  <button onClick={() => setIsModalOpen(false)} className="p-2 sm:p-3 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2 sm:p-3 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors"
+                  >
                     <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   </button>
                 </div>
 
                 {!editingCategory && (
                   <div className="mb-8 md:mb-10 space-y-3 md:space-y-4">
-                    <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-400">Suggestions rapides</p>
+                    <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-gray-400">
+                      Suggestions rapides
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {CATEGORY_EXAMPLES.map((ex) => (
                         <button
@@ -416,26 +496,40 @@ export default function AdminServicesPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+                <form
+                  onSubmit={handleSubmit}
+                  className="space-y-6 md:space-y-8"
+                >
                   <div className="space-y-5 md:space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Nom de la catégorie</label>
+                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        Nom de la catégorie
+                      </label>
                       <input
                         type="text"
                         required
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
                         className="w-full bg-gray-50 border border-gray-100 py-3 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl text-sm font-bold focus:outline-none focus:border-[#BC9C6C] transition-all"
                         placeholder="ex: Architecture d'intérieur"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Description (optionnel)</label>
+                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        Description (optionnel)
+                      </label>
                       <textarea
                         rows={3}
                         value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            description: e.target.value,
+                          })
+                        }
                         className="w-full bg-gray-50 border border-gray-100 py-3 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl text-sm focus:outline-none focus:border-[#BC9C6C] transition-all resize-none"
                         placeholder="Décrivez brièvement ce type de service..."
                       />
@@ -443,14 +537,19 @@ export default function AdminServicesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Prix de base</label>
+                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          Prix de base
+                        </label>
                         <input
                           type="number"
                           required
                           value={formData.price === 0 ? "" : formData.price}
                           onChange={(e) => {
                             const val = e.target.value;
-                            setFormData({ ...formData, price: val === "" ? 0 : Number(val) });
+                            setFormData({
+                              ...formData,
+                              price: val === "" ? 0 : Number(val),
+                            });
                           }}
                           onFocus={(e) => e.target.select()}
                           className="w-full bg-gray-50 border border-gray-100 py-3 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl text-sm font-bold focus:outline-none focus:border-[#BC9C6C] transition-all"
@@ -458,10 +557,17 @@ export default function AdminServicesPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Devise</label>
+                        <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          Devise
+                        </label>
                         <select
                           value={formData.currency}
-                          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              currency: e.target.value,
+                            })
+                          }
                           className="w-full bg-gray-50 border border-gray-100 py-3 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl text-sm font-bold focus:outline-none focus:border-[#BC9C6C] transition-all appearance-none cursor-pointer"
                         >
                           <option value="USD">USD ($)</option>
@@ -471,11 +577,17 @@ export default function AdminServicesPage() {
                     </div>
 
                     <div className="space-y-3 md:space-y-4">
-                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Image illustrative</label>
+                      <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        Image illustrative
+                      </label>
                       <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 p-4 md:p-6 bg-gray-50/50 rounded-[1.5rem] md:rounded-[2rem] border border-gray-100">
                         <div className="w-20 h-20 md:w-24 md:h-24 bg-white border-2 border-dashed border-gray-100 rounded-2xl md:rounded-3xl flex items-center justify-center overflow-hidden group relative shrink-0">
                           {previewUrl ? (
-                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <ImageIcon className="w-6 h-6 md:w-8 md:h-8 text-gray-200" />
                           )}
@@ -489,9 +601,17 @@ export default function AdminServicesPage() {
                           <label className="inline-flex items-center gap-2 md:gap-3 px-5 md:px-6 py-2 md:py-3 bg-white border border-gray-100 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#321B13] cursor-pointer hover:border-[#BC9C6C] transition-all shadow-sm">
                             <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
                             {uploading ? "Upload..." : "Choisir une icône"}
-                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              disabled={uploading}
+                            />
                           </label>
-                          <p className="text-[7px] md:text-[8px] text-gray-400 font-bold uppercase tracking-widest">Formats: JPG, PNG, WebP. Max 5MB.</p>
+                          <p className="text-[7px] md:text-[8px] text-gray-400 font-bold uppercase tracking-widest">
+                            Formats: JPG, PNG, WebP. Max 5MB.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -501,10 +621,20 @@ export default function AdminServicesPage() {
                         type="checkbox"
                         id="isActive"
                         checked={formData.isActive}
-                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            isActive: e.target.checked,
+                          })
+                        }
                         className="w-5 h-5 md:w-6 md:h-6 accent-[#BC9C6C] rounded-md"
                       />
-                      <label htmlFor="isActive" className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#321B13] cursor-pointer">Activer cette catégorie immédiatement</label>
+                      <label
+                        htmlFor="isActive"
+                        className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#321B13] cursor-pointer"
+                      >
+                        Activer cette catégorie immédiatement
+                      </label>
                     </div>
                   </div>
 
@@ -513,7 +643,11 @@ export default function AdminServicesPage() {
                     disabled={formLoading}
                     className="w-full bg-[#321B13] text-white py-4 md:py-5 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 hover:bg-[#BC9C6C] transition-all shadow-xl shadow-[#321B13]/10"
                   >
-                    {formLoading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <Save className="w-4 h-4 md:w-5 md:h-5" />}
+                    {formLoading ? (
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 md:w-5 md:h-5" />
+                    )}
                     {editingCategory ? "Mettre à jour" : "Créer la catégorie"}
                   </button>
                 </form>
@@ -532,7 +666,10 @@ export default function AdminServicesPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[110] flex items-center justify-center p-4"
           >
-            <div className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md" onClick={() => setIsDeleteModalOpen(false)} />
+            <div
+              className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md"
+              onClick={() => setIsDeleteModalOpen(false)}
+            />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -542,10 +679,17 @@ export default function AdminServicesPage() {
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle className="w-10 h-10 text-red-500" />
               </div>
-              <h3 className="text-2xl font-black text-[#321B13] uppercase tracking-tighter mb-4">Supprimer ?</h3>
+              <h3 className="text-2xl font-black text-[#321B13] uppercase tracking-tighter mb-4">
+                Supprimer ?
+              </h3>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-relaxed mb-8">
-                Êtes-vous sûr de vouloir supprimer <span className="text-[#321B13]">"{categoryToDelete.name}"</span> ? <br />
-                Cette action est irréversible et affectera les futurs prestataires.
+                Êtes-vous sûr de vouloir supprimer{" "}
+                <span className="text-[#321B13]">
+                  "{categoryToDelete.name}"
+                </span>{" "}
+                ? <br />
+                Cette action est irréversible et affectera les futurs
+                prestataires.
               </p>
 
               <div className="flex flex-col gap-3">
@@ -554,7 +698,11 @@ export default function AdminServicesPage() {
                   disabled={formLoading}
                   className="w-full bg-red-500 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center justify-center gap-2"
                 >
-                  {formLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  {formLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
                   Confirmer la suppression
                 </button>
                 <button
@@ -578,7 +726,10 @@ export default function AdminServicesPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[110] flex items-center justify-center p-4"
           >
-            <div className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md" onClick={() => setIsScheduleModalOpen(false)} />
+            <div
+              className="absolute inset-0 bg-[#321B13]/60 backdrop-blur-md"
+              onClick={() => setIsScheduleModalOpen(false)}
+            />
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -592,11 +743,18 @@ export default function AdminServicesPage() {
                       <Clock className="w-6 h-6 text-[#BC9C6C]" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-black text-[#321B13] uppercase tracking-tighter">Horaires & Détails</h2>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-[#BC9C6C] mt-1">{selectedCategoryForSchedule.name}</p>
+                      <h2 className="text-xl font-black text-[#321B13] uppercase tracking-tighter">
+                        Horaires & Détails
+                      </h2>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-[#BC9C6C] mt-1">
+                        {selectedCategoryForSchedule.name}
+                      </p>
                     </div>
                   </div>
-                  <button onClick={() => setIsScheduleModalOpen(false)} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors">
+                  <button
+                    onClick={() => setIsScheduleModalOpen(false)}
+                    className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors"
+                  >
                     <X className="w-4 h-4 text-gray-400" />
                   </button>
                 </div>
@@ -607,24 +765,40 @@ export default function AdminServicesPage() {
                       <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-50">
                         <Clock className="w-4 h-4 text-[#BC9C6C]" />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#321B13]">Disponibilité Standard</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#321B13]">
+                        Disponibilité Standard
+                      </span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Ouverture</label>
+                        <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">
+                          Ouverture
+                        </label>
                         <input
                           type="time"
                           value={formData.workingHoursStart}
-                          onChange={(e) => setFormData({ ...formData, workingHoursStart: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              workingHoursStart: e.target.value,
+                            })
+                          }
                           className="w-full bg-white border border-gray-100 py-3 px-4 rounded-xl text-lg font-black text-[#321B13] focus:outline-none focus:border-[#BC9C6C]"
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Fermeture</label>
+                        <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">
+                          Fermeture
+                        </label>
                         <input
                           type="time"
                           value={formData.workingHoursEnd}
-                          onChange={(e) => setFormData({ ...formData, workingHoursEnd: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              workingHoursEnd: e.target.value,
+                            })
+                          }
                           className="w-full bg-white border border-gray-100 py-3 px-4 rounded-xl text-lg font-black text-[#321B13] focus:outline-none focus:border-[#BC9C6C]"
                         />
                       </div>
@@ -636,13 +810,23 @@ export default function AdminServicesPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="text-[9px] font-black uppercase tracking-widest text-gray-400">À propos de ce service</h4>
+                    <h4 className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                      À propos de ce service
+                    </h4>
                     <p className="text-sm text-[#321B13]/70 leading-relaxed font-medium">
-                      {selectedCategoryForSchedule.description || "Aucun détail supplémentaire pour ce service."}
+                      {selectedCategoryForSchedule.description ||
+                        "Aucun détail supplémentaire pour ce service."}
                     </p>
                     <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Tarif de base</span>
-                      <span className="text-lg font-black text-[#321B13]">{selectedCategoryForSchedule.price} {selectedCategoryForSchedule.currency === "USD" ? "$" : "FC"}</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                        Tarif de base
+                      </span>
+                      <span className="text-lg font-black text-[#321B13]">
+                        {selectedCategoryForSchedule.price}{" "}
+                        {selectedCategoryForSchedule.currency === "USD"
+                          ? "$"
+                          : "FC"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -652,7 +836,11 @@ export default function AdminServicesPage() {
                   disabled={formLoading}
                   className="w-full mt-10 bg-[#321B13] text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#BC9C6C] transition-all shadow-xl shadow-[#321B13]/10 flex items-center justify-center gap-2"
                 >
-                  {formLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {formLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
                   Mise a jour les horaires
                 </button>
               </div>

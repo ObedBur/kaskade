@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAdminGuard } from '@/lib/use-admin-guard';
 import api from '@/lib/api';
+import { NotificationsSkeleton } from '@/components/admin/Skeleton';
 import { 
   Bell, 
   CheckCircle2, 
@@ -80,11 +81,7 @@ export default function AdminNotificationsPage() {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-transparent">
-        <Loader2 className="w-8 h-8 animate-spin text-[#BC9C6C]" />
-      </div>
-    );
+    return <NotificationsSkeleton />;
   }
 
   const unreadCount = notifications.filter(n => !n.isRead).length;

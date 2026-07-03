@@ -39,7 +39,9 @@ export class UploadsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5 MB
-          new FileTypeValidator({ fileType: /^image\/(jpeg|jpg|png|webp|gif)$/ }),
+          new FileTypeValidator({
+            fileType: /^image\/(jpeg|jpg|png|webp|gif)$/,
+          }),
         ],
         errorHttpStatusCode: 400,
       }),
@@ -56,7 +58,41 @@ export class UploadsController {
 
     const result = this.uploadsService.saveAvatar(file);
 
-    this.logger.log(`✅ Avatar enregistré → ${result.url}`);
+    this.logger.log(`Avatar enregistré -> ${result.url}`);
+    return result;
+  }
+
+  @Post('service')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+    }),
+  )
+  async uploadServiceImage(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({
+            fileType: /^image\/(jpeg|jpg|png|webp|gif)$/,
+          }),
+        ],
+        errorHttpStatusCode: 400,
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Aucun fichier reçu.');
+    }
+
+    this.logger.log(
+      `Upload service | Taille: ${(file.size / 1024).toFixed(1)} KB | Type: ${file.mimetype}`,
+    );
+
+    const result = this.uploadsService.saveServiceImage(file);
+
+    this.logger.log(`Image service enregistrée -> ${result.url}`);
     return result;
   }
 }

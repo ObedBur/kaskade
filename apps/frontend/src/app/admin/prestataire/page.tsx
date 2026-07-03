@@ -23,6 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PrestatairesSkeleton } from "@/components/admin/Skeleton";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
 import { toast } from "sonner";
@@ -192,11 +193,7 @@ export default function AdminPrestatairePage() {
   }, []);
 
   if (authLoading || (isAuthenticated && dataLoading)) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="w-10 h-10 animate-spin text-[#BC9C6C]" />
-      </div>
-    );
+    return <PrestatairesSkeleton />;
   }
 
   if (!isAuthenticated) return null;

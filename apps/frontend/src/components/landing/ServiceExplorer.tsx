@@ -1,6 +1,14 @@
 "use client";
 
-import { Search, SlidersHorizontal, MapPin, Calculator, Calendar, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  MapPin,
+  Calculator,
+  Calendar,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
@@ -13,6 +21,7 @@ export interface Service {
   description: string;
   price: number;
   imageUrl: string | null;
+  imageKey?: string | null;
   workingHoursStart?: string;
   workingHoursEnd?: string;
   provider?: {
@@ -39,11 +48,11 @@ export default function ServiceExplorer() {
     const fetchServices = async () => {
       try {
         setIsLoading(true);
-        const response = await api.get('/services');
+        const response = await api.get("/services");
         setServices(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
-        console.error('Erreur chargement services:', err);
-        setError('Impossible de charger les services. Veuillez réessayer.');
+        console.error("Erreur chargement services:", err);
+        setError("Impossible de charger les services. Veuillez réessayer.");
       } finally {
         setIsLoading(false);
       }
@@ -54,13 +63,11 @@ export default function ServiceExplorer() {
 
   return (
     <section className="py-16 md:py-20 bg-[#F5F3ED] relative overflow-hidden font-sans border-y border-ocre/10">
-
       {/* Éléments de structure (Glows Kaskade) */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ocre/5 rounded-full blur-[100px] -z-10 translate-x-1/4 -translate-y-1/4" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-chocolat/5 rounded-full blur-[100px] -z-10 -translate-x-1/4 translate-y-1/4" />
 
       <div className="arcture-container relative">
-
         {/* EN-TÊTE : Inspiré de Stitch mais Style Kaskade */}
         <div className="max-w-4xl mb-16 md:mb-24">
           <motion.p
@@ -74,17 +81,19 @@ export default function ServiceExplorer() {
 
           <h2 className="text-5xl md:text-7xl font-black text-chocolat tracking-tighter leading-none uppercase mb-8">
             Trouver un <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-ocre to-[#d4af37] italic font-serif font-normal lowercase">service.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-ocre to-[#d4af37] italic font-serif font-normal lowercase">
+              service.
+            </span>
           </h2>
 
           <p className="text-chocolat/60 text-lg md:text-xl font-medium leading-relaxed max-w-2xl">
-            Parcourez et demandez des services locaux certifiés pour tous vos besoins quotidiens, avec la garantie de qualité Kaskade.
+            Parcourez et demandez des services locaux certifiés pour tous vos
+            besoins quotidiens, avec la garantie de qualité Kaskade.
           </p>
         </div>
 
         {/* BARRE DE RECHERCHE & FILTRES : Style Premium Architectural */}
         <div className="flex flex-col gap-10">
-
           {/* Bloc de Recherche (Inspiré de Stitch Search Bar) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
@@ -119,27 +128,37 @@ export default function ServiceExplorer() {
                 className="flex items-center gap-3 px-6 py-4 bg-white border border-ocre/10 rounded-full hover:border-ocre hover:bg-off-white transition-all group shadow-sm"
               >
                 <filter.icon className="w-4 h-4 text-chocolat group-hover:text-ocre transition-colors" />
-                <span className="text-[11px] font-black text-chocolat uppercase tracking-widest">{filter.name}</span>
+                <span className="text-[11px] font-black text-chocolat uppercase tracking-widest">
+                  {filter.name}
+                </span>
               </motion.button>
             ))}
           </div>
-
         </div>
 
         {/* GRILLE DE SERVICES */}
         {isLoading ? (
           <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-4 py-24 text-chocolat/50">
             <Loader2 className="w-10 h-10 animate-spin text-ocre" />
-            <p className="text-sm font-bold uppercase tracking-widest">Chargement des services...</p>
+            <p className="text-sm font-bold uppercase tracking-widest">
+              Chargement des services...
+            </p>
           </div>
         ) : error ? (
           <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-3 py-24 text-center">
             <p className="text-chocolat font-bold">{error}</p>
-            <button onClick={() => window.location.reload()} className="text-ocre text-sm font-black uppercase tracking-widest border-b border-ocre">Réessayer</button>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-ocre text-sm font-black uppercase tracking-widest border-b border-ocre"
+            >
+              Réessayer
+            </button>
           </div>
         ) : services.length === 0 ? (
           <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-3 py-24 text-center">
-            <p className="text-chocolat/50 font-bold">Aucun service disponible pour le moment.</p>
+            <p className="text-chocolat/50 font-bold">
+              Aucun service disponible pour le moment.
+            </p>
           </div>
         ) : (
           <div className="mt-12 md:mt-20 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
@@ -155,7 +174,6 @@ export default function ServiceExplorer() {
             Explorer tous les experts
           </button>
         </div>
-
       </div>
     </section>
   );

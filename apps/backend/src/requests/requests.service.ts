@@ -18,30 +18,57 @@ export class RequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
-  ) { }
+  ) {}
+
+  private withImageUrl<T extends { imageKey?: string | null }>(
+    service: T | null | undefined,
+  ) {
+    if (!service) return service;
+
+    return {
+      ...service,
+      imageUrl: service.imageKey
+        ? `/uploads/services/${service.imageKey}`
+        : null,
+    };
+  }
+
+  private withServiceImageUrl<T extends { service?: any }>(request: T) {
+    return {
+      ...request,
+      service: this.withImageUrl(request.service),
+    };
+  }
 
   async create(clientId: string, createRequestDto: any) {
-    const { serviceId, phoneNumber, operator, ...requestData } = createRequestDto;
+    const { serviceId, phoneNumber, operator, ...requestData } =
+      createRequestDto;
 
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
     });
 
     if (!service || !service.isActive) {
-      this.logger.error(`TENTATIVE COMMANDE : Service ${serviceId} introuvable.`);
+      this.logger.error(
+        `TENTATIVE COMMANDE : Service ${serviceId} introuvable.`,
+      );
       throw new BadRequestException('Le service spécifié est introuvable.');
     }
 
     if (!service.price) {
-      throw new BadRequestException('Le prix du service n\'est pas défini.');
+      throw new BadRequestException("Le prix du service n'est pas défini.");
     }
     const requiredDeposit = service.price * 0.5;
 
-    this.logger.log(`[PAIEMENT INITIÉ] Demande de ${requiredDeposit}$ via ${operator || 'MOBILE MONEY'} pour le numéro ${phoneNumber}`);
+    this.logger.log(
+      `[PAIEMENT INITIÉ] Demande de ${requiredDeposit}$ via ${operator || 'MOBILE MONEY'} pour le numéro ${phoneNumber}`,
+    );
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    this.logger.log(`[WEBHOOK REÇU] Paiement de ${requiredDeposit}$ confirmé par l'opérateur.`);
+    this.logger.log(
+      `[WEBHOOK REÇU] Paiement de ${requiredDeposit}$ confirmé par l'opérateur.`,
+    );
 
     const request = await this.prisma.request.create({
       data: {
@@ -49,26 +76,31 @@ export class RequestsService {
         serviceId,
         clientId,
         price: service.price,
-        status: RequestStatus.APPROVED
+        status: RequestStatus.APPROVED,
       },
       include: { service: true, client: true },
     });
 
     this.logger.log(
-      `COMMANDE VALIDÉE : Demande ID ${request.id} créée suite au paiement de ${requiredDeposit}$.`
+      `COMMANDE VALIDÉE : Demande ID ${request.id} créée suite au paiement de ${requiredDeposit}$.`,
     );
 
-    this.eventEmitter.emit('request.created', { requestId: request.id, clientId });
+    this.eventEmitter.emit('request.created', {
+      requestId: request.id,
+      clientId,
+    });
 
-    return request;
+    return this.withServiceImageUrl(request);
   }
 
   async findMyRequests(clientId: string) {
-    return this.prisma.request.findMany({
+    const requests = await this.prisma.request.findMany({
       where: { clientId },
       include: { service: true },
       orderBy: { createdAt: 'desc' },
     });
+
+    return requests.map((request) => this.withServiceImageUrl(request));
   }
 
   async findOneForClient(id: string, clientId: string) {
@@ -82,28 +114,38 @@ export class RequestsService {
       throw new ForbiddenException("Vous n'avez pas accès à cette demande.");
     }
 
-    return request;
+    return this.withServiceImageUrl(request);
   }
 
-  async updateForClient(id: string, clientId: string, updateRequestDto: UpdateRequestDto) {
+  async updateForClient(
+    id: string,
+    clientId: string,
+    updateRequestDto: UpdateRequestDto,
+  ) {
     const request = await this.findOneForClient(id, clientId);
 
     if (request.status !== RequestStatus.PENDING) {
-      throw new BadRequestException('Seules les demandes en attente peuvent être modifiées.');
+      throw new BadRequestException(
+        'Seules les demandes en attente peuvent être modifiées.',
+      );
     }
 
-    return this.prisma.request.update({
+    const updatedRequest = await this.prisma.request.update({
       where: { id },
       data: updateRequestDto,
       include: { service: true },
     });
+
+    return this.withServiceImageUrl(updatedRequest);
   }
 
   async removeForClient(id: string, clientId: string) {
     const request = await this.findOneForClient(id, clientId);
 
     if (request.status !== RequestStatus.PENDING) {
-      throw new BadRequestException('Seules les demandes en attente peuvent être annulées.');
+      throw new BadRequestException(
+        'Seules les demandes en attente peuvent être annulées.',
+      );
     }
 
     const result = await this.prisma.request.delete({ where: { id } });
@@ -115,16 +157,24 @@ export class RequestsService {
   }
 
   async findAll() {
-    return this.prisma.request.findMany({
+    const requests = await this.prisma.request.findMany({
       include: {
         service: true,
         client: {
-          select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            avatarUrl: true,
+          },
         },
         payments: { where: { status: 'SUCCESS' }, take: 1 },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return requests.map((request) => this.withServiceImageUrl(request));
   }
 
   async findOne(id: string) {
@@ -133,24 +183,34 @@ export class RequestsService {
       include: {
         service: true,
         client: {
-          select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            avatarUrl: true,
+          },
         },
         payments: { where: { status: 'SUCCESS' }, take: 1 },
       },
     });
 
     if (!request) throw new NotFoundException('Demande introuvable.');
-    return request;
+    return this.withServiceImageUrl(request);
   }
 
   async approve(id: string) {
     const request = await this.findOne(id);
 
     if (request.status !== RequestStatus.PENDING) {
-      throw new BadRequestException('Seules les demandes en attente peuvent être approuvées.');
+      throw new BadRequestException(
+        'Seules les demandes en attente peuvent être approuvées.',
+      );
     }
 
-    const service = await this.prisma.service.findUnique({ where: { id: request.serviceId } });
+    const service = await this.prisma.service.findUnique({
+      where: { id: request.serviceId },
+    });
     const price = service?.price ?? 0;
 
     const updatedRequest = await this.prisma.request.update({
@@ -158,8 +218,13 @@ export class RequestsService {
       data: { status: RequestStatus.APPROVED, price },
     });
 
-    this.logger.log(`Demande ${id} APPROUVÉE par l'admin (Prix fixé: ${price})`);
-    this.eventEmitter.emit('request.approved', { requestId: updatedRequest.id, serviceId: updatedRequest.serviceId });
+    this.logger.log(
+      `Demande ${id} APPROUVÉE par l'admin (Prix fixé: ${price})`,
+    );
+    this.eventEmitter.emit('request.approved', {
+      requestId: updatedRequest.id,
+      serviceId: updatedRequest.serviceId,
+    });
 
     return updatedRequest;
   }
@@ -168,7 +233,9 @@ export class RequestsService {
     const request = await this.findOne(id);
 
     if (request.status !== RequestStatus.PENDING) {
-      throw new BadRequestException('Seules les demandes en attente peuvent être rejetées.');
+      throw new BadRequestException(
+        'Seules les demandes en attente peuvent être rejetées.',
+      );
     }
 
     const updatedRequest = await this.prisma.request.update({
@@ -217,7 +284,13 @@ export class RequestsService {
       where: { id: serviceId },
       include: {
         providers: {
-          select: { id: true, fullName: true, isActive: true, role: true, metier: true },
+          select: {
+            id: true,
+            fullName: true,
+            isActive: true,
+            role: true,
+            metier: true,
+          },
         },
       },
     });
@@ -226,33 +299,57 @@ export class RequestsService {
       throw new NotFoundException('Service introuvable ou inactif.');
     }
 
-    let activeProviders = service.providers.filter(p => p.isActive);
+    let activeProviders = service.providers.filter((p) => p.isActive);
 
     if (activeProviders.length === 0) {
-      this.logger.log(`Aucun prestataire lié à "${service.name}". Recherche par métier "${service.category}" ou "${service.name}"...`);
+      this.logger.log(
+        `Aucun prestataire lié à "${service.name}". Recherche par métier "${service.category}" ou "${service.name}"...`,
+      );
 
       const fallbackProviders = await this.prisma.user.findMany({
         where: {
           role: Role.PROVIDER,
           isActive: true,
           OR: [
-            { metier: { contains: service.name.substring(0, 4), mode: 'insensitive' } },
-            { metier: { contains: service.category.substring(0, 4), mode: 'insensitive' } },
+            {
+              metier: {
+                contains: service.name.substring(0, 4),
+                mode: 'insensitive',
+              },
+            },
+            {
+              metier: {
+                contains: service.category.substring(0, 4),
+                mode: 'insensitive',
+              },
+            },
           ],
         },
-        select: { id: true, fullName: true, isActive: true, role: true, metier: true },
+        select: {
+          id: true,
+          fullName: true,
+          isActive: true,
+          role: true,
+          metier: true,
+        },
       });
 
       if (fallbackProviders.length > 0) {
-        this.logger.log(`${fallbackProviders.length} prestataire(s) trouvé(s) par métier.`);
+        this.logger.log(
+          `${fallbackProviders.length} prestataire(s) trouvé(s) par métier.`,
+        );
         activeProviders = fallbackProviders;
       }
     }
 
-    this.logger.log(`Service "${service.name}" : ${activeProviders.length} prestataire(s) actif(s) détecté(s).`);
+    this.logger.log(
+      `Service "${service.name}" : ${activeProviders.length} prestataire(s) actif(s) détecté(s).`,
+    );
 
     if (activeProviders.length === 0) {
-      this.logger.warn(`Aucun prestataire actif trouvé (ni lié, ni par métier) pour "${service.name}".`);
+      this.logger.warn(
+        `Aucun prestataire actif trouvé (ni lié, ni par métier) pour "${service.name}".`,
+      );
     }
 
     const totalProviders = activeProviders.length;
@@ -303,7 +400,15 @@ export class RequestsService {
       }
     });
 
-    const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    const DAY_NAMES = [
+      'Dimanche',
+      'Lundi',
+      'Mardi',
+      'Mercredi',
+      'Jeudi',
+      'Vendredi',
+      'Samedi',
+    ];
 
     const weeks: any[] = [];
     let currentDay = new Date(today);
@@ -323,13 +428,23 @@ export class RequestsService {
         const slots = timeSlots.map((time) => {
           const slotDateTime = new Date(`${dateStr}T${time}:00`);
           if (slotDateTime <= minBookingTime) {
-            return { time, availableProviders: 0, available: false, reason: 'past' };
+            return {
+              time,
+              availableProviders: 0,
+              available: false,
+              reason: 'past',
+            };
           }
           if (isSunday) {
-            return { time, availableProviders: 0, available: false, reason: 'sunday_off' };
+            return {
+              time,
+              availableProviders: 0,
+              available: false,
+              reason: 'sunday_off',
+            };
           }
           const busyProviders = activeProviders.filter((p) =>
-            occupiedKeys.has(`${dateStr}|${time}|${p.id}`)
+            occupiedKeys.has(`${dateStr}|${time}|${p.id}`),
           ).length;
 
           const availableProviders = totalProviders - busyProviders;
@@ -357,7 +472,10 @@ export class RequestsService {
       const lastDay = weekDays[weekDays.length - 1];
       const fmt = (d: string) => {
         const dt = new Date(d);
-        return dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+        return dt.toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+        });
       };
 
       weeks.push({
@@ -381,5 +499,4 @@ export class RequestsService {
       weeks,
     };
   }
-
 }

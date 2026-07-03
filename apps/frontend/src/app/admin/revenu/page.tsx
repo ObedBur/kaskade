@@ -5,6 +5,7 @@ import { Search, CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, ChevronDow
 import { motion } from "framer-motion";
 import { useAdminGuard } from "@/lib/use-admin-guard";
 import api from "@/lib/api";
+import { RevenusSkeleton } from "@/components/admin/Skeleton";
 
 type TransactionItem = {
   id: string;
@@ -58,7 +59,7 @@ export default function AdminFinancialsPage() {
   );
 
   if (authLoading || (isAuthenticated && dataLoading)) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="w-10 h-10 animate-spin text-[#FF6B00]" /></div>;
+    return <RevenusSkeleton />;
   }
 
   if (!isAuthenticated) return null;
