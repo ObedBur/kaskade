@@ -33,6 +33,7 @@ model User {
   providerRequests     Request[]           @relation("ProviderRequests")
   providerApplications ProviderApplication[]
   services             Service[]
+  categories           Category[]
   notifications        Notification[]
 
   createdAt     DateTime  @default(now())
@@ -48,7 +49,8 @@ model User {
 model Service {
   id          String    @id @default(uuid())
   name        String    
-  category    String    
+  categoryId  String
+  categoryRef Category  @relation(fields: [categoryId], references: [id])
   description String?   @db.Text
   price       Float?    
   currency    String    @default("USD")
@@ -66,7 +68,24 @@ model Service {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@index([category])
+  @@index([categoryId])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  name        String
+  description String?   @db.Text
+  imageKey    String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  services    Service[]
+  providers   User[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model Payment {

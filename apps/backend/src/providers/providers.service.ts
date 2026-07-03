@@ -7,6 +7,7 @@ import { AssignServicesDto } from './dto/assign-services.dto';
 import { RequestStatus, Role, Status } from '@prisma/client';
 import { UpdateProviderProfileDto } from './dto/update-provider-profile.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ProviderMatchingService } from './provider-matching.service';
 
 @Injectable()
 export class ProvidersService {
@@ -15,6 +16,7 @@ export class ProvidersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly providerMatchingService: ProviderMatchingService,
   ) { }
 
   async apply(userId: string, applyProviderDto: ApplyProviderDto) {
@@ -54,6 +56,9 @@ export class ProvidersService {
           bio: applyProviderDto.bio,
           avatarUrl: applyProviderDto.avatarUrl,
           ...(applyProviderDto.quartier && { quartier: applyProviderDto.quartier }),
+          categories: {
+            connect: applyProviderDto.categoryIds.map((id) => ({ id })),
+          },
         },
       }),
     ]);
@@ -165,6 +170,7 @@ export class ProvidersService {
             experience: true,
             bio: true,
             avatarUrl: true,
+            categories: true,
           },
         },
       },
@@ -204,66 +210,67 @@ export class ProvidersService {
   async findAvailableRequests(providerId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: providerId },
-      include: { services: true },
+      include: { categories: true },
     });
 
     if (!user || user.role !== Role.PROVIDER) {
-      throw new BadRequestException('Accès refusé ou utilisateur non trouvé.');
+      throw new BadRequestException('Acces refuse ou utilisateur non trouve.');
     }
 
-    const assignedServiceIds = user.services.map(s => s.id);
-    this.logger.log(`🔍 [DEBUG] Provider: ${user.fullName} | Metier: ${user.metier} | assignedServices: ${assignedServiceIds.length}`);
+    const eligibleServices = await this.prisma.service.findMany({
+      where: {
+        OR: [
+          { providers: { some: { id: providerId } } },
+          {
+            providers: { none: {} },
+            categoryId: { in: user.categories.map((category) => category.id) },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    const eligibleServiceIds = eligibleServices.map((service) => service.id);
 
     const missions = await this.prisma.request.findMany({
       where: {
-        OR: [
-          { serviceId: { in: assignedServiceIds } },
-          {
-            service: {
-              OR: [
-                { category: { contains: (user.metier || '').substring(0, 4), mode: 'insensitive' } },
-                { name: { contains: (user.metier || '').substring(0, 4), mode: 'insensitive' } },
-              ]
-            }
-          }
-        ],
-        status: RequestStatus.ACCEPTED,
+        serviceId: { in: eligibleServiceIds },
+        providerId: null,
+        status: RequestStatus.APPROVED,
       },
       include: {
-        service: true,
+        service: { include: { categoryRef: true } },
         client: {
-          select: { 
-            id: true, 
-            fullName: true, 
-            quartier: true, 
-            phone: true, 
+          select: {
+            id: true,
+            fullName: true,
+            quartier: true,
+            phone: true,
             avatarUrl: true,
             bio: true,
             isVerified: true,
-            createdAt: true
+            createdAt: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    this.logger.log(`${missions.length} mission(s) disponible(s) trouvée(s) pour ce prestataire.`);
+    this.logger.log(`${missions.length} mission(s) disponible(s) trouvee(s) pour ce prestataire.`);
     return missions;
   }
-
   async acceptRequest(requestId: string, providerId: string) {
     const provider = await this.prisma.user.findUnique({
       where: { id: providerId },
-      include: { services: true },
     });
 
     if (!provider || provider.role !== Role.PROVIDER) {
-      throw new BadRequestException('Action non autorisée.');
+      throw new BadRequestException('Action non autorisee.');
     }
 
     if (provider.status === Status.EN_MISSION) {
-      throw new BadRequestException('Vous êtes déjà assigné à une mission en cours.');
+      throw new BadRequestException('Vous etes deja assigne a une mission en cours.');
     }
+
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
     });
@@ -272,54 +279,33 @@ export class ProvidersService {
       throw new NotFoundException('Demande introuvable.');
     }
 
-    if (request.status !== RequestStatus.ACCEPTED) {
-      throw new BadRequestException('Cette demande n\'est plus disponible.');
+    if (request.status !== RequestStatus.APPROVED) {
+      throw new BadRequestException('Cette demande n'est plus disponible.');
     }
 
-    const directLink = provider.services.some(s => s.id === request.serviceId);
+    const isEligible = await this.providerMatchingService.isProviderEligibleForService(
+      providerId,
+      request.serviceId,
+    );
 
-    let canHandleByMetier = false;
-    if (!directLink) {
-      const service = await this.prisma.service.findUnique({
-        where: { id: request.serviceId },
-        include: { _count: { select: { providers: true } } }
-      });
-
-      const metierMatches = provider.metier && (
-        service?.name.toLowerCase().includes(provider.metier.toLowerCase()) ||
-        service?.category.toLowerCase().includes(provider.metier.toLowerCase())
-      );
-
-      if (metierMatches && service?._count.providers === 0) {
-        canHandleByMetier = true;
-      }
+    if (!isEligible) {
+      throw new BadRequestException('Vous n'etes pas autorise a realiser ce service.');
     }
 
-    if (!directLink && !canHandleByMetier) {
-      throw new BadRequestException('Vous n\'êtes pas autorisé à réaliser ce service.');
-    }
+    const updatedRequest = await this.prisma.request.update({
+      where: { id: requestId },
+      data: {
+        status: RequestStatus.ACCEPTED,
+        providerId,
+        acceptedAt: new Date(),
+      },
+    });
 
-    const [updatedRequest] = await this.prisma.$transaction([
-      this.prisma.request.update({
-        where: { id: requestId },
-        data: {
-          status: RequestStatus.IN_PROGRESS,
-          providerId: providerId,
-          acceptedAt: new Date(),
-        },
-      }),
-      this.prisma.user.update({
-        where: { id: providerId },
-        data: { status: Status.EN_MISSION },
-      })
-    ]);
-
-    this.logger.log(`Mission ${requestId} acceptée par le prestataire ${provider.email} (ID: ${providerId})`);
+    this.logger.log(`Mission ${requestId} acceptee par le prestataire ${provider.email} (ID: ${providerId})`);
     this.eventEmitter.emit('request.accepted', { requestId: updatedRequest.id, clientId: updatedRequest.clientId, providerId });
 
     return updatedRequest;
   }
-
   async rejectRequest(requestId: string, providerId: string) {
     const request = await this.prisma.request.findUnique({ where: { id: requestId } });
     if (!request) throw new NotFoundException('Demande introuvable');
