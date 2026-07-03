@@ -30,7 +30,7 @@ interface SchedulePlan {
 
 // MODAL DE PAIEMENT MOBILE MONEY
 function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { service: Service; onClose: () => void; onSuccess: (phone: string, op: string) => void; schedulePlan?: SchedulePlan | null }) {
-  const [method, setMethod] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
+  const [method, setMethod] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | 'AFRICELL' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const [phase, setPhase] = useState<'INITIAL' | 'INITIATING' | 'WAITING_USSD' | 'SUCCESS'>('INITIAL');
@@ -180,11 +180,12 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
 
             <div className="space-y-3">
               <p className="text-[9px] font-black text-chocolat/40 uppercase tracking-widest">Choisir votre opérateur</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {[
                   { id: 'AIRTEL', img: '/airtel.png', bg: 'bg-white', label: 'Airtel', color: 'border-red-500 bg-red-50', text: 'text-red-600', placeholder: '992345678' },
                   { id: 'ORANGE', img: '/orange.png', bg: 'bg-black border-zinc-800', label: 'Orange', color: 'border-orange-500 bg-orange-50', text: 'text-orange-600', placeholder: '842345678' },
-                  { id: 'MPESA', img: '/m-pesa.png', bg: 'bg-white', label: 'M-Pesa', color: 'border-green-500 bg-green-50', text: 'text-green-600', placeholder: '812345678' }
+                  { id: 'MPESA', img: '/m-pesa.png', bg: 'bg-white', label: 'M-Pesa', color: 'border-green-500 bg-green-50', text: 'text-green-600', placeholder: '812345678' },
+                  { id: 'AFRICELL', img: null, bg: 'bg-red-600', label: 'Africell', color: 'border-red-700 bg-red-50', text: 'text-red-700', placeholder: '912345678' }
                 ].map((op) => (
                   <button
                     key={op.id}
@@ -197,7 +198,11 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
                       </motion.div>
                     )}
                     <div className={`w-8 h-8 ${op.bg} rounded-full flex items-center justify-center overflow-hidden p-1 border border-zinc-100`}>
-                      <img src={op.img} alt={op.label} className="w-full h-full object-contain" />
+                      {op.img ? (
+                        <img src={op.img} alt={op.label} className="w-full h-full object-contain" />
+                      ) : (
+                        <span className="text-[9px] font-black text-white">AF</span>
+                      )}
                     </div>
                     <span className={`text-[8px] font-black uppercase ${method === op.id ? op.text : 'text-chocolat/80'}`}>{op.label}</span>
                   </button>
@@ -217,7 +222,8 @@ function MobileMoneyModal({ service, onClose, onSuccess, schedulePlan }: { servi
                   placeholder={method ? [
                     { id: 'AIRTEL', p: '992345678' },
                     { id: 'ORANGE', p: '842345678' },
-                    { id: 'MPESA', p: '812345678' }
+                    { id: 'MPESA', p: '812345678' },
+                    { id: 'AFRICELL', p: '912345678' }
                   ].find(x => x.id === method)?.p : '812345678'}
                   value={phoneNumber}
                   maxLength={9}

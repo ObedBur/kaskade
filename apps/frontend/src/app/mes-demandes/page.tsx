@@ -14,8 +14,8 @@ import { getMediaUrl } from "@/lib/utils";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1581578731548-c64695cc6958?q=80&w=800";
 
-function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClose: () => void; onPaid: () => void }) {
-  const [operator, setOperator] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | null>(null);
+function PremiumPaymentModal({ request, paymentType, onClose, onPaid }: { request: any; paymentType: 'deposit' | 'final'; onClose: () => void; onPaid: () => void }) {
+  const [operator, setOperator] = useState<'AIRTEL' | 'ORANGE' | 'MPESA' | 'AFRICELL' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phase, setPhase] = useState<'INITIAL' | 'INITIATING' | 'WAITING_USSD'>('INITIAL');
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -23,6 +23,8 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const amount = request.price ? request.price * 0.5 : 0;
+  const endpoint = paymentType === 'deposit' ? '/payments/initiate/deposit' : '/payments/initiate/final';
+  const paymentLabel = paymentType === 'deposit' ? 'Acompte' : 'Solde final';
 
   const handlePay = async () => {
     const cleanPhone = phoneNumber.trim().replace(/\s/g, '');
@@ -39,7 +41,7 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
 
     setPhase('INITIATING');
     try {
-      const res = await api.post('/payments/initiate/deposit', {
+      const res = await api.post(endpoint, {
         requestId: request.id,
         phoneNumber: `+243${cleanPhone}`,
         operator,
@@ -65,7 +67,7 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
         if (res.data.status === 'SUCCESS') {
           if (pollingRef.current) clearInterval(pollingRef.current);
           toast.dismiss('premium-payment');
-          toast.success("Abonnement premium payé avec succès !");
+          toast.success(paymentType === 'deposit' ? "Acompte payé avec succès !" : "Solde final payé avec succès !");
           onPaid();
         } else if (res.data.status === 'FAILED') {
           if (pollingRef.current) clearInterval(pollingRef.current);
@@ -96,7 +98,7 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
       clearInterval(timer);
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [phase, paymentId, onPaid]);
+  }, [phase, paymentId, onPaid, paymentType]);
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-chocolat/80 backdrop-blur-xl">
@@ -108,7 +110,7 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
       >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-ocre">Paiement premium</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-ocre">Paiement {paymentLabel}</p>
             <h3 className="mt-1 text-2xl font-black uppercase tracking-tighter text-chocolat">{request.service?.name}</h3>
           </div>
           <button onClick={onClose} disabled={phase === 'WAITING_USSD'} className="rounded-2xl bg-zinc-100 p-3 text-chocolat disabled:opacity-50">
@@ -117,12 +119,12 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
         </div>
 
         <div className="mb-6 rounded-2xl bg-chocolat p-5 text-white">
-          <p className="text-[9px] font-black uppercase tracking-widest text-white/50">Acompte premium 50%</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/50">{paymentLabel} 50%</p>
           <p className="mt-1 text-4xl font-black tracking-tighter">${amount.toLocaleString()}</p>
         </div>
 
-        <div className="mb-5 grid grid-cols-3 gap-2">
-          {(['AIRTEL', 'ORANGE', 'MPESA'] as const).map((op) => (
+        <div className="mb-5 grid grid-cols-4 gap-2">
+          {(['AIRTEL', 'ORANGE', 'MPESA', 'AFRICELL'] as const).map((op) => (
             <button
               key={op}
               onClick={() => setOperator(op)}
@@ -154,7 +156,7 @@ function PremiumPaymentModal({ request, onClose, onPaid }: { request: any; onClo
         >
           {phase === 'INITIATING' && <><Loader2 className="h-4 w-4 animate-spin" /> Initiation...</>}
           {phase === 'WAITING_USSD' && <><Loader2 className="h-4 w-4 animate-spin" /> Confirmez sur téléphone ({countdown}s)</>}
-          {phase === 'INITIAL' && <>Payer l'abonnement</>}
+          {phase === 'INITIAL' && <>Payer {paymentType === 'deposit' ? "l'acompte" : "le solde"}</>}
         </button>
       </motion.div>
     </div>
@@ -166,17 +168,15 @@ export default function MesDemandesPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("TOUTES");
-  const [payingId, setPayingId] = useState<string | null>(null);
   const [showReschedule, setShowReschedule] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
-
+  const [paymentType, setPaymentType] = useState<'deposit' | 'final'>('deposit');
 
   const fetchRequests = async () => {
     try {
       const res = await api.get("/requests");
-      console.log("Mes Demandes Data:", res.data);
       setRequests(res.data);
     } catch (err) {
       toast.error("Erreur lors du chargement de vos demandes.");
@@ -223,23 +223,12 @@ export default function MesDemandesPage() {
     }
   };
 
-  // Simulation de paiement (Appel au Backend)
-  const handlePayment = async (requestId: string, type: 'deposit' | 'final') => {
-    setPayingId(requestId);
-    try {
-      if (type === 'deposit') {
-        await api.post(`/payments/mock-deposit`, { requestId });
-        toast.success("Acompte de 50% payé ! Votre artisan peut commencer.");
-      } else {
-        await api.post(`/payments/mock-final`, { requestId });
-        toast.success("Solde final payé ! Merci pour votre confiance.");
-      }
-      fetchRequests(); // Recharger pour voir le changement de statut
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Erreur lors du paiement");
-    } finally {
-      setPayingId(null);
-    }
+  const handlePayment = (requestId: string, type: 'deposit' | 'final') => {
+    const request = requests.find((req) => req.id === requestId);
+    if (!request) return;
+    setPaymentRequest(request);
+    setPaymentType(type);
+    setShowDetailModal(false);
   };
 
   const filteredRequests = requests.filter(req => {
@@ -326,9 +315,12 @@ export default function MesDemandesPage() {
                     {/* Status Badge */}
                     <div className="absolute top-4 left-4">
                       {req.status === "PENDING" && <span className="bg-white/90 backdrop-blur-md text-chocolat text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20">En attente</span>}
+                      {req.status === "APPROVED" && <span className="bg-white/90 backdrop-blur-md text-chocolat text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20">Approuvée</span>}
+                      {req.status === "ACCEPTED" && <span className="bg-blue-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Acceptée</span>}
                       {req.status === "IN_PROGRESS" && <span className="bg-ocre text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-ocre/20"><Play className="w-2.5 h-2.5" /> En cours</span>}
+                      {req.status === "AWAITING_FINAL" && <span className="bg-purple-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5"><CreditCard className="w-2.5 h-2.5" /> Paiement final</span>}
                       {req.status === "COMPLETED" && <span className="bg-green-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1.5"><CheckCircle2 className="w-2.5 h-2.5" /> Terminée</span>}
-                      {req.status === "ACCEPTED" && <span className="bg-blue-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20">Acceptée</span>}
+                      {req.status === "CANCELLED" && <span className="bg-red-500/80 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Annulée</span>}
                     </div>
 
                     <div className="absolute bottom-4 right-4">
@@ -503,7 +495,7 @@ export default function MesDemandesPage() {
                   )}
                   {selectedRequest.scheduleFrequency && selectedRequest.status === "APPROVED" && selectedRequest.price && (
                     <button
-                      onClick={() => { setPaymentRequest(selectedRequest); setShowDetailModal(false); }}
+                      onClick={() => { setPaymentType('deposit'); setPaymentRequest(selectedRequest); setShowDetailModal(false); }}
                       className="flex-1 bg-ocre text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-ocre/20 hover:scale-[1.02] transition-all"
                     >
                       Payer l'abonnement
@@ -548,6 +540,7 @@ export default function MesDemandesPage() {
         {paymentRequest && (
           <PremiumPaymentModal
             request={paymentRequest}
+            paymentType={paymentType}
             onClose={() => setPaymentRequest(null)}
             onPaid={() => {
               setPaymentRequest(null);

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const HERO_IMAGES = [
     "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=2087&auto=format&fit=crop",
@@ -13,6 +13,8 @@ const HERO_IMAGES = [
 ];
 
 export default function Hero() {
+    const router = useRouter();
+    const [searchQuery, setSearchQuery] = useState("");
     const [index, setIndex] = useState(0);
 
     useEffect(() => {
@@ -91,11 +93,18 @@ export default function Hero() {
                                 className="w-full bg-transparent border-none focus:ring-0 text-chocolat placeholder:text-chocolat/25 font-bold text-xs uppercase tracking-[0.1em]"
                                 placeholder="QUEL SERVICE RECHERCHEZ-VOUS ?"
                                 type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        router.push(`/services${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`);
+                                    }
+                                }}
                             />
                         </div>
                         <button
                             onClick={() => {
-                                toast.success("Protocole de recherche lancé.");
+                                router.push(`/services${searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''}`);
                             }}
                             className="btn-arcture h-full py-6 px-12"
                         >

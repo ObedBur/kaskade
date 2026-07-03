@@ -27,9 +27,7 @@ services:
         sync: false
       - key: MBIYO_API_URL
         sync: false
-      - key: MBIYO_PUBLIC_KEY
-        sync: false
-      - key: MBIYO_SECRET_KEY
+      - key: MBIYO_API_KEY
         sync: false
       - key: MBIYO_WEBHOOK_SECRET
         sync: false

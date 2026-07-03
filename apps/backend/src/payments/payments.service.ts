@@ -5,31 +5,52 @@ import {
   ForbiddenException,
   Logger,
   InternalServerErrorException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RequestStatus } from '@prisma/client';
-import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import { InitiatePaymentDto, PaymentOperator } from './dto/initiate-payment.dto';
+import { MbiyoCallbackDto } from './dto/mbiyo-callback.dto';
+
+type KaskadePaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
+
+interface MbiyoPayinResponse {
+  status: string;
+  message?: string;
+  data?: {
+    transaction_id?: string;
+    amount?: number;
+    fee?: number;
+    charged_amount?: number;
+    currency?: string;
+    order_id?: string;
+    status?: string;
+    payment_method?: string;
+    redirect_url?: string | null;
+    instructions?: string | null;
+    auth_mode?: string | null;
+    created_at?: string;
+  };
+}
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
   private readonly mbiyoApiUrl: string;
-  private readonly mbiyoPublicKey: string;
-  private readonly mbiyoSecretKey: string;
+  private readonly mbiyoApiKey: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
-    this.mbiyoApiUrl = this.configService.get<string>('MBIYO_API_URL', 'https://api.mbiyopay.com/v1');
-    this.mbiyoPublicKey = this.configService.get<string>('MBIYO_PUBLIC_KEY', '');
-    this.mbiyoSecretKey = this.configService.get<string>('MBIYO_SECRET_KEY', '');
+    this.mbiyoApiUrl = this.configService
+      .get<string>('MBIYO_API_URL', 'https://dashboard.mbiyo.africa/api')
+      .replace(/\/$/, '');
+    this.mbiyoApiKey = this.configService.get<string>('MBIYO_API_KEY', '');
   }
-
-  // ─── INITIER UN PAIEMENT (ACOMPTE 50%) ──────────────────────────────────────
 
   async initiateDeposit(dto: InitiatePaymentDto, clientId: string) {
     const request = await this.prisma.request.findUnique({
@@ -42,24 +63,25 @@ export class PaymentsService {
     }
 
     if (request.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
+      throw new ForbiddenException("Vous n'etes pas le client de cette demande.");
     }
 
     if (request.status !== RequestStatus.APPROVED && request.status !== RequestStatus.ACCEPTED) {
       throw new BadRequestException(
-        "L'acompte ne peut être versé que sur une demande approuvée.",
+        "L'acompte ne peut etre verse que sur une demande approuvee.",
       );
     }
 
-    // Utiliser le prix négocié si défini, sinon utiliser le prix catalogue du service
     const basePrice = request.price || request.service.price;
     const depositAmount = basePrice ? basePrice * 0.5 : 0;
 
     if (depositAmount <= 0) {
-      throw new BadRequestException('Le montant de l\'acompte est invalide (le service n\'a pas de prix).');
+      throw new BadRequestException(
+        "Le montant de l'acompte est invalide (le service n'a pas de prix).",
+      );
     }
 
-    return this.initiateCollect({
+    return this.initiatePayin({
       requestId: dto.requestId,
       clientId,
       amount: depositAmount,
@@ -69,8 +91,6 @@ export class PaymentsService {
       type: 'DEPOSIT',
     });
   }
-
-  // ─── INITIER LE PAIEMENT FINAL (50%) ────────────────────────────────────────
 
   async initiateFinalPayment(dto: InitiatePaymentDto, clientId: string) {
     const request = await this.prisma.request.findUnique({
@@ -82,12 +102,12 @@ export class PaymentsService {
     }
 
     if (request.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
+      throw new ForbiddenException("Vous n'etes pas le client de cette demande.");
     }
 
     if (request.status !== RequestStatus.AWAITING_FINAL) {
       throw new BadRequestException(
-        'Le paiement final ne peut être effectué que lorsque le prestataire a terminé la mission (statut AWAITING_FINAL).',
+        'Le paiement final ne peut etre effectue que lorsque le prestataire a termine la mission.',
       );
     }
 
@@ -97,7 +117,7 @@ export class PaymentsService {
       throw new BadRequestException('Le montant du paiement final est invalide.');
     }
 
-    return this.initiateCollect({
+    return this.initiatePayin({
       requestId: dto.requestId,
       clientId,
       amount: finalAmount,
@@ -108,18 +128,22 @@ export class PaymentsService {
     });
   }
 
-  // ─── APPEL API MBIYO PAY (COLLECT / PUSH USSD) ─────────────────────────────
-
-  private async initiateCollect(params: {
+  private async initiatePayin(params: {
     requestId: string;
     clientId: string;
     amount: number;
     currency: string;
-    operator: string;
+    operator: PaymentOperator;
     phoneNumber: string;
     type: 'DEPOSIT' | 'FINAL';
   }) {
-    // 1. Créer l'entrée Payment en base (statut PENDING)
+    if (!this.mbiyoApiKey) {
+      throw new ServiceUnavailableException('MBIYO_API_KEY non configure.');
+    }
+
+    const network = this.toMbiyoNetwork(params.operator);
+    const phoneNumber = this.toMbiyoPhoneNumber(params.phoneNumber);
+
     const payment = await this.prisma.payment.create({
       data: {
         requestId: params.requestId,
@@ -127,102 +151,107 @@ export class PaymentsService {
         amount: params.amount,
         currency: params.currency,
         operator: params.operator,
-        phoneNumber: params.phoneNumber,
+        phoneNumber,
         type: params.type,
         status: 'PENDING',
       },
     });
 
-    this.logger.log(
-      `💳 Payment créé [${payment.id}] | Type: ${params.type} | Montant: ${params.amount} ${params.currency} | Opérateur: ${params.operator} | Tél: ${params.phoneNumber}`,
+    const callbackUrl = this.configService.get<string>(
+      'MBIYO_WEBHOOK_URL',
+      'https://api.kaskade.com/api/v1/payments/webhook/mbiyo',
     );
 
-    // 2. Appeler l'API Mbiyo Pay pour déclencher le Push USSD
+    const mbiyoPayload = {
+      amount: params.amount,
+      currency: params.currency,
+      payment_method: 'mobile_money',
+      order_id: payment.id,
+      callback_url: callbackUrl,
+      metadata: {
+        phone_number: phoneNumber,
+        network,
+        country_code: 'CD',
+      },
+    };
+
+    this.logger.log(
+      `Envoi Payin Mbiyo: ${params.amount} ${params.currency}, network=${network}, order_id=${payment.id}`,
+    );
+
     try {
-      const mbiyoPayload = {
-        amount: params.amount,
-        currency: params.currency,
-        phone: params.phoneNumber,
-        operator: params.operator.toLowerCase(), // Mbiyo attend en minuscule
-        reference: payment.id, // Notre ID comme référence interne
-        description: `Kaskade - ${params.type === 'DEPOSIT' ? 'Acompte 50%' : 'Paiement final 50%'}`,
-        callback_url: this.configService.get<string>('MBIYO_WEBHOOK_URL', 'https://api.kaskade.com/payments/webhook/mbiyo'),
-      };
-
-      this.logger.log(`📡 Envoi vers Mbiyo Pay API: ${this.mbiyoApiUrl}/collect`);
-
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      let responseData: any;
-      let resOk = true;
-
-      // Si les clés d'API sont des placeholders (test local sans vraies clés), on simule la réponse
-      if (this.mbiyoPublicKey.includes('test_votre_cle')) {
-        this.logger.warn(`⚠️ Clés Mbiyo Pay de test détectées. Simulation de la collecte pour ${mbiyoPayload.phone}.`);
-        // Simuler un délai réseau
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        responseData = {
-          reference: `mock_ref_${Date.now()}`,
-          message: 'Collecte initiée avec succès (Mock)'
-        };
-
-        // Simuler le fait que le client valide sur son téléphone après 5 secondes
-        setTimeout(async () => {
-          this.logger.log(`⚠️ Simulation: Le client a validé sur son téléphone. Mise à jour PENDING -> SUCCESS.`);
-          await this.handleMbiyoCallback(responseData.reference, 'SUCCESS', 'mock_txn_' + Date.now());
-        }, 5000);
-
-      } else {
-        const res = await fetch(`${this.mbiyoApiUrl}/collect`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.mbiyoSecretKey}`,
-            'X-Public-Key': this.mbiyoPublicKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(mbiyoPayload),
-          signal: controller.signal,
-        });
-        
-        responseData = await res.json();
-        resOk = res.ok;
-
-        if (!resOk) {
-          throw new Error(responseData.message || `Erreur HTTP: ${res.status}`);
-        }
-      }
+      const res = await fetch(`${this.mbiyoApiUrl}/v1/merchant/payin`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.mbiyoApiKey}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(mbiyoPayload),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 
-      const mbiyoRef = responseData?.reference || responseData?.transaction_id;
+      const responseData = (await res.json().catch(() => null)) as MbiyoPayinResponse | null;
 
-      // 3. Enregistrer la référence Mbiyo Pay
+      if (!res.ok || !responseData || responseData.status !== 'success') {
+        const message =
+          responseData?.message || `Mbiyo a refuse la transaction (HTTP ${res.status}).`;
+        throw new Error(message);
+      }
+
+      const transactionId = responseData.data?.transaction_id;
+      const initialStatus = this.toKaskadePaymentStatus(responseData.data?.status);
+
       await this.prisma.payment.update({
         where: { id: payment.id },
-        data: { mbiyoRef },
+        data: { mbiyoRef: transactionId },
       });
 
-      this.logger.log(`✅ Mbiyo Pay a accepté la collecte. Réf: ${mbiyoRef} | Push USSD envoyé au ${params.phoneNumber}`);
+      if (initialStatus !== 'PENDING' && transactionId) {
+        await this.handleMbiyoCallback({
+          transaction_id: transactionId,
+          amount: Number(responseData.data?.amount ?? params.amount),
+          fee: Number(responseData.data?.fee ?? 0),
+          currency: responseData.data?.currency ?? params.currency,
+          order_id: payment.id,
+          status: responseData.data?.status ?? 'pending',
+          charged_amount: Number(responseData.data?.charged_amount ?? params.amount),
+          type: 'cashin',
+          created_at: responseData.data?.created_at,
+          metadata: {
+            phone_number: phoneNumber,
+            network,
+            country_code: 'CD',
+          },
+        });
+      }
 
       return {
-        message: `Push USSD envoyé au ${params.phoneNumber}. Veuillez confirmer le paiement sur votre téléphone.`,
+        message: 'Paiement initie. Veuillez confirmer la transaction sur votre telephone.',
         paymentId: payment.id,
-        mbiyoRef,
-        amount: params.amount,
-        currency: params.currency,
-        status: 'PENDING',
+        mbiyoRef: transactionId,
+        amount: responseData.data?.amount ?? params.amount,
+        chargedAmount: responseData.data?.charged_amount,
+        fee: responseData.data?.fee,
+        currency: responseData.data?.currency ?? params.currency,
+        status: initialStatus,
+        redirectUrl: responseData.data?.redirect_url ?? null,
+        instructions: responseData.data?.instructions ?? null,
+        authMode: responseData.data?.auth_mode ?? null,
       };
-
     } catch (error: any) {
-      // En cas d'échec de l'appel API, marquer le payment comme FAILED
       await this.prisma.payment.update({
         where: { id: payment.id },
         data: { status: 'FAILED' },
       });
 
       const errorMessage = error?.message || 'Erreur inconnue';
-      this.logger.error(`❌ Échec appel Mbiyo Pay: ${errorMessage}`);
+      this.logger.error(`Echec appel Mbiyo Payin: ${errorMessage}`);
 
       throw new InternalServerErrorException(
         `Impossible d'initier le paiement Mobile Money. ${errorMessage}`,
@@ -230,54 +259,59 @@ export class PaymentsService {
     }
   }
 
-  // ─── TRAITEMENT DU WEBHOOK MBIYO PAY ────────────────────────────────────────
+  async handleMbiyoCallback(payload: MbiyoCallbackDto) {
+    this.logger.log(
+      `Webhook Mbiyo recu | order_id=${payload.order_id} | transaction_id=${payload.transaction_id} | status=${payload.status}`,
+    );
 
-  async handleMbiyoCallback(reference: string, status: string, transactionId?: string) {
-    this.logger.log(`🔔 Webhook Mbiyo Pay reçu | Réf: ${reference} | Status: ${status}`);
-
-    // Chercher le payment par mbiyoRef
     const payment = await this.prisma.payment.findUnique({
-      where: { mbiyoRef: reference },
+      where: { id: payload.order_id },
       include: { request: true },
     });
 
     if (!payment) {
-      this.logger.warn(`⚠️ Webhook ignoré: Aucun payment trouvé pour la référence ${reference}`);
+      this.logger.warn(`Webhook ignore: aucun paiement trouve pour order_id=${payload.order_id}`);
       return { received: true, processed: false };
     }
 
-    // Éviter le double traitement
+    if (payment.mbiyoRef && payment.mbiyoRef !== payload.transaction_id) {
+      this.logger.warn(
+        `Webhook ignore: transaction_id inattendu pour payment=${payment.id}`,
+      );
+      return { received: true, processed: false, reason: 'transaction_mismatch' };
+    }
+
     if (payment.status !== 'PENDING') {
-      this.logger.warn(`⚠️ Payment ${payment.id} déjà traité (status: ${payment.status}). Webhook ignoré.`);
+      this.logger.warn(`Paiement ${payment.id} deja traite (${payment.status}).`);
       return { received: true, processed: false, reason: 'already_processed' };
     }
 
-    const isSuccess = status.toUpperCase() === 'SUCCESS';
+    const nextPaymentStatus = this.toKaskadePaymentStatus(payload.status);
 
-    if (isSuccess) {
-      // ─── PAIEMENT CONFIRMÉ : Transaction atomique ───────────────────────
-      // Si c'est un acompte, le statut devient ACCEPTED (Paiement reçu, prêt pour un prestataire)
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { mbiyoRef: payload.transaction_id },
+    });
+
+    if (nextPaymentStatus === 'PENDING') {
+      return { received: true, processed: false, status: 'PENDING' };
+    }
+
+    if (nextPaymentStatus === 'SUCCESS') {
       const newRequestStatus =
-        payment.type === 'DEPOSIT' ? RequestStatus.ACCEPTED : RequestStatus.COMPLETED;
+        payment.type === 'DEPOSIT' ? RequestStatus.IN_PROGRESS : RequestStatus.COMPLETED;
 
       await this.prisma.$transaction([
-        // Mettre à jour le Payment
         this.prisma.payment.update({
           where: { id: payment.id },
           data: { status: 'SUCCESS' },
         }),
-        // Mettre à jour le statut de la Request
         this.prisma.request.update({
           where: { id: payment.requestId },
           data: { status: newRequestStatus },
         }),
       ]);
 
-      this.logger.log(
-        `✅ Paiement ${payment.type} confirmé pour la demande ${payment.requestId}. Nouveau statut: ${newRequestStatus}`,
-      );
-
-      // Émettre les événements pour les notifications
       if (payment.type === 'DEPOSIT') {
         this.eventEmitter.emit('payment.deposit_confirmed', {
           requestId: payment.requestId,
@@ -294,26 +328,22 @@ export class PaymentsService {
         });
       }
 
-    } else {
-      // ─── PAIEMENT ÉCHOUÉ ────────────────────────────────────────────────
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED' },
-      });
-
-      this.logger.warn(`❌ Paiement ${payment.type} échoué pour la demande ${payment.requestId}`);
-
-      this.eventEmitter.emit('payment.failed', {
-        requestId: payment.requestId,
-        paymentId: payment.id,
-        type: payment.type,
-      });
+      return { received: true, processed: true, status: 'SUCCESS' };
     }
 
-    return { received: true, processed: true, status: isSuccess ? 'SUCCESS' : 'FAILED' };
-  }
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: 'FAILED' },
+    });
 
-  // ─── CONSULTER LE STATUT D'UN PAIEMENT ─────────────────────────────────────
+    this.eventEmitter.emit('payment.failed', {
+      requestId: payment.requestId,
+      paymentId: payment.id,
+      type: payment.type,
+    });
+
+    return { received: true, processed: true, status: 'FAILED' };
+  }
 
   async getPaymentStatus(paymentId: string, clientId: string) {
     const payment = await this.prisma.payment.findUnique({
@@ -325,7 +355,7 @@ export class PaymentsService {
     }
 
     if (payment.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas autorisé à consulter ce paiement.");
+      throw new ForbiddenException("Vous n'etes pas autorise a consulter ce paiement.");
     }
 
     return {
@@ -340,8 +370,6 @@ export class PaymentsService {
     };
   }
 
-  // ─── HISTORIQUE DES PAIEMENTS D'UNE DEMANDE ────────────────────────────────
-
   async getPaymentsByRequest(requestId: string, clientId: string) {
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
@@ -352,12 +380,42 @@ export class PaymentsService {
     }
 
     if (request.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
+      throw new ForbiddenException("Vous n'etes pas le client de cette demande.");
     }
 
     return this.prisma.payment.findMany({
       where: { requestId },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  private toMbiyoNetwork(operator: PaymentOperator): string {
+    const networks: Record<PaymentOperator, string> = {
+      [PaymentOperator.AIRTEL]: 'airtel',
+      [PaymentOperator.ORANGE]: 'orange',
+      [PaymentOperator.MPESA]: 'vodacom',
+      [PaymentOperator.AFRICELL]: 'africell',
+    };
+
+    return networks[operator];
+  }
+
+  private toMbiyoPhoneNumber(phoneNumber: string): string {
+    return phoneNumber.replace(/\D/g, '');
+  }
+
+  private toKaskadePaymentStatus(status?: string): KaskadePaymentStatus {
+    switch ((status || '').toLowerCase()) {
+      case 'success':
+      case 'successful':
+        return 'SUCCESS';
+      case 'failed':
+      case 'failure':
+      case 'cancelled':
+      case 'canceled':
+        return 'FAILED';
+      default:
+        return 'PENDING';
+    }
   }
 }

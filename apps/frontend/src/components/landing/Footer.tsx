@@ -27,7 +27,7 @@ export default function Footer() {
 
           {/* Logo & Info */}
           <div className="lg:col-span-1">
-            <a className="text-4xl font-serif font-black text-ocre mb-10 block tracking-tighter uppercase" href="#">Kaskade.</a>
+            <Link className="text-4xl font-serif font-black text-ocre mb-10 block tracking-tighter uppercase" href="/">Kaskade.</Link>
             <p className="text-white text-base leading-relaxed font-sans tracking-wide">
               La référence premium pour connecter talents locaux et clients visionnaires au sein de l'écosystème architectural de Kaskade.
             </p>
@@ -38,8 +38,8 @@ export default function Footer() {
             <h5 className="font-serif font-black mb-10 text-[10px] uppercase tracking-[0.4em] text-ocre opacity-80">Réseau.</h5>
             <ul className="space-y-5 text-white/70 font-sans uppercase text-[10px] tracking-widest font-bold">
               <li><Link className="hover:text-ocre transition-all" href="/devenir-prestataire">Devenir Expert</Link></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Nos Services</a></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Marketplace</a></li>
+              <li><Link className="hover:text-ocre transition-all" href="/services">Nos Services</Link></li>
+              <li><Link className="hover:text-ocre transition-all" href="/services">Marketplace</Link></li>
             </ul>
           </div>
 
@@ -47,9 +47,10 @@ export default function Footer() {
           <div>
             <h5 className="font-serif font-black mb-10 text-[10px] uppercase tracking-[0.4em] text-ocre opacity-80">Juridique.</h5>
             <ul className="space-y-5 text-white/70 font-sans uppercase text-[10px] tracking-widest font-bold">
-              <li><a className="hover:text-ocre transition-all" href="#">Confidentialité</a></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Conditions</a></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Sécurité</a></li>
+              {/* TODO: Créer les pages juridiques correspondantes */}
+              <li><Link className="hover:text-ocre transition-all" href="#todo-privacy">Confidentialité</Link></li>
+              <li><Link className="hover:text-ocre transition-all" href="#todo-terms">Conditions</Link></li>
+              <li><Link className="hover:text-ocre transition-all" href="#todo-security">Sécurité</Link></li>
             </ul>
           </div>
 
@@ -84,8 +85,8 @@ export default function Footer() {
         <div className="pt-16 border-t border-ocre/10 flex flex-col md:flex-row justify-between items-center gap-8">
           <p className="text-white text-xs font-bold uppercase tracking-[0.2em]">© 2026 KASKADE SYSTEMS. TOUS DROITS RÉSERVÉS.</p>
           <div className="flex gap-8">
-            <a href="#" className="text-white hover:text-ocre transition-colors italic text-xs font-bold uppercase tracking-[0.2em]">INSTAGRAM</a>
-            <a href="#" className="text-white hover:text-ocre transition-colors italic text-xs font-bold uppercase tracking-[0.2em]">LINKEDIN</a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-white hover:text-ocre transition-colors italic text-xs font-bold uppercase tracking-[0.2em]">INSTAGRAM</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-white hover:text-ocre transition-colors italic text-xs font-bold uppercase tracking-[0.2em]">LINKEDIN</a>
           </div>
           <p className="text-white italic text-xs font-bold uppercase tracking-[0.2em]">L'exclusivité par la proximité.</p>
         </div>

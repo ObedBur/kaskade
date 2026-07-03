@@ -32,10 +32,6 @@ export class PaymentsController {
     private readonly configService: ConfigService,
   ) {}
 
-  // ─── INITIER UN ACOMPTE (50%) VIA MBIYO PAY ────────────────────────────────
-  // Le client choisit son opérateur et entre son numéro +243
-  // → Déclenche un Push USSD sur son téléphone
-
   @Post('initiate/deposit')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLIENT)
@@ -44,12 +40,10 @@ export class PaymentsController {
     @CurrentUser('id') clientId: string,
   ) {
     this.logger.log(
-      `💳 CLIENT ${clientId} : Initiation acompte | Demande: ${dto.requestId} | Opérateur: ${dto.operator} | Tél: ${dto.phoneNumber}`,
+      `CLIENT ${clientId}: initiation acompte | request=${dto.requestId} | operator=${dto.operator}`,
     );
     return this.paymentsService.initiateDeposit(dto, clientId);
   }
-
-  // ─── INITIER LE PAIEMENT FINAL (50%) VIA MBIYO PAY ─────────────────────────
 
   @Post('initiate/final')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -59,57 +53,47 @@ export class PaymentsController {
     @CurrentUser('id') clientId: string,
   ) {
     this.logger.log(
-      `💳 CLIENT ${clientId} : Initiation paiement final | Demande: ${dto.requestId} | Opérateur: ${dto.operator} | Tél: ${dto.phoneNumber}`,
+      `CLIENT ${clientId}: initiation paiement final | request=${dto.requestId} | operator=${dto.operator}`,
     );
     return this.paymentsService.initiateFinalPayment(dto, clientId);
   }
 
-  // ─── WEBHOOK MBIYO PAY (ROUTE PUBLIQUE) ─────────────────────────────────────
-  // Cette route reçoit les notifications de confirmation/échec de Mbiyo Pay.
-  // Elle est publique (pas de JWT) mais sécurisée par signature HMAC-SHA256.
-
   @Post('webhook/mbiyo')
   async handleMbiyoWebhook(
     @Body() body: MbiyoCallbackDto,
-    @Headers('x-mbiyo-signature') signature: string,
-    @Req() req: Request,
+    @Headers('signature') signature: string,
+    @Req() req: RawBodyRequest<Request>,
   ) {
-    this.logger.log(`🔔 Webhook Mbiyo Pay reçu | Réf: ${body.reference} | Status: ${body.status}`);
+    this.logger.log(
+      `Webhook Mbiyo recu | order_id=${body.order_id} | transaction_id=${body.transaction_id} | status=${body.status}`,
+    );
 
-    // ── Vérification de la signature HMAC-SHA256 ──────────────────────────
     const webhookSecret = this.configService.get<string>('MBIYO_WEBHOOK_SECRET', '');
 
     if (!webhookSecret) {
-      this.logger.error('❌ MBIYO_WEBHOOK_SECRET non configuré !');
+      this.logger.error('MBIYO_WEBHOOK_SECRET non configure.');
       throw new UnauthorizedException('Configuration webhook manquante.');
     }
 
-    // Calculer la signature attendue à partir du body brut
-    const rawBody = JSON.stringify(body);
     const expectedSignature = crypto
       .createHmac('sha256', webhookSecret)
-      .update(rawBody)
+      .update(req.rawBody || Buffer.from(JSON.stringify(body)))
       .digest('hex');
 
-    if (!signature || !crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex'),
-    )) {
-      this.logger.warn(`⚠️ Signature webhook invalide ! Reçue: ${signature?.substring(0, 16)}...`);
+    const signatureBuffer = Buffer.from(signature || '', 'hex');
+    const expectedSignatureBuffer = Buffer.from(expectedSignature, 'hex');
+
+    if (
+      !signature ||
+      signatureBuffer.length !== expectedSignatureBuffer.length ||
+      !crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
+    ) {
+      this.logger.warn(`Signature webhook invalide: ${signature?.substring(0, 16)}...`);
       throw new UnauthorizedException('Signature webhook invalide.');
     }
 
-    this.logger.log('✅ Signature webhook vérifiée avec succès.');
-
-    // ── Traitement du callback ────────────────────────────────────────────
-    return this.paymentsService.handleMbiyoCallback(
-      body.reference,
-      body.status,
-      body.transactionId,
-    );
+    return this.paymentsService.handleMbiyoCallback(body);
   }
-
-  // ─── CONSULTER LE STATUT D'UN PAIEMENT ─────────────────────────────────────
 
   @Get('status/:paymentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -120,8 +104,6 @@ export class PaymentsController {
   ) {
     return this.paymentsService.getPaymentStatus(paymentId, clientId);
   }
-
-  // ─── HISTORIQUE DES PAIEMENTS D'UNE DEMANDE ────────────────────────────────
 
   @Get('request/:requestId')
   @UseGuards(JwtAuthGuard, RolesGuard)

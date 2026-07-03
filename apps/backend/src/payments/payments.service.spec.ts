@@ -1,23 +1,41 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { RequestStatus } from '@prisma/client';
+import { PaymentCurrency, PaymentOperator } from './dto/initiate-payment.dto';
 
 const mockPrismaService = {
   request: {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
+  payment: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    findMany: jest.fn(),
+  },
+  $transaction: jest.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
 };
 
 const mockEventEmitter = { emit: jest.fn() };
 
+const mockConfigService = {
+  get: jest.fn((key: string, fallback?: string) => {
+    const values: Record<string, string> = {
+      MBIYO_API_URL: 'https://dashboard.mbiyo.africa/api',
+      MBIYO_API_KEY: 'test-api-key',
+      MBIYO_WEBHOOK_URL: 'https://example.com/api/v1/payments/webhook/mbiyo',
+    };
+    return values[key] ?? fallback;
+  }),
+};
+
 describe('PaymentsService', () => {
   let service: PaymentsService;
-  let prisma: any;
-  let eventEmitter: any;
+  let prisma: typeof mockPrismaService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,84 +43,131 @@ describe('PaymentsService', () => {
         PaymentsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
     service = module.get<PaymentsService>(PaymentsService);
-    prisma = module.get(PrismaService);
-    eventEmitter = module.get(EventEmitter2);
+    prisma = module.get(PrismaService) as typeof mockPrismaService;
     jest.clearAllMocks();
+    global.fetch = jest.fn() as jest.Mock;
   });
 
-  // ─── mockDeposit ─────────────────────────────────────────────────────────
-
-  describe('mockDeposit (Acompte 50%)', () => {
-    it('throws NotFoundException if request not found', async () => {
-      prisma.request.findUnique.mockResolvedValue(null);
-      await expect(service.mockDeposit('r1', 'c1')).rejects.toThrow(NotFoundException);
+  it('initiates a RDC Payin with Mbiyo metadata and MPESA mapped to vodacom', async () => {
+    prisma.request.findUnique.mockResolvedValue({
+      id: 'request-1',
+      clientId: 'client-1',
+      status: RequestStatus.ACCEPTED,
+      price: 10,
+      service: { price: 10 },
+    });
+    prisma.payment.create.mockResolvedValue({
+      id: 'payment-1',
+      requestId: 'request-1',
+      clientId: 'client-1',
+      amount: 5,
+      currency: 'USD',
+      operator: 'MPESA',
+      phoneNumber: '243810000000',
+      type: 'DEPOSIT',
+      status: 'PENDING',
+    });
+    prisma.payment.update.mockResolvedValue({});
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        status: 'success',
+        data: {
+          transaction_id: 'CI-123',
+          amount: 5,
+          currency: 'USD',
+          order_id: 'payment-1',
+          status: 'pending',
+        },
+      }),
     });
 
-    it('throws ForbiddenException if client does not own request', async () => {
-      prisma.request.findUnique.mockResolvedValue({ clientId: 'other', status: RequestStatus.ACCEPTED });
-      await expect(service.mockDeposit('r1', 'c1')).rejects.toThrow(ForbiddenException);
-    });
+    const response = await service.initiateDeposit(
+      {
+        requestId: '550e8400-e29b-41d4-a716-446655440000',
+        phoneNumber: '+243810000000',
+        operator: PaymentOperator.MPESA,
+        currency: PaymentCurrency.USD,
+      },
+      'client-1',
+    );
 
-    it('throws BadRequestException if status is not ACCEPTED', async () => {
-      prisma.request.findUnique.mockResolvedValue({ clientId: 'c1', status: RequestStatus.APPROVED });
-      await expect(service.mockDeposit('r1', 'c1')).rejects.toThrow(BadRequestException);
-    });
-
-    it('updates to IN_PROGRESS, emits event and returns deposit info', async () => {
-      prisma.request.findUnique.mockResolvedValue({
-        id: 'r1', clientId: 'c1', status: RequestStatus.ACCEPTED, price: 120,
-      });
-      prisma.request.update.mockResolvedValue({ id: 'r1', status: RequestStatus.IN_PROGRESS });
-
-      const res = await service.mockDeposit('r1', 'c1');
-
-      expect(res.depositPaid).toBe(60);
-      expect(res.remaining).toBe(60);
-      expect(prisma.request.update).toHaveBeenCalledWith({
-        where: { id: 'r1' },
-        data: { status: RequestStatus.IN_PROGRESS },
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith('payment.deposit_confirmed', { requestId: 'r1' });
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://dashboard.mbiyo.africa/api/v1/merchant/payin',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-api-key',
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({
+          amount: 5,
+          currency: 'USD',
+          payment_method: 'mobile_money',
+          order_id: 'payment-1',
+          callback_url: 'https://example.com/api/v1/payments/webhook/mbiyo',
+          metadata: {
+            phone_number: '243810000000',
+            network: 'vodacom',
+            country_code: 'CD',
+          },
+        }),
+      }),
+    );
+    expect(response).toEqual(
+      expect.objectContaining({
+        paymentId: 'payment-1',
+        mbiyoRef: 'CI-123',
+        status: 'PENDING',
+      }),
+    );
   });
 
-  // ─── mockFinalPayment ────────────────────────────────────────────────────
+  it('processes a successful Mbiyo webhook and starts the request', async () => {
+    prisma.payment.findUnique.mockResolvedValue({
+      id: 'payment-1',
+      requestId: 'request-1',
+      clientId: 'client-1',
+      amount: 5,
+      currency: 'USD',
+      type: 'DEPOSIT',
+      status: 'PENDING',
+      mbiyoRef: 'CI-123',
+      request: { id: 'request-1' },
+    });
+    prisma.payment.update.mockResolvedValue({});
+    prisma.request.update.mockResolvedValue({});
 
-  describe('mockFinalPayment (Solde 50%)', () => {
-    it('throws NotFoundException if request not found', async () => {
-      prisma.request.findUnique.mockResolvedValue(null);
-      await expect(service.mockFinalPayment('r1', 'c1')).rejects.toThrow(NotFoundException);
+    const response = await service.handleMbiyoCallback({
+      transaction_id: 'CI-123',
+      amount: 5,
+      currency: 'USD',
+      order_id: 'payment-1',
+      status: 'successful',
+      metadata: {
+        country_code: 'CD',
+        phone_number: '243971111111',
+        network: 'airtel',
+      },
     });
 
-    it('throws ForbiddenException if client does not own request', async () => {
-      prisma.request.findUnique.mockResolvedValue({ clientId: 'other', status: RequestStatus.AWAITING_FINAL });
-      await expect(service.mockFinalPayment('r1', 'c1')).rejects.toThrow(ForbiddenException);
+    expect(prisma.request.update).toHaveBeenCalledWith({
+      where: { id: 'request-1' },
+      data: { status: RequestStatus.IN_PROGRESS },
     });
-
-    it('throws BadRequestException if status is not AWAITING_FINAL', async () => {
-      prisma.request.findUnique.mockResolvedValue({ clientId: 'c1', status: RequestStatus.IN_PROGRESS });
-      await expect(service.mockFinalPayment('r1', 'c1')).rejects.toThrow(BadRequestException);
-    });
-
-    it('updates to COMPLETED, emits event and returns final payment info', async () => {
-      prisma.request.findUnique.mockResolvedValue({
-        id: 'r1', clientId: 'c1', status: RequestStatus.AWAITING_FINAL, price: 120,
-      });
-      prisma.request.update.mockResolvedValue({ id: 'r1', status: RequestStatus.COMPLETED });
-
-      const res = await service.mockFinalPayment('r1', 'c1');
-
-      expect(res.finalPaid).toBe(60);
-      expect(res.totalPaid).toBe(120);
-      expect(prisma.request.update).toHaveBeenCalledWith({
-        where: { id: 'r1' },
-        data: { status: RequestStatus.COMPLETED },
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith('payment.final_confirmed', { requestId: 'r1' });
-    });
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'payment.deposit_confirmed',
+      expect.objectContaining({
+        requestId: 'request-1',
+        paymentId: 'payment-1',
+      }),
+    );
+    expect(response).toEqual({ received: true, processed: true, status: 'SUCCESS' });
   });
 });

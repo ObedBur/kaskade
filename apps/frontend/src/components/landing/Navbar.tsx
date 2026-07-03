@@ -47,7 +47,7 @@ export default function Navbar() {
             </div>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Rechercher..."
               className="block w-full bg-black/20 border border-white/10 rounded-md py-2 pl-11 pr-4 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-ocre transition-all"
             />
           </div>
@@ -171,7 +171,7 @@ export default function Navbar() {
             <Search className="absolute left-4 top-2.5 h-4 w-4 text-ocre/50" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder="Rechercher un service..."
               className="w-full bg-transparent border-b border-white/10 py-2 pl-8 pr-4 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-ocre/50 transition-colors"
             />
           </div>

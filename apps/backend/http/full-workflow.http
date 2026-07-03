@@ -101,12 +101,15 @@ Authorization: Bearer {{providerToken}}
 ### ------------------------------------------------------------
 
 # @name payDeposit
-POST {{baseUrl}}/payments/mock/deposit
+POST {{baseUrl}}/payments/initiate/deposit
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "requestId": "{{requestId}}",
+  "phoneNumber": "243971111111",
+  "operator": "AIRTEL",
+  "currency": "USD"
 }
 
 ### ------------------------------------------------------------
@@ -120,12 +123,15 @@ Authorization: Bearer {{providerToken}}
 ### 7. ÉTAPE 6 : Payer le Solde Final 50% (Client) -> Statut: COMPLETED
 ### ------------------------------------------------------------
 
-POST {{baseUrl}}/payments/mock/final
+POST {{baseUrl}}/payments/initiate/final
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "requestId": "{{requestId}}",
+  "phoneNumber": "243971111111",
+  "operator": "AIRTEL",
+  "currency": "USD"
 }
 
 ### ------------------------------------------------------------

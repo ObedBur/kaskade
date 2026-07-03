@@ -1,115 +1,91 @@
 ### ============================================================
-### KASKADE - Module Payments (Paiement Mock en 2 étapes)
-### Acompte 50% → Mission démarre | Solde 50% → Mission clôturée
+### KASKADE - Paiements Mbiyo Payin RDC (Sandbox)
 ### ============================================================
-### Prérequis : La demande doit être au statut ACCEPTED
-###             (Provider a accepté la mission)
+### Backend Kaskade: http://localhost:4000/api/v1
+### Mbiyo:
+### - country_code: CD
+### - currency: USD ou CDF
+### - networks: vodacom, airtel, orange, africell
+### - MPESA cote Kaskade est converti en vodacom cote Mbiyo
 ### ============================================================
 
 @baseUrl = http://localhost:4000/api/v1
 @clientToken = REPLACE_WITH_CLIENT_ACCESS_TOKEN
-
-# ─── IDs ─────────────────────────────────────────────────────
 @requestId = REPLACE_WITH_REQUEST_ID
+@paymentId = REPLACE_WITH_PAYMENT_ID
 
-
-### ============================================================
-### P.1 - CLIENT : Payer l'acompte 50% (Acompte)
-###
-### PRÉ-REQUIS : request.status === ACCEPTED
-### EFFET      : status → IN_PROGRESS (mission démarre)
-###
-### Retour attendu : 200 + {
-###   message: "Acompte de 50% confirmé...",
-###   totalPrice: 120,
-###   depositPaid: 60,
-###   remaining: 60
-### }
-### ============================================================
-POST {{baseUrl}}/payments/mock/deposit
+### P.1 - Initier un acompte Airtel sandbox succes
+POST {{baseUrl}}/payments/initiate/deposit
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "requestId": "{{requestId}}",
+  "phoneNumber": "243971111111",
+  "operator": "AIRTEL",
+  "currency": "CDF"
 }
 
-
-### ============================================================
-### P.2 - CAS D'ERREUR : Payer l'acompte AVANT que le PROVIDER accepte
-### PRÉ-REQUIS : request.status === APPROVED (pas encore ACCEPTED)
-### Retour attendu : 400 Bad Request
-###   "L'acompte ne peut être versé que lorsque le prestataire a accepté..."
-### ============================================================
-POST {{baseUrl}}/payments/mock/deposit
+### P.2 - Initier un acompte M-Pesa/Vodacom sandbox succes
+POST {{baseUrl}}/payments/initiate/deposit
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "requestId": "{{requestId}}",
+  "phoneNumber": "243970000000",
+  "operator": "MPESA",
+  "currency": "CDF"
 }
 
-
-### ============================================================
-### P.3 - CAS D'ERREUR : Payer pour une demande d'un autre CLIENT
-### Retour attendu : 403 Forbidden
-###   "Vous n'êtes pas le client de cette demande"
-### ============================================================
-POST {{baseUrl}}/payments/mock/deposit
-Authorization: Bearer AUTRE_CLIENT_TOKEN
-Content-Type: application/json
-
-{
-  "requestId": "{{requestId}}"
-}
-
-
-### ============================================================
-### P.4 - CLIENT : Payer le solde final 50%
-###
-### PRÉ-REQUIS : request.status === AWAITING_FINAL
-###              (Provider a marqué la mission comme terminée)
-### EFFET      : status → COMPLETED (mission officellement clôturée)
-###
-### Retour attendu : 200 + {
-###   message: "Paiement final de 50% confirmé...",
-###   totalPrice: 120,
-###   finalPaid: 60,
-###   totalPaid: 120
-### }
-### ============================================================
-POST {{baseUrl}}/payments/mock/final
+### P.3 - Initier un acompte Orange sandbox succes
+POST {{baseUrl}}/payments/initiate/deposit
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "requestId": "{{requestId}}",
+  "phoneNumber": "243892222222",
+  "operator": "ORANGE",
+  "currency": "CDF"
 }
 
-
-### ============================================================
-### P.5 - CAS D'ERREUR : Payer le solde AVANT que le PROVIDER termine
-### PRÉ-REQUIS : request.status === IN_PROGRESS (pas AWAITING_FINAL)
-### Retour attendu : 400 Bad Request
-###   "Le paiement final ne peut être effectué que lorsque le prestataire a terminé..."
-### ============================================================
-POST {{baseUrl}}/payments/mock/final
+### P.4 - Initier un paiement final
+POST {{baseUrl}}/payments/initiate/final
 Authorization: Bearer {{clientToken}}
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "requestId": "{{requestId}}",
+  "phoneNumber": "243971111111",
+  "operator": "AIRTEL",
+  "currency": "CDF"
 }
 
+### P.5 - Consulter le statut d'un paiement Kaskade
+GET {{baseUrl}}/payments/status/{{paymentId}}
+Authorization: Bearer {{clientToken}}
 
-### ============================================================
-### P.6 - CAS D'ERREUR : PROVIDER essaie de payer (accès interdit)
-### Retour attendu : 403 Forbidden (RolesGuard - CLIENT uniquement)
-### ============================================================
-POST {{baseUrl}}/payments/mock/deposit
-Authorization: Bearer REPLACE_WITH_PROVIDER_TOKEN
+### P.6 - Exemple webhook Mbiyo sandbox
+### Calculer le header Signature avec HMAC-SHA256(JSON body, MBIYO_WEBHOOK_SECRET).
+POST {{baseUrl}}/payments/webhook/mbiyo
+Signature: REPLACE_WITH_HMAC_SHA256_SIGNATURE
 Content-Type: application/json
 
 {
-  "requestId": "{{requestId}}"
+  "transaction_id": "CI-69884B3D6868F1770539837",
+  "amount": 5,
+  "fee": 0,
+  "currency": "CDF",
+  "order_id": "{{paymentId}}",
+  "status": "successful",
+  "charged_amount": 5,
+  "type": "cashin",
+  "created_at": "2026-02-08T10:30:00Z",
+  "updated_at": "2026-02-08T10:30:05Z",
+  "metadata": {
+    "phone_number": "243971111111",
+    "network": "airtel",
+    "country_code": "CD"
+  }
 }
