@@ -4,10 +4,7 @@ import { useRef, useState } from "react";
 import { UserSearch, MessageCircle, ShieldCheck, ArrowRight, MousePointer2, WifiOff } from "lucide-react";
 import { motion } from "framer-motion";
 
-// MOCKS IMPORTÉS (Maintenance améliorée)
-import { FreelanceMockUI } from "./process-mocks/FreelanceMockUI";
-import { ChatMockUI } from "./process-mocks/ChatMockUI";
-import { PaymentMockUI } from "./process-mocks/PaymentMockUI";
+
 
 // ----------------------------------------------------------------------
 // 1. EFFET SPOTLIGHT OPTIMISÉ (GPU & CPU)
@@ -51,9 +48,9 @@ const SpotlightCard = ({ children, className = "" }: { children: React.ReactNode
 // ----------------------------------------------------------------------
 export default function Process() {
   const steps = [
-    { id: "01", title: "Demande", desc: "Sélectionnez un service, réglez l'acompte sécurisé et notre équipe vous affecte le meilleur prestataire.", icon: UserSearch, ui: <FreelanceMockUI /> },
-    { id: "02", title: "Intervention", desc: "Le prestataire qualifié se déplace directement à votre domicile à l'heure de votre rendez-vous.", icon: MessageCircle, ui: <ChatMockUI /> },
-    { id: "03", title: "Finalisation", desc: "Le travail est accompli. Vous validez la prestation et profitez d'un service d'excellence.", icon: ShieldCheck, ui: <PaymentMockUI /> },
+    { id: "01", title: "Demande", desc: "Sélectionnez un service, réglez l'acompte sécurisé et notre équipe vous affecte le meilleur prestataire.", icon: UserSearch },
+    { id: "02", title: "Intervention", desc: "Le prestataire qualifié se déplace directement à votre domicile à l'heure de votre rendez-vous.", icon: MessageCircle },
+    { id: "03", title: "Finalisation", desc: "Le travail est accompli. Vous validez la prestation et profitez d'un service d'excellence.", icon: ShieldCheck },
   ];
 
   return (
@@ -106,7 +103,7 @@ export default function Process() {
                   </div>
 
                   <SpotlightCard className="flex-1 p-6 sm:p-8 md:p-10">
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 items-center">
+                    <div className="flex flex-col gap-6">
 
                       <div>
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D4AF37]/10 to-transparent flex items-center justify-center mb-6 border border-[#D4AF37]/20 text-[#D4AF37]">
@@ -118,19 +115,6 @@ export default function Process() {
                         <p className="text-[#2C1E16]/60 text-base font-medium leading-relaxed">
                           {step.desc}
                         </p>
-                      </div>
-
-                      <div className="relative mt-8 xl:mt-0">
-                        {step.ui}
-                        {i === 0 && (
-                          <motion.div
-                            animate={{ x: [0, 15, 0], y: [0, 15, 0] }}
-                            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                            className="absolute -bottom-6 -right-4 z-20 drop-shadow-2xl pointer-events-none hidden lg:block"
-                          >
-                            <MousePointer2 className="w-8 h-8 fill-[#2C1E16] text-white" />
-                          </motion.div>
-                        )}
                       </div>
 
                     </div>

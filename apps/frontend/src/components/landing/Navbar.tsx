@@ -37,7 +37,7 @@ export default function Navbar() {
             <div className="w-8 h-1 bg-[#d4af37] rounded-full group-hover:bg-ocre/60 transition-colors"></div>
             <div className="w-5 h-1 bg-ocre/40 rounded-full group-hover:bg-ocre/20 transition-colors"></div>
           </div>
-          <span className="hidden md:block text-xl font-black text-white ml-2 tracking-tight">Kaskade</span>
+          <span className="hidden md:block text-xl font-serif font-black text-white ml-2 tracking-tight uppercase">Kaskade.</span>
         </Link>
 
         <div className="hidden lg:flex flex-1 max-w-xl mx-8">

@@ -25,13 +25,6 @@ export default function Footer() {
       <div className="arcture-container relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 md:gap-24 mb-24">
 
-          {/* Logo & Info */}
-          <div className="lg:col-span-1">
-            <a className="text-4xl font-serif font-black text-ocre mb-10 block tracking-tighter uppercase" href="#">Kaskade.</a>
-            <p className="text-white text-base leading-relaxed font-sans tracking-wide">
-              La référence premium pour connecter talents locaux et clients visionnaires au sein de l'écosystème architectural de Kaskade.
-            </p>
-          </div>
 
           {/* Navigation */}
           <div>
@@ -61,19 +54,19 @@ export default function Footer() {
                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden p-1">
                   <img src="/airtel.png" alt="Airtel" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-red-400 transition-colors">AIRTEL MONEY</span>
+                <span className="font-sans text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-red-400 transition-colors">AIRTEL MONEY</span>
               </div>
               <div className="px-5 py-3 border border-ocre/20 bg-white/5 rounded-sm flex items-center gap-4 hover:border-orange-500/50 transition-all group max-w-xs">
                 <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center overflow-hidden p-1.5 border border-white/10">
                   <img src="/orange.png" alt="Orange" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-orange-400 transition-colors">ORANGE MONEY</span>
+                <span className="font-sans text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-orange-400 transition-colors">ORANGE MONEY</span>
               </div>
               <div className="px-5 py-3 border border-ocre/20 bg-white/5 rounded-sm flex items-center gap-4 hover:border-green-500/50 transition-all group max-w-xs">
                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden p-1">
                   <img src="/m-pesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-green-400 transition-colors">M-PESA INTÉGRÉ</span>
+                <span className="font-sans text-[9px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-green-400 transition-colors">M-PESA INTÉGRÉ</span>
               </div>
             </div>
           </div>
@@ -82,12 +75,11 @@ export default function Footer() {
 
         {/* Arcture Copyright Area */}
         <div className="pt-16 border-t border-ocre/10 flex flex-col md:flex-row justify-between items-center gap-8">
-          <p className="text-white text-xs font-bold uppercase tracking-[0.2em]">© 2026 KASKADE SYSTEMS. TOUS DROITS RÉSERVÉS.</p>
+          <p className="font-sans text-white text-[10px] uppercase tracking-[0.2em]">© 2026 KASKADE SYSTEMS.</p>
           <div className="flex gap-8">
-            <a href="#" className="text-white hover:text-ocre transition-colors italic text-xs font-bold uppercase tracking-[0.2em]">INSTAGRAM</a>
-            <a href="#" className="text-white hover:text-ocre transition-colors italic text-xs font-bold uppercase tracking-[0.2em]">LINKEDIN</a>
+            <a href="#" className="font-sans text-white hover:text-ocre transition-colors text-[10px] uppercase tracking-[0.2em]">INSTAGRAM</a>
+            <a href="#" className="font-sans text-white hover:text-ocre transition-colors text-[10px] uppercase tracking-[0.2em]">LINKEDIN</a>
           </div>
-          <p className="text-white italic text-xs font-bold uppercase tracking-[0.2em]">L'exclusivité par la proximité.</p>
         </div>
       </div>
     </motion.footer>
