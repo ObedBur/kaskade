@@ -75,7 +75,7 @@ model Payment {
   clientId        String
   amount          Float
   currency        String   @default("USD") 
-  operator        String   // AIRTEL, ORANGE, MPESA
+  operator        String   // VODACOM, AIRTEL, ORANGE, AFRICELL
   phoneNumber     String   
   
   // Champs spécifiques Mbiyo Pay
@@ -196,4 +196,3 @@ model Notification {
   @@index([serviceId])
   @@index([providerAppId])
 }
-

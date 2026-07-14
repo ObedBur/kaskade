@@ -1,9 +1,18 @@
-import { IsUUID, IsNotEmpty, IsString, Matches, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsUUID,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  IsEnum,
+  IsOptional,
+} from 'class-validator';
 
+/** Opérateurs mobile money RDC (Mbiyo Pay — country_code CD) */
 export enum PaymentOperator {
+  VODACOM = 'VODACOM',
   AIRTEL = 'AIRTEL',
   ORANGE = 'ORANGE',
-  MPESA = 'MPESA',
+  AFRICELL = 'AFRICELL',
 }
 
 export enum PaymentCurrency {
@@ -19,12 +28,14 @@ export class InitiatePaymentDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^\+243\d{9}$/, {
-    message: 'Le numéro doit être au format congolais: +243XXXXXXXXX (9 chiffres après +243)',
+    message:
+      'Le numéro doit être au format congolais: +243XXXXXXXXX (9 chiffres après +243)',
   })
   phoneNumber: string;
 
   @IsEnum(PaymentOperator, {
-    message: 'Opérateur invalide. Valeurs acceptées: AIRTEL, ORANGE, MPESA',
+    message:
+      'Opérateur invalide. Valeurs acceptées: VODACOM, AIRTEL, ORANGE, AFRICELL',
   })
   operator: PaymentOperator;
 
@@ -33,4 +44,9 @@ export class InitiatePaymentDto {
     message: 'Devise invalide. Valeurs acceptées: USD, CDF',
   })
   currency?: PaymentCurrency;
+
+  /** Code OTP opérateur (optionnel, certains réseaux) */
+  @IsOptional()
+  @IsString()
+  omOtp?: string;
 }

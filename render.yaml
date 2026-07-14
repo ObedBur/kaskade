@@ -15,6 +15,8 @@ services:
         value: 4000
       - key: FRONTEND_URL
         sync: false
+      - key: API_PUBLIC_URL
+        sync: false
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET
@@ -27,11 +29,11 @@ services:
         sync: false
       - key: MBIYO_API_URL
         sync: false
-      - key: MBIYO_PUBLIC_KEY
-        sync: false
       - key: MBIYO_SECRET_KEY
         sync: false
       - key: MBIYO_WEBHOOK_SECRET
         sync: false
       - key: MBIYO_WEBHOOK_URL
         sync: false
+      - key: MBIYO_USE_MOCK
+        value: "false"

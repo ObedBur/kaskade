@@ -43,6 +43,7 @@ interface ServiceCategory {
   workingHoursEnd: string;
   isActive: boolean;
   imageKey?: string;
+  imageUrl?: string | null;
   createdAt: string;
 }
 
@@ -352,9 +353,15 @@ export default function AdminServicesPage() {
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100">
                   {cat.imageKey ? (
                     <img
-                      src={getMediaUrl(`/uploads/services/${cat.imageKey}`)}
+                      src={
+                        getMediaUrl(cat.imageUrl) ||
+                        getMediaUrl(`/uploads/services/${cat.imageKey}`)
+                      }
                       alt={cat.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   ) : (
                     <LayoutGrid className="w-6 h-6 text-[#BC9C6C]" />

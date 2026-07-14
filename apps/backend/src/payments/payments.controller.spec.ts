@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
+import { ConfigService } from '@nestjs/config';
 
 const mockPaymentsService = {
-  mockDeposit: jest.fn(),
-  mockFinalPayment: jest.fn(),
+  initiateDeposit: jest.fn(),
+  initiateFinalPayment: jest.fn(),
 };
 
 describe('PaymentsController', () => {
@@ -13,7 +14,10 @@ describe('PaymentsController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentsController],
-      providers: [{ provide: PaymentsService, useValue: mockPaymentsService }],
+      providers: [
+        { provide: PaymentsService, useValue: mockPaymentsService },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
     }).compile();
 
     controller = module.get<PaymentsController>(PaymentsController);
@@ -24,17 +28,19 @@ describe('PaymentsController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('mockDeposit delegates to service', async () => {
-    mockPaymentsService.mockDeposit.mockResolvedValue({ depositPaid: 60 });
-    const res = await controller.mockDeposit({ requestId: 'r1' }, 'c1');
-    expect(res).toEqual({ depositPaid: 60 });
-    expect(mockPaymentsService.mockDeposit).toHaveBeenCalledWith('r1', 'c1');
+  it('initiateDeposit delegates to service', async () => {
+    mockPaymentsService.initiateDeposit.mockResolvedValue({ paymentId: 'p1' });
+    const dto = { requestId: 'r1' } as any;
+    const res = await controller.initiateDeposit(dto, 'c1');
+    expect(res).toEqual({ paymentId: 'p1' });
+    expect(mockPaymentsService.initiateDeposit).toHaveBeenCalledWith(dto, 'c1');
   });
 
-  it('mockFinalPayment delegates to service', async () => {
-    mockPaymentsService.mockFinalPayment.mockResolvedValue({ finalPaid: 60 });
-    const res = await controller.mockFinalPayment({ requestId: 'r1' }, 'c1');
-    expect(res).toEqual({ finalPaid: 60 });
-    expect(mockPaymentsService.mockFinalPayment).toHaveBeenCalledWith('r1', 'c1');
+  it('initiateFinalPayment delegates to service', async () => {
+    mockPaymentsService.initiateFinalPayment.mockResolvedValue({ paymentId: 'p1' });
+    const dto = { requestId: 'r1' } as any;
+    const res = await controller.initiateFinalPayment(dto, 'c1');
+    expect(res).toEqual({ paymentId: 'p1' });
+    expect(mockPaymentsService.initiateFinalPayment).toHaveBeenCalledWith(dto, 'c1');
   });
 });

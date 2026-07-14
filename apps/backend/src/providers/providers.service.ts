@@ -12,6 +12,7 @@ import { AssignServicesDto } from './dto/assign-services.dto';
 import { RequestStatus, Role, Status } from '@prisma/client';
 import { UpdateProviderProfileDto } from './dto/update-provider-profile.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { withServiceImageUrl } from '../common/utils/media-url.util';
 
 @Injectable()
 export class ProvidersService {
@@ -26,13 +27,24 @@ export class ProvidersService {
     service: T | null | undefined,
   ) {
     if (!service) return service;
+    return withServiceImageUrl(service);
+  }
 
-    return {
-      ...service,
-      imageUrl: service.imageKey
-        ? `/uploads/services/${service.imageKey}`
-        : null,
-    };
+  private metierMatchesService(
+    metier: string | null | undefined,
+    service: { name: string; category: string },
+  ): boolean {
+    if (!metier) return false;
+    const normalizedMetier = metier.toLowerCase().trim();
+    const normalizedName = service.name.toLowerCase();
+    const normalizedCategory = service.category.toLowerCase();
+
+    return (
+      normalizedName.includes(normalizedMetier) ||
+      normalizedMetier.includes(normalizedName) ||
+      normalizedCategory.includes(normalizedMetier) ||
+      normalizedMetier.includes(normalizedCategory)
+    );
   }
 
   private withServiceImageUrl<T extends { service?: any }>(request: T) {
@@ -290,28 +302,33 @@ export class ProvidersService {
 
     const missions = await this.prisma.request.findMany({
       where: {
+        status: { in: [RequestStatus.APPROVED, RequestStatus.ACCEPTED] },
+        providerId: null,
         OR: [
           { serviceId: { in: assignedServiceIds } },
-          {
-            service: {
-              OR: [
+          ...(user.metier
+            ? [
                 {
-                  category: {
-                    contains: (user.metier || '').substring(0, 4),
-                    mode: 'insensitive',
+                  service: {
+                    OR: [
+                      {
+                        category: {
+                          contains: user.metier,
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                      {
+                        name: {
+                          contains: user.metier,
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                    ],
                   },
                 },
-                {
-                  name: {
-                    contains: (user.metier || '').substring(0, 4),
-                    mode: 'insensitive',
-                  },
-                },
-              ],
-            },
-          },
+              ]
+            : []),
         ],
-        status: RequestStatus.ACCEPTED,
       },
       include: {
         service: true,
@@ -360,7 +377,10 @@ export class ProvidersService {
       throw new NotFoundException('Demande introuvable.');
     }
 
-    if (request.status !== RequestStatus.ACCEPTED) {
+    if (
+      request.status !== RequestStatus.APPROVED &&
+      request.status !== RequestStatus.ACCEPTED
+    ) {
       throw new BadRequestException("Cette demande n'est plus disponible.");
     }
 
@@ -372,17 +392,9 @@ export class ProvidersService {
     if (!directLink) {
       const service = await this.prisma.service.findUnique({
         where: { id: request.serviceId },
-        include: { _count: { select: { providers: true } } },
       });
 
-      const metierMatches =
-        provider.metier &&
-        (service?.name.toLowerCase().includes(provider.metier.toLowerCase()) ||
-          service?.category
-            .toLowerCase()
-            .includes(provider.metier.toLowerCase()));
-
-      if (metierMatches && service?._count.providers === 0) {
+      if (service && this.metierMatchesService(provider.metier, service)) {
         canHandleByMetier = true;
       }
     }
@@ -393,19 +405,35 @@ export class ProvidersService {
       );
     }
 
+    const depositPaid = await this.prisma.payment.findFirst({
+      where: {
+        requestId,
+        type: 'DEPOSIT',
+        status: 'SUCCESS',
+      },
+    });
+
+    const nextStatus = depositPaid
+      ? RequestStatus.IN_PROGRESS
+      : RequestStatus.ACCEPTED;
+
     const [updatedRequest] = await this.prisma.$transaction([
       this.prisma.request.update({
         where: { id: requestId },
         data: {
-          status: RequestStatus.IN_PROGRESS,
+          status: nextStatus,
           providerId: providerId,
           acceptedAt: new Date(),
         },
       }),
-      this.prisma.user.update({
-        where: { id: providerId },
-        data: { status: Status.EN_MISSION },
-      }),
+      ...(nextStatus === RequestStatus.IN_PROGRESS
+        ? [
+            this.prisma.user.update({
+              where: { id: providerId },
+              data: { status: Status.EN_MISSION },
+            }),
+          ]
+        : []),
     ]);
 
     this.logger.log(
@@ -485,7 +513,10 @@ export class ProvidersService {
     }
 
     const { password, refreshToken, ...profile } = user;
-    return profile;
+    return {
+      ...profile,
+      services: profile.services?.map((service) => withServiceImageUrl(service)),
+    };
   }
   async updateProfile(
     providerId: string,

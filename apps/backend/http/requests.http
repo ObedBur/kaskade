@@ -126,9 +126,17 @@ Authorization: Bearer {{providerToken}}
 ### 5. COMPLETION & PAYMENTS
 ### ------------------------------------------------------------
 
-# @name mockDeposit
-PATCH {{baseUrl}}/requests/{{requestId}}/mock-deposit
+# @name initiateDeposit
+POST {{baseUrl}}/payments/initiate/deposit
 Authorization: Bearer {{clientToken}}
+Content-Type: application/json
+
+{
+  "requestId": "{{requestId}}",
+  "phoneNumber": "+243812345678",
+  "operator": "VODACOM",
+  "currency": "USD"
+}
 
 ###
 

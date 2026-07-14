@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { withServiceImageUrl } from '../common/utils/media-url.util';
 
 @Injectable()
 export class ServicesService {
@@ -13,12 +14,7 @@ export class ServicesService {
   constructor(private readonly prisma: PrismaService) {}
 
   private withImageUrl<T extends { imageKey?: string | null }>(service: T) {
-    return {
-      ...service,
-      imageUrl: service.imageKey
-        ? `/uploads/services/${service.imageKey}`
-        : null,
-    };
+    return withServiceImageUrl(service);
   }
 
   async findAll() {

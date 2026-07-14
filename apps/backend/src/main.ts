@@ -20,7 +20,9 @@ async function bootstrap() {
   });
 
   // 2. Création de l'application (Une seule déclaration)
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // 3. Sécurité et CORS
   app.use(helmet({

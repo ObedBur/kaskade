@@ -10,6 +10,7 @@ import { UpdateRequestDto } from './dto/update-request.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestStatus, Role } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { withServiceImageUrl } from '../common/utils/media-url.util';
 
 @Injectable()
 export class RequestsService {
@@ -24,13 +25,7 @@ export class RequestsService {
     service: T | null | undefined,
   ) {
     if (!service) return service;
-
-    return {
-      ...service,
-      imageUrl: service.imageKey
-        ? `/uploads/services/${service.imageKey}`
-        : null,
-    };
+    return withServiceImageUrl(service);
   }
 
   private withServiceImageUrl<T extends { service?: any }>(request: T) {
@@ -58,17 +53,8 @@ export class RequestsService {
     if (!service.price) {
       throw new BadRequestException("Le prix du service n'est pas défini.");
     }
-    const requiredDeposit = service.price * 0.5;
 
-    this.logger.log(
-      `[PAIEMENT INITIÉ] Demande de ${requiredDeposit}$ via ${operator || 'MOBILE MONEY'} pour le numéro ${phoneNumber}`,
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    this.logger.log(
-      `[WEBHOOK REÇU] Paiement de ${requiredDeposit}$ confirmé par l'opérateur.`,
-    );
+    const isPremiumSubscription = Boolean(requestData.scheduleFrequency);
 
     const request = await this.prisma.request.create({
       data: {
@@ -76,13 +62,16 @@ export class RequestsService {
         serviceId,
         clientId,
         price: service.price,
-        status: RequestStatus.APPROVED,
+        currency: service.currency || 'USD',
+        status: isPremiumSubscription
+          ? RequestStatus.PENDING
+          : RequestStatus.APPROVED,
       },
       include: { service: true, client: true },
     });
 
     this.logger.log(
-      `COMMANDE VALIDÉE : Demande ID ${request.id} créée suite au paiement de ${requiredDeposit}$.`,
+      `Demande créée [${request.id}] pour le service "${service.name}" — en attente de paiement acompte.`,
     );
 
     this.eventEmitter.emit('request.created', {

@@ -7,13 +7,15 @@ import {
   UseGuards,
   Logger,
   Headers,
-  RawBodyRequest,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
-import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import {
+  InitiatePaymentDto,
+} from './dto/initiate-payment.dto';
+import { FinalizePaymentDto } from './dto/finalize-payment.dto';
 import { MbiyoCallbackDto } from './dto/mbiyo-callback.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -32,10 +34,6 @@ export class PaymentsController {
     private readonly configService: ConfigService,
   ) {}
 
-  // ─── INITIER UN ACOMPTE (50%) VIA MBIYO PAY ────────────────────────────────
-  // Le client choisit son opérateur et entre son numéro +243
-  // → Déclenche un Push USSD sur son téléphone
-
   @Post('initiate/deposit')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLIENT)
@@ -44,12 +42,10 @@ export class PaymentsController {
     @CurrentUser('id') clientId: string,
   ) {
     this.logger.log(
-      `💳 CLIENT ${clientId} : Initiation acompte | Demande: ${dto.requestId} | Opérateur: ${dto.operator} | Tél: ${dto.phoneNumber}`,
+      `💳 CLIENT ${clientId} : Acompte | Demande ${dto.requestId} | ${dto.operator} | ${dto.phoneNumber}`,
     );
     return this.paymentsService.initiateDeposit(dto, clientId);
   }
-
-  // ─── INITIER LE PAIEMENT FINAL (50%) VIA MBIYO PAY ─────────────────────────
 
   @Post('initiate/final')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -59,57 +55,82 @@ export class PaymentsController {
     @CurrentUser('id') clientId: string,
   ) {
     this.logger.log(
-      `💳 CLIENT ${clientId} : Initiation paiement final | Demande: ${dto.requestId} | Opérateur: ${dto.operator} | Tél: ${dto.phoneNumber}`,
+      `💳 CLIENT ${clientId} : Solde final | Demande ${dto.requestId} | ${dto.operator}`,
     );
     return this.paymentsService.initiateFinalPayment(dto, clientId);
   }
 
-  // ─── WEBHOOK MBIYO PAY (ROUTE PUBLIQUE) ─────────────────────────────────────
-  // Cette route reçoit les notifications de confirmation/échec de Mbiyo Pay.
-  // Elle est publique (pas de JWT) mais sécurisée par signature HMAC-SHA256.
-
-  @Post('webhook/mbiyo')
-  async handleMbiyoWebhook(
-    @Body() body: MbiyoCallbackDto,
-    @Headers('x-mbiyo-signature') signature: string,
-    @Req() req: Request,
+  @Post('finalize')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLIENT)
+  async finalizePayment(
+    @Body() dto: FinalizePaymentDto,
+    @CurrentUser('id') clientId: string,
   ) {
-    this.logger.log(`🔔 Webhook Mbiyo Pay reçu | Réf: ${body.reference} | Status: ${body.status}`);
-
-    // ── Vérification de la signature HMAC-SHA256 ──────────────────────────
-    const webhookSecret = this.configService.get<string>('MBIYO_WEBHOOK_SECRET', '');
-
-    if (!webhookSecret) {
-      this.logger.error('❌ MBIYO_WEBHOOK_SECRET non configuré !');
-      throw new UnauthorizedException('Configuration webhook manquante.');
-    }
-
-    // Calculer la signature attendue à partir du body brut
-    const rawBody = JSON.stringify(body);
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(rawBody)
-      .digest('hex');
-
-    if (!signature || !crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex'),
-    )) {
-      this.logger.warn(`⚠️ Signature webhook invalide ! Reçue: ${signature?.substring(0, 16)}...`);
-      throw new UnauthorizedException('Signature webhook invalide.');
-    }
-
-    this.logger.log('✅ Signature webhook vérifiée avec succès.');
-
-    // ── Traitement du callback ────────────────────────────────────────────
-    return this.paymentsService.handleMbiyoCallback(
-      body.reference,
-      body.status,
-      body.transactionId,
+    return this.paymentsService.finalizePayment(
+      dto.paymentId,
+      dto.otp,
+      clientId,
     );
   }
 
-  // ─── CONSULTER LE STATUT D'UN PAIEMENT ─────────────────────────────────────
+  /**
+   * Webhook Mbiyo Pay — route publique, sécurisée par header Signature (HMAC-SHA256).
+   * @see https://dashboard.mbiyo.africa/docs/reference/merchant/payin
+   */
+  @Post('webhook/mbiyo')
+  async handleMbiyoWebhook(
+    @Body() body: MbiyoCallbackDto,
+    @Headers('signature') signatureHeader: string,
+    @Req() req: Request,
+  ) {
+    const signature = signatureHeader;
+    const webhookSecret = this.configService.get<string>(
+      'MBIYO_WEBHOOK_SECRET',
+      '',
+    );
+
+    this.logger.log(
+      `🔔 Webhook Mbiyo | txn=${body.transaction_id} | order=${body.order_id} | status=${body.status}`,
+    );
+
+    if (webhookSecret) {
+      const rawBody =
+        (req as Request & { rawBody?: Buffer }).rawBody?.toString('utf8') ??
+        JSON.stringify(body);
+
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(rawBody)
+        .digest('hex');
+
+      const received = (signature || '').trim();
+
+      const valid =
+        received.length === expectedSignature.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(received, 'utf8'),
+          Buffer.from(expectedSignature, 'utf8'),
+        );
+
+      if (!valid) {
+        this.logger.warn('⚠️ Signature webhook Mbiyo invalide.');
+        throw new UnauthorizedException('Signature webhook invalide.');
+      }
+
+      this.logger.log('✅ Signature webhook Mbiyo vérifiée.');
+    } else {
+      this.logger.warn(
+        '⚠️ MBIYO_WEBHOOK_SECRET non configuré — webhook accepté sans vérification (dev uniquement).',
+      );
+    }
+
+    return this.paymentsService.handleMbiyoCallback(
+      body.order_id ?? '',
+      body.transaction_id,
+      body.status,
+    );
+  }
 
   @Get('status/:paymentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -120,8 +141,6 @@ export class PaymentsController {
   ) {
     return this.paymentsService.getPaymentStatus(paymentId, clientId);
   }
-
-  // ─── HISTORIQUE DES PAIEMENTS D'UNE DEMANDE ────────────────────────────────
 
   @Get('request/:requestId')
   @UseGuards(JwtAuthGuard, RolesGuard)
