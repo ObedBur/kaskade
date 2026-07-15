@@ -7,7 +7,6 @@ import {
   Logger,
   HttpException,
   InternalServerErrorException,
-  TooManyRequestsException,
   BadGatewayException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -573,7 +572,7 @@ export class PaymentsService {
         return new ConflictException(`${action} ${message}`);
       case 429:
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-        return new TooManyRequestsException(`${action} ${message}`);
+        return new HttpException(`${action} ${message}`, 429);
       case 401:
       case 403:
         return new InternalServerErrorException(
