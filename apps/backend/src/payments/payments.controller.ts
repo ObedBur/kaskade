@@ -94,36 +94,30 @@ export class PaymentsController {
       `🔔 Webhook Mbiyo | txn=${body.transaction_id} | order=${body.order_id} | status=${body.status}`,
     );
 
-    if (webhookSecret) {
-      const rawBody =
-        (req as Request & { rawBody?: Buffer }).rawBody?.toString('utf8') ??
-        JSON.stringify(body);
+    const rawBody =
+      (req as Request & { rawBody?: Buffer }).rawBody?.toString('utf8') ??
+      JSON.stringify(body);
 
-      const expectedSignature = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(rawBody)
-        .digest('hex');
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(rawBody)
+      .digest('hex');
 
-      const received = (signature || '').trim();
+    const received = (signature || '').trim();
 
-      const valid =
-        received.length === expectedSignature.length &&
-        crypto.timingSafeEqual(
-          Buffer.from(received, 'utf8'),
-          Buffer.from(expectedSignature, 'utf8'),
-        );
-
-      if (!valid) {
-        this.logger.warn('⚠️ Signature webhook Mbiyo invalide.');
-        throw new UnauthorizedException('Signature webhook invalide.');
-      }
-
-      this.logger.log('✅ Signature webhook Mbiyo vérifiée.');
-    } else {
-      this.logger.warn(
-        '⚠️ MBIYO_WEBHOOK_SECRET non configuré — webhook accepté sans vérification (dev uniquement).',
+    const valid =
+      received.length === expectedSignature.length &&
+      crypto.timingSafeEqual(
+        Buffer.from(received, 'utf8'),
+        Buffer.from(expectedSignature, 'utf8'),
       );
+
+    if (!valid) {
+      this.logger.warn('⚠️ Signature webhook Mbiyo invalide.');
+      throw new UnauthorizedException('Signature webhook invalide.');
     }
+
+    this.logger.log('✅ Signature webhook Mbiyo vérifiée.');
 
     return this.paymentsService.handleMbiyoCallback(
       body.order_id ?? '',

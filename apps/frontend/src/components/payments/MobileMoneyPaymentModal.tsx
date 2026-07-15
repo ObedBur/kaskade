@@ -35,7 +35,12 @@ export default function MobileMoneyPaymentModal({
   const [instructions, setInstructions] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<string | null>(null);
   const [phase, setPhase] = useState<
-    "INITIAL" | "INITIATING" | "WAITING_USSD" | "PIN_REQUIRED" | "SUCCESS"
+    | "INITIAL"
+    | "INITIATING"
+    | "WAITING_USSD"
+    | "PIN_REQUIRED"
+    | "PENDING_BACKGROUND"
+    | "SUCCESS"
   >("INITIAL");
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(60);
@@ -118,19 +123,51 @@ export default function MobileMoneyPaymentModal({
   useEffect(() => {
     if (phase !== "WAITING_USSD" || !paymentId) return;
 
+    const handlePaymentSuccess = () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      toast.dismiss("mm-payment");
+      setPhase("SUCCESS");
+      setTimeout(onPaid, 1500);
+    };
+
+    const handlePaymentFailure = () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      toast.dismiss("mm-payment");
+      setPhase("INITIAL");
+      toast.error("Paiement échoué.");
+    };
+
+    const handleTimeoutStatusCheck = async () => {
+      try {
+        const res = await api.get(`/payments/status/${paymentId}`);
+        if (res.data.status === "SUCCESS") {
+          handlePaymentSuccess();
+          return;
+        }
+
+        if (res.data.status === "FAILED") {
+          handlePaymentFailure();
+          return;
+        }
+      } catch {
+        /* keep the payment protected if the final status cannot be confirmed */
+      }
+
+      toast.dismiss("mm-payment");
+      setPhase("PENDING_BACKGROUND");
+      toast.info(
+        "Le paiement est toujours en cours de traitement, vous pouvez fermer cette fenêtre, nous vous notifierons.",
+        { id: "mm-payment" },
+      );
+    };
+
     pollingRef.current = setInterval(async () => {
       try {
         const res = await api.get(`/payments/status/${paymentId}`);
         if (res.data.status === "SUCCESS") {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          toast.dismiss("mm-payment");
-          setPhase("SUCCESS");
-          setTimeout(onPaid, 1500);
+          handlePaymentSuccess();
         } else if (res.data.status === "FAILED") {
-          if (pollingRef.current) clearInterval(pollingRef.current);
-          toast.dismiss("mm-payment");
-          setPhase("INITIAL");
-          toast.error("Paiement échoué.");
+          handlePaymentFailure();
         }
       } catch {
         /* ignore polling errors */
@@ -141,9 +178,7 @@ export default function MobileMoneyPaymentModal({
       setCountdown((prev) => {
         if (prev <= 1) {
           if (pollingRef.current) clearInterval(pollingRef.current);
-          toast.dismiss("mm-payment");
-          setPhase("INITIAL");
-          toast.error("Délai dépassé.");
+          void handleTimeoutStatusCheck();
           return 0;
         }
         return prev - 1;
@@ -197,6 +232,17 @@ export default function MobileMoneyPaymentModal({
               <CheckCircle className="mb-3 h-12 w-12 text-green-600" />
               <p className="text-sm font-black uppercase text-chocolat">
                 Paiement réussi !
+              </p>
+            </div>
+          ) : phase === "PENDING_BACKGROUND" ? (
+            <div className="flex flex-col items-center py-6 text-center">
+              <Loader2 className="mb-3 h-10 w-10 animate-spin text-ocre" />
+              <p className="text-sm font-black uppercase text-chocolat">
+                Paiement en cours
+              </p>
+              <p className="mt-3 max-w-xs text-sm font-bold leading-relaxed text-chocolat/60">
+                Le paiement est toujours en cours de traitement. Vous pouvez
+                fermer cette fenêtre, nous vous notifierons.
               </p>
             </div>
           ) : phase === "PIN_REQUIRED" ? (

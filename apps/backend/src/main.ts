@@ -58,6 +58,10 @@ async function bootstrap() {
   );
 
   // 5. Démarrage
+  if (!process.env.MBIYO_WEBHOOK_SECRET?.trim()) {
+    throw new Error('MBIYO_WEBHOOK_SECRET est requis au démarrage.');
+  }
+
   const port = process.env.PORT ?? 4000;
   await app.listen(port, '0.0.0.0');
   Logger.log(`🚀 Application running on port ${port}`, 'Bootstrap'); 

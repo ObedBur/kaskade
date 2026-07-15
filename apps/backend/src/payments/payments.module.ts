@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
+import { PaymentsReconciliationService } from './payments-reconciliation.service';
 import { PaymentsController } from './payments.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -10,7 +11,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     ConfigModule,
   ],
   controllers: [PaymentsController],
-  providers: [PaymentsService],
+  providers: [PaymentsService, PaymentsReconciliationService],
   exports: [PaymentsService],
 })
 export class PaymentsModule { }

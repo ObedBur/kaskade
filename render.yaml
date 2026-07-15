@@ -27,6 +27,8 @@ services:
         sync: false
       - key: MAIL_FROM_NAME
         sync: false
+      # Configuration Mbiyo obligatoire avant tout deploiement:
+      # renseigner l'URL API, la cle marchande et le secret webhook.
       - key: MBIYO_API_URL
         sync: false
       - key: MBIYO_SECRET_KEY
@@ -35,5 +37,3 @@ services:
         sync: false
       - key: MBIYO_WEBHOOK_URL
         sync: false
-      - key: MBIYO_USE_MOCK
-        value: "false"

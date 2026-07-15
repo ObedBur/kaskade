@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { RequestStatus } from '@prisma/client';
+import { Payment, RequestStatus, Role } from '@prisma/client';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import {
   mapOperatorToNetwork,
@@ -17,6 +17,25 @@ import {
   isMbiyoPaymentFailed,
   MbiyoPayinResponse,
 } from './mbiyo.util';
+
+const DEFAULT_PENDING_PAYMENT_EXPIRATION_MS = 5 * 60 * 1000;
+const ACTIVE_PAYMENT_ERROR_MESSAGE =
+  'Un paiement est déjà en cours pour cette demande, veuillez patienter ou réessayer dans quelques minutes.';
+
+type PaymentWithRequest = Payment & {
+  request: {
+    providerId: string | null;
+  };
+};
+
+type ConfirmPaymentSuccessOutcome =
+  | { outcome: 'confirmed' }
+  | { outcome: 'conflict' };
+
+interface VerifiedMbiyoTransactionStatus {
+  status: string;
+  transactionId?: string;
+}
 
 export interface PayinInitResult {
   message: string;
@@ -35,6 +54,7 @@ export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
   private readonly mbiyoApiUrl: string;
   private readonly mbiyoApiKey: string;
+  private readonly pendingPaymentExpirationMs: number;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,6 +65,12 @@ export class PaymentsService {
       .get<string>('MBIYO_API_URL', 'https://dashboard.mbiyo.africa/api/v1')
       .replace(/\/$/, '');
     this.mbiyoApiKey = this.configService.get<string>('MBIYO_SECRET_KEY', '');
+    if (!this.mbiyoApiKey.trim()) {
+      throw new Error(
+        'MBIYO_SECRET_KEY est requis pour initialiser PaymentsService.',
+      );
+    }
+    this.pendingPaymentExpirationMs = this.getPendingPaymentExpirationMs();
   }
 
   async initiateDeposit(dto: InitiatePaymentDto, clientId: string) {
@@ -70,12 +96,7 @@ export class PaymentsService {
       );
     }
 
-    const existingDeposit = await this.prisma.payment.findFirst({
-      where: { requestId: dto.requestId, type: 'DEPOSIT', status: 'SUCCESS' },
-    });
-    if (existingDeposit) {
-      throw new BadRequestException('L\'acompte a déjà été payé pour cette demande.');
-    }
+    await this.assertNoActivePayment(dto.requestId, 'DEPOSIT');
 
     const basePrice = request.price || request.service.price;
     const depositAmount = basePrice ? basePrice * 0.5 : 0;
@@ -116,6 +137,8 @@ export class PaymentsService {
         'Le paiement final ne peut être effectué que lorsque le prestataire a terminé la mission (statut AWAITING_FINAL).',
       );
     }
+
+    await this.assertNoActivePayment(dto.requestId, 'FINAL');
 
     const finalAmount = request.price ? request.price * 0.5 : 0;
 
@@ -193,18 +216,7 @@ export class PaymentsService {
     type: 'DEPOSIT' | 'FINAL';
     omOtp?: string;
   }): Promise<PayinInitResult> {
-    const payment = await this.prisma.payment.create({
-      data: {
-        requestId: params.requestId,
-        clientId: params.clientId,
-        amount: params.amount,
-        currency: params.currency,
-        operator: params.operator,
-        phoneNumber: params.phoneNumber,
-        type: params.type,
-        status: 'PENDING',
-      },
-    });
+    const payment = await this.createPendingPayment(params);
 
     this.logger.log(
       `💳 Payment créé [${payment.id}] | Type: ${params.type} | ${params.amount} ${params.currency} | ${params.operator}`,
@@ -302,6 +314,97 @@ export class PaymentsService {
     }
   }
 
+  private async assertNoActivePayment(
+    requestId: string,
+    type: 'DEPOSIT' | 'FINAL',
+  ) {
+    const successfulPayment = await this.prisma.payment.findFirst({
+      where: { requestId, type, status: 'SUCCESS' },
+    });
+
+    if (successfulPayment) {
+      throw new BadRequestException(
+        type === 'DEPOSIT'
+          ? "L'acompte a déjà été payé pour cette demande."
+          : 'Le paiement final a déjà été payé pour cette demande.',
+      );
+    }
+
+    const pendingPayment = await this.prisma.payment.findFirst({
+      where: { requestId, type, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!pendingPayment) {
+      return;
+    }
+
+    const ageMs = Date.now() - pendingPayment.createdAt.getTime();
+    if (ageMs <= this.pendingPaymentExpirationMs) {
+      throw new BadRequestException(ACTIVE_PAYMENT_ERROR_MESSAGE);
+    }
+
+    // Payment.status est un String dans schema.prisma: EXPIRED peut être stocké sans migration d'enum.
+    await this.prisma.payment.update({
+      where: { id: pendingPayment.id },
+      data: { status: 'EXPIRED' },
+    });
+
+    this.logger.warn(
+      `Paiement ${type} expiré [${pendingPayment.id}] après ${Math.round(ageMs / 1000)}s.`,
+    );
+  }
+
+  private async createPendingPayment(params: {
+    requestId: string;
+    clientId: string;
+    amount: number;
+    currency: string;
+    operator: InitiatePaymentDto['operator'];
+    phoneNumber: string;
+    type: 'DEPOSIT' | 'FINAL';
+  }) {
+    try {
+      return await this.prisma.payment.create({
+        data: {
+          requestId: params.requestId,
+          clientId: params.clientId,
+          amount: params.amount,
+          currency: params.currency,
+          operator: params.operator,
+          phoneNumber: params.phoneNumber,
+          type: params.type,
+          status: 'PENDING',
+        },
+      });
+    } catch (error: any) {
+      if (this.isActivePaymentUniqueConstraintError(error)) {
+        throw new BadRequestException(ACTIVE_PAYMENT_ERROR_MESSAGE);
+      }
+      throw error;
+    }
+  }
+
+  private getPendingPaymentExpirationMs(): number {
+    const rawValue = this.configService.get<string>(
+      'PAYMENT_PENDING_EXPIRATION_MS',
+    );
+    const parsed = rawValue ? Number(rawValue) : NaN;
+
+    return Number.isFinite(parsed) && parsed > 0
+      ? parsed
+      : DEFAULT_PENDING_PAYMENT_EXPIRATION_MS;
+  }
+
+  private isActivePaymentUniqueConstraintError(error: any): boolean {
+    return (
+      error?.code === 'P2002' ||
+      error?.code === '23505' ||
+      error?.meta?.code === '23505' ||
+      error?.cause?.code === '23505'
+    );
+  }
+
   async handleMbiyoCallback(
     orderId: string,
     transactionId: string,
@@ -332,7 +435,7 @@ export class PaymentsService {
       return { received: true, processed: false };
     }
 
-    if (payment.status !== 'PENDING') {
+    if (payment.status !== 'PENDING' && payment.status !== 'EXPIRED') {
       this.logger.warn(
         `⚠️ Payment ${payment.id} déjà traité (${payment.status}). Webhook ignoré.`,
       );
@@ -340,43 +443,52 @@ export class PaymentsService {
     }
 
     if (isMbiyoPaymentSuccessful(status)) {
-      const hasAssignedProvider = Boolean(payment.request.providerId);
-      const newRequestStatus =
-        payment.type === 'DEPOSIT'
-          ? hasAssignedProvider
-            ? RequestStatus.IN_PROGRESS
-            : RequestStatus.ACCEPTED
-          : RequestStatus.COMPLETED;
+      const verificationId = payment.mbiyoRef || transactionId || orderId;
 
-      await this.prisma.$transaction([
-        this.prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: 'SUCCESS', mbiyoRef: transactionId || payment.mbiyoRef },
-        }),
-        this.prisma.request.update({
-          where: { id: payment.requestId },
-          data: { status: newRequestStatus },
-        }),
-      ]);
+      if (!verificationId) {
+        this.logger.error(
+          `❌ Vérification Mbiyo impossible: identifiant transaction manquant | paymentId=${payment.id} | order_id=${orderId}`,
+        );
+        return {
+          received: true,
+          processed: false,
+          reason: 'verification_failed',
+        };
+      }
 
-      this.logger.log(
-        `✅ Paiement ${payment.type} confirmé → demande ${payment.requestId} = ${newRequestStatus}`,
-      );
+      let verified: VerifiedMbiyoTransactionStatus;
+      try {
+        verified = await this.verifyTransactionStatus(verificationId);
+      } catch (error: any) {
+        this.logger.error(
+          `❌ Vérification Mbiyo échouée | paymentId=${payment.id} | transaction=${verificationId} | error=${error.message}`,
+        );
+        return {
+          received: true,
+          processed: false,
+          reason: 'verification_failed',
+        };
+      }
 
-      if (payment.type === 'DEPOSIT') {
-        this.eventEmitter.emit('payment.deposit_confirmed', {
-          requestId: payment.requestId,
-          paymentId: payment.id,
-          amount: payment.amount,
-          currency: payment.currency,
-        });
-      } else {
-        this.eventEmitter.emit('payment.final_confirmed', {
-          requestId: payment.requestId,
-          paymentId: payment.id,
-          amount: payment.amount,
-          currency: payment.currency,
-        });
+      if (!isMbiyoPaymentSuccessful(verified.status)) {
+        this.logger.warn(
+          `⚠️ Statut Mbiyo incohérent webhook/API | paymentId=${payment.id} | transaction=${verificationId} | webhook=${status} | api=${verified.status}`,
+        );
+        return {
+          received: true,
+          processed: false,
+          reason: 'status_mismatch',
+        };
+      }
+
+      const result = await this.confirmPaymentSuccess(payment, transactionId);
+
+      if (result.outcome === 'conflict') {
+        return {
+          received: true,
+          processed: false,
+          reason: 'reconciliation_required',
+        };
       }
     } else if (isMbiyoPaymentFailed(status)) {
       await this.prisma.payment.update({
@@ -447,5 +559,155 @@ export class PaymentsService {
       where: { requestId },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  private async verifyTransactionStatus(
+    transactionId: string,
+  ): Promise<VerifiedMbiyoTransactionStatus> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const res = await fetch(
+        `${this.mbiyoApiUrl}/merchant/transactions/${transactionId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.mbiyoApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok || data?.status === 'error') {
+        throw new Error(data?.message || `Erreur HTTP: ${res.status}`);
+      }
+
+      if (!data?.data?.status) {
+        throw new Error('Réponse Mbiyo invalide: statut transaction manquant.');
+      }
+
+      return {
+        status: data.data.status,
+        transactionId: data.data.transaction_id,
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async confirmPaymentSuccess(
+    payment: PaymentWithRequest,
+    transactionId?: string | null,
+  ): Promise<ConfirmPaymentSuccessOutcome> {
+    const hasAssignedProvider = Boolean(payment.request.providerId);
+    const newRequestStatus =
+      payment.type === 'DEPOSIT'
+        ? hasAssignedProvider
+          ? RequestStatus.IN_PROGRESS
+          : RequestStatus.ACCEPTED
+        : RequestStatus.COMPLETED;
+
+    try {
+      await this.prisma.$transaction([
+        this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'SUCCESS', mbiyoRef: transactionId || payment.mbiyoRef },
+        }),
+        this.prisma.request.update({
+          where: { id: payment.requestId },
+          data: { status: newRequestStatus },
+        }),
+      ]);
+    } catch (error: any) {
+      if (!this.isActivePaymentUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      this.logger.error(
+        `🚨 PAYMENT_RECONCILIATION_CONFLICT | paymentId=${payment.id} | mbiyoRef=${payment.mbiyoRef ?? transactionId ?? 'null'} | requestId=${payment.requestId} | amount=${payment.amount} ${payment.currency}`,
+      );
+
+      try {
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'CONFLICT_NEEDS_REVIEW' },
+        });
+      } catch (updateError: any) {
+        this.logger.error(
+          `🚨 Impossible de marquer le paiement en conflit | paymentId=${payment.id} | error=${updateError.message}`,
+        );
+      }
+
+      await this.notifyAdminsPaymentReview(
+        payment,
+        'PAYMENT_RECONCILIATION_NEEDED',
+        'Conflit de paiement à vérifier',
+      );
+
+      return { outcome: 'conflict' };
+    }
+
+    this.logger.log(
+      `✅ Paiement ${payment.type} confirmé → demande ${payment.requestId} = ${newRequestStatus}`,
+    );
+
+    if (payment.type === 'DEPOSIT') {
+      this.eventEmitter.emit('payment.deposit_confirmed', {
+        requestId: payment.requestId,
+        paymentId: payment.id,
+        amount: payment.amount,
+        currency: payment.currency,
+      });
+    } else {
+      this.eventEmitter.emit('payment.final_confirmed', {
+        requestId: payment.requestId,
+        paymentId: payment.id,
+        amount: payment.amount,
+        currency: payment.currency,
+      });
+    }
+
+    return { outcome: 'confirmed' };
+  }
+
+  async notifyAdminsPaymentReview(
+    payment: Pick<
+      Payment,
+      'id' | 'requestId' | 'amount' | 'currency' | 'mbiyoRef'
+    >,
+    type: 'PAYMENT_RECONCILIATION_NEEDED' | 'PAYMENT_ABANDONED_NEEDS_REVIEW',
+    title: string,
+  ) {
+    try {
+      const admins = await this.prisma.user.findMany({
+        where: { role: Role.ADMIN },
+        select: { id: true },
+      });
+
+      if (admins.length === 0) {
+        this.logger.warn(
+          `⚠️ Aucun administrateur trouvé pour notifier ${type} | paymentId=${payment.id}`,
+        );
+        return;
+      }
+
+      await this.prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          title,
+          message: `Vérification manuelle requise pour le paiement ${payment.id}. Demande: ${payment.requestId}. Montant: ${payment.amount} ${payment.currency}. Référence Mbiyo: ${payment.mbiyoRef ?? 'non renseignée'}.`,
+          type,
+          requestId: payment.requestId,
+        })),
+      });
+    } catch (error: any) {
+      this.logger.warn(
+        `⚠️ Notification admin impossible pour ${type} | paymentId=${payment.id} | error=${error.message}`,
+      );
+    }
   }
 }
