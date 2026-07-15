@@ -3,8 +3,13 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
   Logger,
+  HttpException,
   InternalServerErrorException,
+  TooManyRequestsException,
+  BadGatewayException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -35,6 +40,20 @@ type ConfirmPaymentSuccessOutcome =
 interface VerifiedMbiyoTransactionStatus {
   status: string;
   transactionId?: string;
+}
+
+interface MbiyoApiEnvelope<T = unknown> {
+  status?: string;
+  message?: string;
+  data?: T | null;
+}
+
+interface MbiyoResponseDetails<T = unknown> {
+  statusCode: number;
+  responseStatus?: string;
+  message: string;
+  data?: T | null;
+  payload?: MbiyoApiEnvelope<T> | null;
 }
 
 export interface PayinInitResult {
@@ -84,7 +103,9 @@ export class PaymentsService {
     }
 
     if (request.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
+      throw new ForbiddenException(
+        "Vous n'êtes pas le client de cette demande.",
+      );
     }
 
     if (
@@ -111,7 +132,7 @@ export class PaymentsService {
       requestId: dto.requestId,
       clientId,
       amount: depositAmount,
-      currency: dto.currency || request.currency || 'USD',
+      currency: this.resolveRequestCurrency(dto, request.currency),
       operator: dto.operator,
       phoneNumber: dto.phoneNumber,
       type: 'DEPOSIT',
@@ -129,7 +150,9 @@ export class PaymentsService {
     }
 
     if (request.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
+      throw new ForbiddenException(
+        "Vous n'êtes pas le client de cette demande.",
+      );
     }
 
     if (request.status !== RequestStatus.AWAITING_FINAL) {
@@ -143,14 +166,16 @@ export class PaymentsService {
     const finalAmount = request.price ? request.price * 0.5 : 0;
 
     if (finalAmount <= 0) {
-      throw new BadRequestException('Le montant du paiement final est invalide.');
+      throw new BadRequestException(
+        'Le montant du paiement final est invalide.',
+      );
     }
 
     return this.initiateCollect({
       requestId: dto.requestId,
       clientId,
       amount: finalAmount,
-      currency: dto.currency || request.currency || 'USD',
+      currency: this.resolveRequestCurrency(dto, request.currency),
       operator: dto.operator,
       phoneNumber: dto.phoneNumber,
       type: 'FINAL',
@@ -168,11 +193,15 @@ export class PaymentsService {
     }
 
     if (payment.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas autorisé à finaliser ce paiement.");
+      throw new ForbiddenException(
+        "Vous n'êtes pas autorisé à finaliser ce paiement.",
+      );
     }
 
     if (!payment.mbiyoRef) {
-      throw new BadRequestException('Référence Mbiyo manquante pour ce paiement.');
+      throw new BadRequestException(
+        'Référence Mbiyo manquante pour ce paiement.',
+      );
     }
 
     try {
@@ -188,21 +217,33 @@ export class PaymentsService {
         },
       );
 
-      const data = await res.json();
+      const response = await this.readMbiyoResponse(res);
 
-      if (!res.ok) {
-        throw new Error(data?.message || `Erreur HTTP: ${res.status}`);
+      if (!res.ok || this.isMbiyoFailureStatus(response.responseStatus)) {
+        throw this.createMbiyoHttpException(
+          'Impossible de finaliser le paiement.',
+          {
+            statusCode: response.statusCode,
+            message: response.message,
+          },
+        );
       }
 
       return {
-        message: data.message || 'OTP transmis. Attendez la confirmation du paiement.',
+        message:
+          response.message ||
+          'OTP transmis. Attendez la confirmation du paiement.',
         status: 'pending',
       };
     } catch (error: any) {
-      this.logger.error(`❌ Finalize Mbiyo: ${error.message}`);
-      throw new InternalServerErrorException(
-        `Impossible de finaliser le paiement. ${error.message}`,
+      const mappedError = this.normalizeMbiyoException(
+        'Impossible de finaliser le paiement.',
+        error,
       );
+      this.logger.error(
+        `❌ Finalize Mbiyo [${this.getErrorStatusCode(mappedError) ?? 'n/a'}]: ${mappedError.message}`,
+      );
+      throw mappedError;
     }
   }
 
@@ -260,19 +301,24 @@ export class PaymentsService {
         clearTimeout(timeoutId);
       }
 
-      const responseData: MbiyoPayinResponse = await res.json();
+      const response =
+        await this.readMbiyoResponse<MbiyoPayinResponse['data']>(res);
 
-      if (!res.ok || responseData.status === 'error') {
-        throw new Error(
-          responseData.message ||
-            (responseData as any)?.data?.amount?.[0] ||
-            `Erreur HTTP: ${res.status}`,
+      if (!res.ok || this.isMbiyoFailureStatus(response.responseStatus)) {
+        throw this.createMbiyoHttpException(
+          "Impossible d'initier le paiement Mobile Money.",
+          {
+            statusCode: response.statusCode,
+            message: response.message,
+          },
         );
       }
 
-      const payinData = responseData.data;
+      const payinData = response.data;
       if (!payinData?.transaction_id) {
-        throw new Error('Réponse Mbiyo invalide: transaction_id manquant.');
+        throw new BadGatewayException(
+          "Impossible d'initier le paiement Mobile Money. Réponse Mbiyo invalide: transaction_id manquant.",
+        );
       }
       const transactionId = payinData.transaction_id;
 
@@ -305,13 +351,33 @@ export class PaymentsService {
         data: { status: 'FAILED' },
       });
 
-      const errorMessage = error?.message || 'Erreur inconnue';
-      this.logger.error(`❌ Échec payin Mbiyo: ${errorMessage}`);
+      const mappedError = this.normalizeMbiyoException(
+        "Impossible d'initier le paiement Mobile Money.",
+        error,
+      );
+      this.logger.error(
+        `❌ Échec payin Mbiyo [${this.getErrorStatusCode(mappedError) ?? 'n/a'}]: ${mappedError.message}`,
+      );
 
-      throw new InternalServerErrorException(
-        `Impossible d'initier le paiement Mobile Money. ${errorMessage}`,
+      throw mappedError;
+    }
+  }
+
+  private resolveRequestCurrency(
+    dto: InitiatePaymentDto,
+    requestCurrency?: string | null,
+  ): string {
+    const currency = requestCurrency || 'USD';
+
+    // La devise du body client ne doit jamais piloter un calcul financier:
+    // elle sert uniquement à détecter une incohérence avec la demande persistée.
+    if (dto.currency && String(dto.currency) !== currency) {
+      throw new BadRequestException(
+        `Devise invalide : cette demande est en ${currency}.`,
       );
     }
+
+    return currency;
   }
 
   private async assertNoActivePayment(
@@ -396,13 +462,168 @@ export class PaymentsService {
       : DEFAULT_PENDING_PAYMENT_EXPIRATION_MS;
   }
 
-  private isActivePaymentUniqueConstraintError(error: any): boolean {
+  private isActivePaymentUniqueConstraintError(error: unknown): boolean {
+    const maybeError =
+      error && typeof error === 'object'
+        ? (error as {
+            code?: unknown;
+            meta?: { code?: unknown };
+            cause?: { code?: unknown };
+          })
+        : undefined;
+
     return (
-      error?.code === 'P2002' ||
-      error?.code === '23505' ||
-      error?.meta?.code === '23505' ||
-      error?.cause?.code === '23505'
+      maybeError?.code === 'P2002' ||
+      maybeError?.code === '23505' ||
+      maybeError?.meta?.code === '23505' ||
+      maybeError?.cause?.code === '23505'
     );
+  }
+
+  private async readMbiyoResponse<T = unknown>(
+    res: Response,
+  ): Promise<MbiyoResponseDetails<T>> {
+    const payload = await this.parseMbiyoPayload<T>(res);
+    const message = this.extractMbiyoMessage(payload, res.status);
+
+    return {
+      statusCode: res.status,
+      responseStatus: payload?.status?.toLowerCase(),
+      message,
+      data: payload?.data,
+      payload,
+    };
+  }
+
+  private async parseMbiyoPayload<T = unknown>(
+    res: Response,
+  ): Promise<MbiyoApiEnvelope<T> | null> {
+    try {
+      return (await res.json()) as MbiyoApiEnvelope<T>;
+    } catch {
+      return null;
+    }
+  }
+
+  private isMbiyoFailureStatus(status?: string | null): boolean {
+    return status === 'error' || status === 'failed';
+  }
+
+  private extractMbiyoMessage(
+    payload: MbiyoApiEnvelope<unknown> | null,
+    statusCode: number,
+  ): string {
+    if (typeof payload?.message === 'string' && payload.message.trim()) {
+      return payload.message;
+    }
+
+    const amountMessage = this.extractAmountValidationMessage(payload?.data);
+    if (amountMessage) {
+      return amountMessage;
+    }
+
+    return `Erreur HTTP: ${statusCode}`;
+  }
+
+  private extractAmountValidationMessage(data: unknown): string | null {
+    if (!data || typeof data !== 'object' || !('amount' in data)) {
+      return null;
+    }
+
+    const amount = (data as { amount?: unknown }).amount;
+    return Array.isArray(amount) && typeof amount[0] === 'string'
+      ? amount[0]
+      : null;
+  }
+
+  private normalizeMbiyoException(
+    action: string,
+    error: unknown,
+  ): HttpException {
+    if (error instanceof HttpException) {
+      return error;
+    }
+
+    if (this.isMbiyoTimeoutError(error)) {
+      return new ServiceUnavailableException(
+        `${action} Mbiyo est temporairement indisponible (timeout).`,
+      );
+    }
+
+    return new BadGatewayException(
+      `${action} Service Mbiyo indisponible ou réponse upstream invalide.`,
+    );
+  }
+
+  private createMbiyoHttpException(
+    action: string,
+    details: { statusCode?: number; message?: string },
+  ): HttpException {
+    const statusCode = details.statusCode;
+    const message = details.message || 'Erreur Mbiyo inconnue.';
+
+    switch (statusCode) {
+      case 400:
+      case 402:
+      case 422:
+        return new BadRequestException(`${action} ${message}`);
+      case 404:
+        return new NotFoundException(`${action} ${message}`);
+      case 409:
+        return new ConflictException(`${action} ${message}`);
+      case 429:
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+        return new TooManyRequestsException(`${action} ${message}`);
+      case 401:
+      case 403:
+        return new InternalServerErrorException(
+          `${action} Configuration Mbiyo invalide ou permissions insuffisantes. ${message}`,
+        );
+      case 503:
+        return new ServiceUnavailableException(
+          `${action} Mbiyo est temporairement indisponible. ${message}`,
+        );
+      case 500:
+      case 502:
+      case 504:
+        return new BadGatewayException(
+          `${action} Erreur upstream Mbiyo. ${message}`,
+        );
+      default:
+        return new BadGatewayException(
+          `${action} Service Mbiyo indisponible ou réponse upstream invalide. ${message}`,
+        );
+    }
+  }
+
+  private isMbiyoTimeoutError(error: unknown): boolean {
+    return (
+      !!error &&
+      typeof error === 'object' &&
+      ((error as { name?: string }).name === 'AbortError' ||
+        (error as { code?: string }).code === 'ABORT_ERR')
+    );
+  }
+
+  private getErrorStatusCode(error: unknown): number | null {
+    return error instanceof HttpException ? error.getStatus() : null;
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string'
+    ) {
+      return (error as { message: string }).message;
+    }
+
+    return 'Erreur inconnue';
   }
 
   async handleMbiyoCallback(
@@ -459,9 +680,9 @@ export class PaymentsService {
       let verified: VerifiedMbiyoTransactionStatus;
       try {
         verified = await this.verifyTransactionStatus(verificationId);
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.logger.error(
-          `❌ Vérification Mbiyo échouée | paymentId=${payment.id} | transaction=${verificationId} | error=${error.message}`,
+          `❌ Vérification Mbiyo échouée | paymentId=${payment.id} | transaction=${verificationId} | error=${this.getErrorMessage(error)}`,
         );
         return {
           received: true,
@@ -552,7 +773,9 @@ export class PaymentsService {
     }
 
     if (request.clientId !== clientId) {
-      throw new ForbiddenException("Vous n'êtes pas le client de cette demande.");
+      throw new ForbiddenException(
+        "Vous n'êtes pas le client de cette demande.",
+      );
     }
 
     return this.prisma.payment.findMany({
@@ -580,19 +803,30 @@ export class PaymentsService {
         },
       );
 
-      const data = await res.json();
+      const response = await this.readMbiyoResponse<{
+        status: string;
+        transaction_id?: string;
+      }>(res);
 
-      if (!res.ok || data?.status === 'error') {
-        throw new Error(data?.message || `Erreur HTTP: ${res.status}`);
+      if (!res.ok || this.isMbiyoFailureStatus(response.responseStatus)) {
+        throw this.createMbiyoHttpException(
+          'Impossible de verifier le statut de la transaction Mbiyo.',
+          {
+            statusCode: response.statusCode,
+            message: response.message,
+          },
+        );
       }
 
-      if (!data?.data?.status) {
-        throw new Error('Réponse Mbiyo invalide: statut transaction manquant.');
+      if (!response.data?.status) {
+        throw new BadGatewayException(
+          'Impossible de verifier le statut de la transaction Mbiyo. Reponse Mbiyo invalide: statut transaction manquant.',
+        );
       }
 
       return {
-        status: data.data.status,
-        transactionId: data.data.transaction_id,
+        status: response.data.status,
+        transactionId: response.data.transaction_id,
       };
     } finally {
       clearTimeout(timeoutId);
@@ -615,7 +849,10 @@ export class PaymentsService {
       await this.prisma.$transaction([
         this.prisma.payment.update({
           where: { id: payment.id },
-          data: { status: 'SUCCESS', mbiyoRef: transactionId || payment.mbiyoRef },
+          data: {
+            status: 'SUCCESS',
+            mbiyoRef: transactionId || payment.mbiyoRef,
+          },
         }),
         this.prisma.request.update({
           where: { id: payment.requestId },
@@ -636,9 +873,9 @@ export class PaymentsService {
           where: { id: payment.id },
           data: { status: 'CONFLICT_NEEDS_REVIEW' },
         });
-      } catch (updateError: any) {
+      } catch (updateError: unknown) {
         this.logger.error(
-          `🚨 Impossible de marquer le paiement en conflit | paymentId=${payment.id} | error=${updateError.message}`,
+          `🚨 Impossible de marquer le paiement en conflit | paymentId=${payment.id} | error=${this.getErrorMessage(updateError)}`,
         );
       }
 
@@ -704,9 +941,9 @@ export class PaymentsService {
           requestId: payment.requestId,
         })),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.warn(
-        `⚠️ Notification admin impossible pour ${type} | paymentId=${payment.id} | error=${error.message}`,
+        `⚠️ Notification admin impossible pour ${type} | paymentId=${payment.id} | error=${this.getErrorMessage(error)}`,
       );
     }
   }

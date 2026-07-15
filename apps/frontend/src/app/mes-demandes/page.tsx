@@ -29,6 +29,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { getMediaUrl } from "@/lib/utils";
 import MobileMoneyPaymentModal, {
+  PaymentCurrency,
   PaymentFlowType,
 } from "@/components/payments/MobileMoneyPaymentModal";
 
@@ -41,6 +42,9 @@ const getServiceImageUrl = (service: any) =>
     service?.imageKey ? `/uploads/services/${service.imageKey}` : null,
   ) ||
   FALLBACK_IMAGE;
+
+const getPaymentCurrency = (currency?: string | null): PaymentCurrency =>
+  currency === "CDF" ? "CDF" : "USD";
 
 export default function MesDemandesPage() {
   const { user, isLoading: authLoading } = useRequireAuth();
@@ -451,7 +455,9 @@ export default function MesDemandesPage() {
                     selectedRequest.status === "APPROVED" &&
                     selectedRequest.price && (
                       <button
-                        onClick={() => openPaymentModal(selectedRequest, "deposit")}
+                        onClick={() =>
+                          openPaymentModal(selectedRequest, "deposit")
+                        }
                         className="flex-1 bg-ocre text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-ocre/20 hover:scale-[1.02] transition-all"
                       >
                         Payer l'abonnement
@@ -461,7 +467,9 @@ export default function MesDemandesPage() {
                     (selectedRequest.status === "APPROVED" ||
                       selectedRequest.status === "ACCEPTED") && (
                       <button
-                        onClick={() => openPaymentModal(selectedRequest, "deposit")}
+                        onClick={() =>
+                          openPaymentModal(selectedRequest, "deposit")
+                        }
                         className="flex-1 bg-ocre text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-ocre/20 hover:scale-[1.02] transition-all"
                       >
                         Payer l'acompte (50%)
@@ -504,11 +512,8 @@ export default function MesDemandesPage() {
         {paymentRequest && (
           <MobileMoneyPaymentModal
             requestId={paymentRequest.id}
-            amount={
-              paymentRequest.price
-                ? paymentRequest.price * 0.5
-                : 0
-            }
+            amount={paymentRequest.price ? paymentRequest.price * 0.5 : 0}
+            currency={getPaymentCurrency(paymentRequest.currency)}
             paymentType={paymentType}
             title={
               paymentType === "final"

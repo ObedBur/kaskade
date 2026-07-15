@@ -7,6 +7,9 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
+  TooManyRequestsException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { RequestStatus } from '@prisma/client';
 
@@ -70,7 +73,11 @@ describe('PaymentsService', () => {
       prisma.request.findUnique.mockResolvedValue(null);
       await expect(
         service.initiateDeposit(
-          { requestId: 'r1', phoneNumber: '+243990000001', operator: 'AIRTEL' as any },
+          {
+            requestId: 'r1',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
           'c1',
         ),
       ).rejects.toThrow(NotFoundException);
@@ -84,7 +91,11 @@ describe('PaymentsService', () => {
       });
       await expect(
         service.initiateDeposit(
-          { requestId: 'r1', phoneNumber: '+243990000001', operator: 'AIRTEL' as any },
+          {
+            requestId: 'r1',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
           'c1',
         ),
       ).rejects.toThrow(BadRequestException);
@@ -107,7 +118,11 @@ describe('PaymentsService', () => {
 
       await expect(
         service.initiateDeposit(
-          { requestId: 'r1', phoneNumber: '+243990000001', operator: 'AIRTEL' as any },
+          {
+            requestId: 'r1',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
           'c1',
         ),
       ).rejects.toThrow(BadRequestException);
@@ -148,7 +163,11 @@ describe('PaymentsService', () => {
 
       await expect(
         service.initiateDeposit(
-          { requestId: 'r1', phoneNumber: '+243990000001', operator: 'AIRTEL' as any },
+          {
+            requestId: 'r1',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
           'c1',
         ),
       ).resolves.toMatchObject({ paymentId: 'payment-1' });
@@ -171,7 +190,11 @@ describe('PaymentsService', () => {
 
       await expect(
         service.initiateDeposit(
-          { requestId: 'r1', phoneNumber: '+243990000001', operator: 'AIRTEL' as any },
+          {
+            requestId: 'r1',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
           'c1',
         ),
       ).rejects.toThrow(BadRequestException);
@@ -236,9 +259,301 @@ describe('PaymentsService', () => {
         }),
       );
     });
+
+    it('uses the request currency when CDF is stored and dto.currency is absent', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 8000,
+        currency: 'CDF',
+        service: { price: 8000 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-cdf' });
+      prisma.payment.update.mockResolvedValue({});
+
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          message: 'Payment initiated successfully',
+          data: {
+            transaction_id: 'mbiyo-cdf-transaction',
+            amount: 4000,
+            currency: 'CDF',
+            order_id: 'payment-cdf',
+            status: 'pending',
+          },
+        }),
+      } as Response);
+
+      const result = await service.initiateDeposit(
+        {
+          requestId: 'r-cdf',
+          phoneNumber: '+243990000001',
+          operator: 'AIRTEL' as any,
+        },
+        'c1',
+      );
+
+      expect(result).toMatchObject({ amount: 4000, currency: 'CDF' });
+      expect(prisma.payment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            amount: 4000,
+            currency: 'CDF',
+          }),
+        }),
+      );
+      expect(
+        JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string),
+      ).toMatchObject({
+        amount: 4000,
+        currency: 'CDF',
+        order_id: 'payment-cdf',
+      });
+    });
+
+    it('rejects dto.currency when it differs from the request currency', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 8000,
+        currency: 'CDF',
+        service: { price: 8000 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(
+        service.initiateDeposit(
+          {
+            requestId: 'r-cdf',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+            currency: 'USD' as any,
+          },
+          'c1',
+        ),
+      ).rejects.toThrow('Devise invalide : cette demande est en CDF.');
+      expect(prisma.payment.create).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('maps a Mbiyo 400 validation error to BadRequestException and marks payment as failed', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 100,
+        currency: 'USD',
+        service: { price: 100 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-400' });
+      prisma.payment.update.mockResolvedValue({});
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          status: 'failed',
+          message: 'Phone number is invalid',
+          data: null,
+        }),
+      } as Response);
+
+      await expect(
+        service.initiateDeposit(
+          {
+            requestId: 'r-400',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
+          'c1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'payment-400' },
+        data: { status: 'FAILED' },
+      });
+    });
+
+    it('maps a Mbiyo 401 error to InternalServerErrorException', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 100,
+        currency: 'USD',
+        service: { price: 100 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-401' });
+      prisma.payment.update.mockResolvedValue({});
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          status: 'failed',
+          message: 'Unauthorized',
+          data: null,
+        }),
+      } as Response);
+
+      await expect(
+        service.initiateDeposit(
+          {
+            requestId: 'r-401',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
+          'c1',
+        ),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('maps a Mbiyo 429 error to TooManyRequestsException', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 100,
+        currency: 'USD',
+        service: { price: 100 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-429' });
+      prisma.payment.update.mockResolvedValue({});
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: async () => ({
+          status: 'failed',
+          message: 'Too many requests',
+          data: null,
+        }),
+      } as Response);
+
+      await expect(
+        service.initiateDeposit(
+          {
+            requestId: 'r-429',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
+          'c1',
+        ),
+      ).rejects.toThrow(TooManyRequestsException);
+    });
+
+    it('maps a Mbiyo 503 error to ServiceUnavailableException', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 100,
+        currency: 'USD',
+        service: { price: 100 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-503' });
+      prisma.payment.update.mockResolvedValue({});
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => ({
+          status: 'failed',
+          message: 'Service unavailable',
+          data: null,
+        }),
+      } as Response);
+
+      await expect(
+        service.initiateDeposit(
+          {
+            requestId: 'r-503',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
+          'c1',
+        ),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('maps a fetch timeout to ServiceUnavailableException', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.APPROVED,
+        price: 100,
+        currency: 'USD',
+        service: { price: 100 },
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-timeout' });
+      prisma.payment.update.mockResolvedValue({});
+      jest.spyOn(global, 'fetch').mockRejectedValue({
+        name: 'AbortError',
+        message: 'The operation was aborted',
+      });
+
+      await expect(
+        service.initiateDeposit(
+          {
+            requestId: 'r-timeout',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
+          'c1',
+        ),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
   });
 
   describe('initiateFinalPayment', () => {
+    it('uses USD when the request has no stored currency and dto.currency is absent', async () => {
+      prisma.request.findUnique.mockResolvedValue({
+        clientId: 'c1',
+        status: RequestStatus.AWAITING_FINAL,
+        price: 100,
+        currency: null,
+      });
+      prisma.payment.findFirst.mockResolvedValue(null);
+      prisma.payment.create.mockResolvedValue({ id: 'payment-final-usd' });
+      prisma.payment.update.mockResolvedValue({});
+
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          message: 'Payment initiated successfully',
+          data: {
+            transaction_id: 'mbiyo-usd-transaction',
+            amount: 50,
+            currency: 'USD',
+            order_id: 'payment-final-usd',
+            status: 'pending',
+          },
+        }),
+      } as Response);
+
+      const result = await service.initiateFinalPayment(
+        {
+          requestId: 'r-usd',
+          phoneNumber: '+243990000001',
+          operator: 'AIRTEL' as any,
+        },
+        'c1',
+      );
+
+      expect(result).toMatchObject({ amount: 50, currency: 'USD' });
+      expect(
+        JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string),
+      ).toMatchObject({
+        amount: 50,
+        currency: 'USD',
+        order_id: 'payment-final-usd',
+      });
+    });
+
     it('blocks a recent pending final payment for the same request', async () => {
       prisma.request.findUnique.mockResolvedValue({
         clientId: 'c1',
@@ -255,7 +570,11 @@ describe('PaymentsService', () => {
 
       await expect(
         service.initiateFinalPayment(
-          { requestId: 'r1', phoneNumber: '+243990000001', operator: 'AIRTEL' as any },
+          {
+            requestId: 'r1',
+            phoneNumber: '+243990000001',
+            operator: 'AIRTEL' as any,
+          },
           'c1',
         ),
       ).rejects.toThrow(BadRequestException);
@@ -266,7 +585,11 @@ describe('PaymentsService', () => {
   describe('handleMbiyoCallback', () => {
     it('returns processed false if payment not found', async () => {
       prisma.payment.findUnique.mockResolvedValue(null);
-      const res = await service.handleMbiyoCallback('missing', 'txn1', 'successful');
+      const res = await service.handleMbiyoCallback(
+        'missing',
+        'txn1',
+        'successful',
+      );
       expect(res.processed).toBe(false);
     });
 
@@ -370,6 +693,50 @@ describe('PaymentsService', () => {
           }),
         ],
       });
+    });
+  });
+
+  describe('finalizePayment', () => {
+    it('maps Invalid OTP from Mbiyo to BadRequestException', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'payment-finalize',
+        clientId: 'c1',
+        mbiyoRef: 'txn-finalize',
+      });
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          status: 'failed',
+          message: 'Invalid OTP',
+          data: null,
+        }),
+      } as Response);
+
+      await expect(
+        service.finalizePayment('payment-finalize', '123456', 'c1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('maps a Mbiyo 403 finalize error to InternalServerErrorException', async () => {
+      prisma.payment.findUnique.mockResolvedValue({
+        id: 'payment-finalize-403',
+        clientId: 'c1',
+        mbiyoRef: 'txn-finalize-403',
+      });
+      jest.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          status: 'failed',
+          message: 'Forbidden',
+          data: null,
+        }),
+      } as Response);
+
+      await expect(
+        service.finalizePayment('payment-finalize-403', '123456', 'c1'),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 });

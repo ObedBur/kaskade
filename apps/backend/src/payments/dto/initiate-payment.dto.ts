@@ -5,6 +5,7 @@ import {
   Matches,
   IsEnum,
   IsOptional,
+  IsIn,
 } from 'class-validator';
 
 /** Opérateurs mobile money RDC (Mbiyo Pay — country_code CD) */
@@ -40,7 +41,7 @@ export class InitiatePaymentDto {
   operator: PaymentOperator;
 
   @IsOptional()
-  @IsEnum(PaymentCurrency, {
+  @IsIn(['USD', 'CDF'], {
     message: 'Devise invalide. Valeurs acceptées: USD, CDF',
   })
   currency?: PaymentCurrency;

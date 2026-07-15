@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Star,
-  ArrowRight,
-  X,
-  Clock,
-} from "lucide-react";
+import { Star, ArrowRight, X, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Service } from "@/components/landing/ServiceExplorer";
@@ -17,7 +12,9 @@ import { getMediaUrl } from "@/lib/utils";
 import Timing from "./Timing";
 import AddressForm from "./AddressForm";
 import PooledCalendar from "./PooledCalendar";
-import MobileMoneyPaymentModal from "@/components/payments/MobileMoneyPaymentModal";
+import MobileMoneyPaymentModal, {
+  PaymentCurrency,
+} from "@/components/payments/MobileMoneyPaymentModal";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
@@ -41,6 +38,15 @@ interface SchedulePlan {
   startDate?: string;
   instructions?: string;
 }
+
+interface PaymentRequestSummary {
+  id: string;
+  price?: number | null;
+  currency?: string | null;
+}
+
+const getPaymentCurrency = (currency?: string | null): PaymentCurrency =>
+  currency === "CDF" ? "CDF" : "USD";
 
 // MODAL DE DÉTAILS DU SERVICE
 function ServiceDetailsModal({
@@ -173,7 +179,8 @@ function ServiceDetailsModal({
 
 // ServiceCard
 export default function ServiceCardBento({ service }: { service: Service }) {
-  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null);
+  const [paymentRequest, setPaymentRequest] =
+    useState<PaymentRequestSummary | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showTiming, setShowTiming] = useState(false);
   const [showPooledCalendar, setShowPooledCalendar] = useState(false);
@@ -196,7 +203,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         notes: plan.instructions,
       }),
     });
-    return res.data.id as string;
+    return res.data as PaymentRequestSummary;
   };
 
   const handleFreeRequest = (e?: React.MouseEvent) => {
@@ -236,7 +243,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
 
   useEffect(() => {
     if (
-      paymentRequestId ||
+      paymentRequest ||
       showDetails ||
       showTiming ||
       showAddressForm ||
@@ -250,7 +257,7 @@ export default function ServiceCardBento({ service }: { service: Service }) {
       document.body.style.overflow = "unset";
     };
   }, [
-    paymentRequestId,
+    paymentRequest,
     showDetails,
     showTiming,
     showAddressForm,
@@ -259,20 +266,23 @@ export default function ServiceCardBento({ service }: { service: Service }) {
 
   return (
     <>
-      {paymentRequestId && (
+      {paymentRequest && (
         <MobileMoneyPaymentModal
-          requestId={paymentRequestId}
-          amount={(service.price || 0) * 0.5}
+          requestId={paymentRequest.id}
+          amount={(paymentRequest.price || service.price || 0) * 0.5}
+          currency={getPaymentCurrency(paymentRequest.currency)}
           paymentType="deposit"
           title="Paiement acompte 50%"
           onClose={() => {
-            setPaymentRequestId(null);
+            setPaymentRequest(null);
             setSchedulePlan(null);
           }}
           onPaid={() => {
-            setPaymentRequestId(null);
+            setPaymentRequest(null);
             setSchedulePlan(null);
-            toast.success("Votre demande a été payée et enregistrée avec succès !");
+            toast.success(
+              "Votre demande a été payée et enregistrée avec succès !",
+            );
           }}
         />
       )}
@@ -342,13 +352,15 @@ export default function ServiceCardBento({ service }: { service: Service }) {
               setSchedulePlan(updatedPlan);
 
               if (updatedPlan.frequency === "ONCE") {
-                const loadingToast = toast.loading("Création de votre demande...");
+                const loadingToast = toast.loading(
+                  "Création de votre demande...",
+                );
                 try {
-                  const requestId = await createBookingRequest(updatedPlan);
+                  const request = await createBookingRequest(updatedPlan);
                   toast.success("Planning enregistré — procédez au paiement.", {
                     id: loadingToast,
                   });
-                  setPaymentRequestId(requestId);
+                  setPaymentRequest(request);
                 } catch {
                   toast.error("Erreur lors de la création de la demande.", {
                     id: loadingToast,

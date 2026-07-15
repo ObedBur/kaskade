@@ -20,6 +20,7 @@ export interface Service {
   category: string;
   description: string;
   price: number;
+  currency?: string | null;
   imageUrl: string | null;
   imageKey?: string | null;
   workingHoursStart?: string;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Smartphone, X, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -11,10 +12,12 @@ import {
 } from "@/lib/payment-operators";
 
 export type PaymentFlowType = "deposit" | "final";
+export type PaymentCurrency = "USD" | "CDF";
 
 interface MobileMoneyPaymentModalProps {
   requestId: string;
   amount: number;
+  currency: PaymentCurrency;
   paymentType: PaymentFlowType;
   title?: string;
   onClose: () => void;
@@ -24,6 +27,7 @@ interface MobileMoneyPaymentModalProps {
 export default function MobileMoneyPaymentModal({
   requestId,
   amount,
+  currency,
   paymentType,
   title,
   onClose,
@@ -51,6 +55,21 @@ export default function MobileMoneyPaymentModal({
       ? "/payments/initiate/deposit"
       : "/payments/initiate/final";
 
+  const formattedAmount =
+    currency === "USD"
+      ? `$${amount.toLocaleString("fr-CD", { maximumFractionDigits: 2 })}`
+      : `${amount.toLocaleString("fr-CD", { maximumFractionDigits: 0 })} CDF`;
+
+  const sanitizedInstructions = useMemo(() => {
+    if (!instructions) {
+      return null;
+    }
+
+    return DOMPurify.sanitize(instructions, {
+      USE_PROFILES: { html: true },
+    });
+  }, [instructions]);
+
   const handlePay = async () => {
     const cleanPhone = phoneNumber.trim().replace(/\s/g, "");
 
@@ -70,7 +89,7 @@ export default function MobileMoneyPaymentModal({
         requestId,
         phoneNumber: `+243${cleanPhone}`,
         operator,
-        currency: "USD",
+        currency,
       });
 
       setPaymentId(res.data.paymentId);
@@ -99,7 +118,8 @@ export default function MobileMoneyPaymentModal({
     } catch (err: any) {
       setPhase("INITIAL");
       toast.error(
-        err.response?.data?.message || "Erreur lors de l'initiation du paiement.",
+        err.response?.data?.message ||
+          "Erreur lors de l'initiation du paiement.",
       );
     }
   };
@@ -114,7 +134,9 @@ export default function MobileMoneyPaymentModal({
       await api.post("/payments/finalize", { paymentId, otp: otp.trim() });
       setPhase("WAITING_USSD");
       setCountdown(60);
-      toast.info("OTP transmis. Attendez la confirmation.", { id: "mm-payment" });
+      toast.info("OTP transmis. Attendez la confirmation.", {
+        id: "mm-payment",
+      });
     } catch (err: any) {
       toast.error(err.response?.data?.message || "OTP invalide.");
     }
@@ -224,7 +246,7 @@ export default function MobileMoneyPaymentModal({
             <p className="text-[9px] font-black uppercase tracking-widest text-white/50">
               Montant à payer
             </p>
-            <p className="mt-1 text-4xl font-black">${amount.toLocaleString()}</p>
+            <p className="mt-1 text-4xl font-black">{formattedAmount}</p>
           </div>
 
           {phase === "SUCCESS" ? (
@@ -266,10 +288,10 @@ export default function MobileMoneyPaymentModal({
             </div>
           ) : (
             <>
-              {instructions && (
+              {sanitizedInstructions && (
                 <div
                   className="prose prose-sm mb-4 max-w-none rounded-xl border border-ocre/20 bg-ocre/5 p-4 text-sm text-chocolat"
-                  dangerouslySetInnerHTML={{ __html: instructions }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedInstructions }}
                 />
               )}
 
