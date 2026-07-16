@@ -5,6 +5,10 @@ import Navbar from "../components/landing/Navbar";
 import Hero from "../components/landing/Hero";
 import Process from "../components/landing/Process";
 import ServiceExplorer from "../components/landing/ServiceExplorer";
+import Features from "../components/landing/Features";
+import Testimonials from "../components/landing/Testimonials";
+import Stats from "../components/landing/Stats";
+import Faq from "../components/landing/Faq";
 import Footer from "../components/landing/Footer";
 import { Phone } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -36,9 +40,17 @@ export default function Home() {
 
           <Hero />
 
+          <Stats />
+
+          <Features />
+
           <ServiceExplorer />
 
           <Process />
+
+          <Testimonials />
+
+          <Faq />
 
           {/* Arcture Final CTA Section */}
           <section className="py-48 px-4 min-[480px]:px-8 min-[1440px]:px-12 bg-off-white">
@@ -57,10 +69,13 @@ export default function Home() {
                       DEVENIR PRESTATAIRE
                     </button>
                   </Link>
-                  <button className="flex items-center justify-center gap-4 bg-transparent border border-ocre/30 text-ocre px-12 py-6 rounded-md font-bold hover:bg-ocre/10 transition-all uppercase tracking-[0.2em] text-[11px] w-full md:w-auto group">
+                  <a
+                    href="mailto:contact@kaskade.app"
+                    className="flex items-center justify-center gap-4 bg-transparent border border-ocre/30 text-ocre px-12 py-6 rounded-md font-bold hover:bg-ocre/10 transition-all uppercase tracking-[0.2em] text-[11px] w-full md:w-auto group"
+                  >
                     <Phone className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                     NOUS CONTACTER
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
