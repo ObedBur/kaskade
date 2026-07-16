@@ -10,10 +10,10 @@ export default function Features() {
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-b from-ocre/10 to-transparent rounded-full blur-3xl -z-10 translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-t from-chocolat/5 to-transparent rounded-full blur-3xl -z-10 -translate-x-1/4 translate-y-1/4 pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="arcture-container relative z-10">
         
         {/* En-tête : Typographie forte à fort contraste */}
-        <div className="mb-20 flex flex-col items-start max-w-3xl relative z-10">
+        <div className="mb-20 flex flex-col items-start max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}

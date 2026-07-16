@@ -54,7 +54,7 @@ export default function Process() {
   ];
 
   return (
-    <section className="py-24 md:py-40 bg-[#FBF9F6] relative z-0 overflow-hidden font-sans selection:bg-[#D4AF37] selection:text-white">
+    <section className="py-24 md:py-32 bg-[#FBF9F6] relative z-0 overflow-hidden font-sans selection:bg-[#D4AF37] selection:text-white">
 
       {/* BACKGROUND DECOR */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#D4AF37]/10 rounded-full blur-[100px] pointer-events-none" />
@@ -85,7 +85,7 @@ export default function Process() {
             {/* Ligne pointillée (Inspiration Dribbble : toujours visible même sur mobile) */}
             <div className="absolute top-10 bottom-10 left-[1.5rem] md:left-[3.25rem] w-px border-l-2 border-dashed border-[#D4AF37]/20 z-0" />
 
-            <div className="flex flex-col gap-16 md:gap-24 relative z-10">
+            <div className="flex flex-col gap-8 md:gap-12 relative z-10">
               {steps.map((step, i) => (
                 <motion.div
                   key={i}

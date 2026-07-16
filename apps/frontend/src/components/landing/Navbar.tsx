@@ -109,6 +109,13 @@ export default function Navbar() {
                         >
                           Tableau de bord
                         </Link>
+                        <Link
+                          href="/parametres"
+                          className="px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                        >
+                          Paramètres
+                        </Link>
                         <hr className="border-white/5 my-1" />
                         <button
                           onClick={() => {

@@ -24,7 +24,13 @@ export default function Stats() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="flex flex-col items-center justify-center text-center px-4"
+              className={`flex flex-col items-start justify-center text-left ${
+                index === 0 
+                  ? 'pr-4 md:pr-8' 
+                  : index === 2 
+                    ? 'pr-4 md:px-8' 
+                    : 'pl-4 md:px-8'
+              }`}
             >
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter">

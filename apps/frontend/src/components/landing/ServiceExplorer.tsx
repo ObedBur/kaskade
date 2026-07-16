@@ -63,7 +63,7 @@ export default function ServiceExplorer() {
   }, []);
 
   return (
-    <section className="py-16 md:py-20 bg-[#F5F3ED] relative overflow-hidden font-sans border-y border-ocre/10">
+    <section className="py-24 md:py-32 bg-[#F5F3ED] relative overflow-hidden font-sans border-y border-ocre/10">
       {/* Éléments de structure (Glows Kaskade) */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ocre/5 rounded-full blur-[100px] -z-10 translate-x-1/4 -translate-y-1/4" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-chocolat/5 rounded-full blur-[100px] -z-10 -translate-x-1/4 translate-y-1/4" />
