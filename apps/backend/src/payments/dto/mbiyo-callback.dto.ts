@@ -1,18 +1,17 @@
+import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsNumber, IsOptional, IsObject } from 'class-validator';
 
-/**
- * Payload webhook Mbiyo Pay (Merchant Payin).
- * @see https://dashboard.mbiyo.africa/docs/reference/merchant/payin
- */
 export class MbiyoCallbackDto {
   @IsString()
   @IsNotEmpty()
   transaction_id: string;
 
+  @Type(() => Number)
   @IsNumber()
   amount: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   fee?: number;
 
@@ -26,9 +25,10 @@ export class MbiyoCallbackDto {
 
   @IsString()
   @IsNotEmpty()
-  status: string; // pending | successful | failed | cancelled
+  status: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   charged_amount?: number;
 
