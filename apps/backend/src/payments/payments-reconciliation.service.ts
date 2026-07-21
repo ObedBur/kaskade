@@ -3,10 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
-import {
-  isMbiyoPaymentFailed,
-  isMbiyoPaymentSuccessful,
-} from './mbiyo.util';
+import { isMbiyoPaymentFailed, isMbiyoPaymentSuccessful } from './mbiyo.util';
 
 interface MbiyoTransactionResponse {
   status: string;
@@ -20,6 +17,7 @@ interface MbiyoTransactionResponse {
   } | null;
 }
 
+const RECONCILABLE_PAYMENT_STATUSES = ['EXPIRED', 'PENDING'] as const;
 const DEFAULT_PENDING_EXPIRATION_MS = 5 * 60 * 1000;
 
 @Injectable()
@@ -49,9 +47,10 @@ export class PaymentsReconciliationService {
       'PAYMENT_PENDING_EXPIRATION_MS',
     );
     const parsed = configured ? Number(configured) : NaN;
-    this.pendingPaymentExpirationMs = Number.isFinite(parsed) && parsed > 0
-      ? parsed
-      : DEFAULT_PENDING_EXPIRATION_MS;
+    this.pendingPaymentExpirationMs =
+      Number.isFinite(parsed) && parsed > 0
+        ? parsed
+        : DEFAULT_PENDING_EXPIRATION_MS;
   }
 
   @Cron('*/15 * * * *')
@@ -87,7 +86,9 @@ export class PaymentsReconciliationService {
       checked += 1;
 
       try {
-        const mbiyoTransaction = await this.fetchMbiyoTransaction(payment.mbiyoRef!);
+        const mbiyoTransaction = await this.fetchMbiyoTransaction(
+          payment.mbiyoRef!,
+        );
 
         if (!mbiyoTransaction) {
           continue;
@@ -117,9 +118,9 @@ export class PaymentsReconciliationService {
         }
         // Si toujours "pending" côté Mbiyo : rien à faire, on retentera au
         // prochain passage du cron (dans 15 min).
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.logger.error(
-          `🚨 Réconciliation Mbiyo échouée | paymentId=${payment.id} | mbiyoRef=${payment.mbiyoRef} | error=${error.message}`,
+          `🚨 Réconciliation Mbiyo échouée | paymentId=${payment.id} | mbiyoRef=${payment.mbiyoRef} | error=${this.getErrorMessage(error)}`,
         );
       }
     }
@@ -128,7 +129,7 @@ export class PaymentsReconciliationService {
     // on notifie les admins pour investigation manuelle.
     const abandonedPayments = await this.prisma.payment.findMany({
       where: {
-        status: { in: ['EXPIRED', 'PENDING'] },
+        status: { in: [...RECONCILABLE_PAYMENT_STATUSES] },
         createdAt: { lt: cutoffRecent },
       },
       orderBy: { createdAt: 'asc' },
@@ -165,7 +166,8 @@ export class PaymentsReconciliationService {
       },
     );
 
-    const data: MbiyoTransactionResponse = await res.json();
+    const rawData: unknown = await res.json();
+    const data = rawData as MbiyoTransactionResponse;
 
     if (res.status === 404) {
       this.logger.warn(
@@ -183,5 +185,13 @@ export class PaymentsReconciliationService {
     }
 
     return data.data;
+  }
+
+  private getErrorMessage(error: unknown) {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return String(error);
   }
 }

@@ -26,6 +26,20 @@ const mockConfigService = {
   }),
 };
 
+type FindManyCall = {
+  where: {
+    mbiyoRef?: { not: null };
+    createdAt: { gte?: Date; lt?: Date };
+    OR?: Array<{
+      status: 'EXPIRED' | 'PENDING';
+      createdAt?: { lt: Date };
+    }>;
+    status?: { in: string[] };
+  };
+  include?: { request: true };
+  orderBy: { createdAt: 'asc' };
+};
+
 describe('PaymentsReconciliationService', () => {
   let service: PaymentsReconciliationService;
   let prisma: typeof mockPrismaService;
@@ -47,12 +61,12 @@ describe('PaymentsReconciliationService', () => {
     jest.clearAllMocks();
   });
 
-  it('confirms a successful expired Mbiyo payment', async () => {
+  it('confirms a successful stale pending Mbiyo payment', async () => {
     const payment = {
       id: 'p1',
       mbiyoRef: 'txn1',
-      status: 'EXPIRED',
-      createdAt: new Date(),
+      status: 'PENDING',
+      createdAt: new Date(Date.now() - 10 * 60 * 1000),
       request: { providerId: null },
     };
     prisma.payment.findMany
@@ -64,14 +78,28 @@ describe('PaymentsReconciliationService', () => {
     jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        status: 'success',
-        data: { transaction_id: 'txn1', status: 'successful' },
-      }),
+      json: () =>
+        Promise.resolve({
+          status: 'success',
+          data: { transaction_id: 'txn1', status: 'successful' },
+        }),
     } as Response);
 
     await service.reconcileExpiredPayments();
 
+    const findManyCalls = prisma.payment.findMany.mock.calls as
+      | [FindManyCall][]
+      | [];
+    const firstFindManyCall = findManyCalls[0]?.[0];
+    expect(firstFindManyCall?.where.mbiyoRef).toEqual({ not: null });
+    expect(firstFindManyCall?.where.createdAt.gte).toBeInstanceOf(Date);
+    expect(firstFindManyCall?.where.OR?.[0]).toEqual({ status: 'EXPIRED' });
+    expect(firstFindManyCall?.where.OR?.[1]?.status).toBe('PENDING');
+    expect(firstFindManyCall?.where.OR?.[1]?.createdAt?.lt).toBeInstanceOf(
+      Date,
+    );
+    expect(firstFindManyCall?.include).toEqual({ request: true });
+    expect(firstFindManyCall?.orderBy).toEqual({ createdAt: 'asc' });
     expect(mockPaymentsService.confirmPaymentSuccess).toHaveBeenCalledWith(
       payment,
       'txn1',
@@ -94,10 +122,11 @@ describe('PaymentsReconciliationService', () => {
     jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({
-        status: 'success',
-        data: { transaction_id: 'txn1', status: 'cancelled' },
-      }),
+      json: () =>
+        Promise.resolve({
+          status: 'success',
+          data: { transaction_id: 'txn1', status: 'cancelled' },
+        }),
     } as Response);
 
     await service.reconcileExpiredPayments();
@@ -108,13 +137,14 @@ describe('PaymentsReconciliationService', () => {
     });
   });
 
-  it('abandons unresolved expired payments older than 48h', async () => {
+  it('abandons unresolved pending or expired payments older than 48h', async () => {
     const payment = {
       id: 'p-old',
       requestId: 'r1',
       mbiyoRef: 'txn-old',
       amount: 50,
       currency: 'USD',
+      status: 'PENDING',
     };
     prisma.payment.findMany
       .mockResolvedValueOnce([])
@@ -123,6 +153,15 @@ describe('PaymentsReconciliationService', () => {
 
     await service.reconcileExpiredPayments();
 
+    const findManyCalls = prisma.payment.findMany.mock.calls as
+      | [FindManyCall][]
+      | [];
+    const secondFindManyCall = findManyCalls[1]?.[0];
+    expect(secondFindManyCall?.where.status).toEqual({
+      in: ['EXPIRED', 'PENDING'],
+    });
+    expect(secondFindManyCall?.where.createdAt.lt).toBeInstanceOf(Date);
+    expect(secondFindManyCall?.orderBy).toEqual({ createdAt: 'asc' });
     expect(prisma.payment.update).toHaveBeenCalledWith({
       where: { id: 'p-old' },
       data: { status: 'ABANDONED' },

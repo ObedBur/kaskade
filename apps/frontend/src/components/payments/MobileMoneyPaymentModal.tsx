@@ -33,17 +33,32 @@ export default function MobileMoneyPaymentModal({
   onClose,
   onPaid,
 }: MobileMoneyPaymentModalProps) {
+  const getFailureMessage = (status?: string | null) => {
+    switch ((status ?? "").toUpperCase()) {
+      case "FAILED":
+        return "Paiement échoué.";
+      case "EXPIRED":
+        return "Paiement expiré. Veuillez relancer le paiement.";
+      case "ABANDONED":
+        return "Paiement abandonné. Veuillez relancer le paiement.";
+      default:
+        return null;
+    }
+  };
+
   const [operator, setOperator] = useState<PaymentOperatorId | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [instructions, setInstructions] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [phase, setPhase] = useState<
     | "INITIAL"
     | "INITIATING"
     | "WAITING_USSD"
     | "PIN_REQUIRED"
     | "PENDING_BACKGROUND"
+    | "MANUAL_REVIEW"
     | "SUCCESS"
   >("INITIAL");
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -93,6 +108,12 @@ export default function MobileMoneyPaymentModal({
       });
 
       setPaymentId(res.data.paymentId);
+      setAuthMode(res.data.authMode ?? null);
+      setStatusMessage(null);
+
+      if (res.data.instructions) {
+        setInstructions(res.data.instructions);
+      }
 
       if (res.data.redirectUrl) {
         window.location.href = res.data.redirectUrl;
@@ -100,13 +121,8 @@ export default function MobileMoneyPaymentModal({
       }
 
       if (res.data.authMode === "pin") {
-        setAuthMode("pin");
         setPhase("PIN_REQUIRED");
         return;
-      }
-
-      if (res.data.instructions) {
-        setInstructions(res.data.instructions);
       }
 
       setPhase("WAITING_USSD");
@@ -152,23 +168,50 @@ export default function MobileMoneyPaymentModal({
       setTimeout(onPaid, 1500);
     };
 
-    const handlePaymentFailure = () => {
+    const handlePaymentFailure = (message = "Paiement échoué.") => {
       if (pollingRef.current) clearInterval(pollingRef.current);
       toast.dismiss("mm-payment");
+      setStatusMessage(message);
       setPhase("INITIAL");
-      toast.error("Paiement échoué.");
+      toast.error(message);
+    };
+
+    const handleManualReview = (message: string) => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      toast.dismiss("mm-payment");
+      setStatusMessage(message);
+      setPhase("MANUAL_REVIEW");
+      toast.warning(message, { id: "mm-payment" });
+    };
+
+    const handleKnownPaymentStatus = (status?: string | null) => {
+      const normalizedStatus = String(status ?? "").toUpperCase();
+
+      if (normalizedStatus === "SUCCESS") {
+        handlePaymentSuccess();
+        return true;
+      }
+
+      if (normalizedStatus === "CONFLICT_NEEDS_REVIEW") {
+        handleManualReview(
+          "Paiement reçu mais une vérification manuelle est nécessaire. Notre équipe a été notifiée.",
+        );
+        return true;
+      }
+
+      const failureMessage = getFailureMessage(normalizedStatus);
+      if (failureMessage) {
+        handlePaymentFailure(failureMessage);
+        return true;
+      }
+
+      return false;
     };
 
     const handleTimeoutStatusCheck = async () => {
       try {
         const res = await api.get(`/payments/status/${paymentId}`);
-        if (res.data.status === "SUCCESS") {
-          handlePaymentSuccess();
-          return;
-        }
-
-        if (res.data.status === "FAILED") {
-          handlePaymentFailure();
+        if (handleKnownPaymentStatus(res.data.status)) {
           return;
         }
       } catch {
@@ -186,11 +229,7 @@ export default function MobileMoneyPaymentModal({
     pollingRef.current = setInterval(async () => {
       try {
         const res = await api.get(`/payments/status/${paymentId}`);
-        if (res.data.status === "SUCCESS") {
-          handlePaymentSuccess();
-        } else if (res.data.status === "FAILED") {
-          handlePaymentFailure();
-        }
+        handleKnownPaymentStatus(res.data.status);
       } catch {
         /* ignore polling errors */
       }
@@ -267,10 +306,29 @@ export default function MobileMoneyPaymentModal({
                 fermer cette fenêtre, nous vous notifierons.
               </p>
             </div>
+          ) : phase === "MANUAL_REVIEW" ? (
+            <div className="flex flex-col items-center py-6 text-center">
+              <Loader2 className="mb-3 h-10 w-10 text-ocre" />
+              <p className="text-sm font-black uppercase text-chocolat">
+                Vérification manuelle
+              </p>
+              <p className="mt-3 max-w-xs text-sm font-bold leading-relaxed text-chocolat/60">
+                {statusMessage ||
+                  "Paiement reçu mais une vérification manuelle est nécessaire. Notre équipe a été notifiée."}
+              </p>
+            </div>
           ) : phase === "PIN_REQUIRED" ? (
             <div className="space-y-4">
+              {sanitizedInstructions && (
+                <div
+                  className="prose prose-sm max-w-none rounded-xl border border-ocre/20 bg-ocre/5 p-4 text-sm text-chocolat"
+                  dangerouslySetInnerHTML={{ __html: sanitizedInstructions }}
+                />
+              )}
               <p className="text-sm text-chocolat/70">
-                Entrez le code PIN/OTP affiché sur votre téléphone.
+                {authMode === "pin"
+                  ? "Entrez le code PIN/OTP demandé pour finaliser le paiement."
+                  : "Entrez le code PIN/OTP affiché sur votre téléphone."}
               </p>
               <input
                 value={otp}
