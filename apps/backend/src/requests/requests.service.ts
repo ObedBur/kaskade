@@ -1,4 +1,4 @@
-import {
+import {import {
   Injectable,
   BadRequestException,
   NotFoundException,
@@ -35,9 +35,8 @@ export class RequestsService {
     };
   }
 
-  async create(clientId: string, createRequestDto: any) {
-    const { serviceId, phoneNumber, operator, ...requestData } =
-      createRequestDto;
+  async create(clientId: string, createRequestDto: CreateRequestDto) {
+    const { serviceId, ...requestData } = createRequestDto;
 
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
@@ -71,7 +70,7 @@ export class RequestsService {
     });
 
     this.logger.log(
-      `Demande créée [${request.id}] pour le service "${service.name}" — en attente de paiement acompte.`,
+      `Demande [${request.id}] créée pour "${service.name}" (Statut: ${request.status}) — En attente du paiement de l'acompte via POST /payments/initiate/deposit.`,
     );
 
     this.eventEmitter.emit('request.created', {

@@ -28,13 +28,4 @@ export class CreateRequestDto {
   @IsOptional()
   @IsString()
   scheduleTime?: string;
-
-  // Paiement
-  @IsOptional()
-  @IsString()
-  phoneNumber?: string;
-
-  @IsOptional()
-  @IsString()
-  operator?: string;
 }
