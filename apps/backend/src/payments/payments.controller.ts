@@ -9,6 +9,7 @@ import {
   Headers,
   Req,
   UnauthorizedException,
+  HttpCode,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
@@ -75,9 +76,14 @@ export class PaymentsController {
   }
 
   /**
-   * Webhook Mbiyo Pay
+   * Webhook Mbiyo Pay.
+   * Mbiyo exige un statut 200 explicite : tout code différent (y compris
+   * 201, renvoyé par défaut par Nest sur une route POST) est traité comme
+   * un échec et déclenche un retry côté Mbiyo.
+   * @see https://dashboard.mbiyo.africa/docs/guide/webhook
    */
   @Post('webhook/mbiyo')
+  @HttpCode(200)
   async handleMbiyoWebhook(
     @Body() body: MbiyoCallbackDto,
     @Headers('signature') signatureHeader: string,

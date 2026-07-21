@@ -20,11 +20,14 @@ interface MbiyoTransactionResponse {
   } | null;
 }
 
+const DEFAULT_PENDING_EXPIRATION_MS = 5 * 60 * 1000;
+
 @Injectable()
 export class PaymentsReconciliationService {
   private readonly logger = new Logger(PaymentsReconciliationService.name);
   private readonly mbiyoApiUrl: string;
   private readonly mbiyoApiKey: string;
+  private readonly pendingPaymentExpirationMs: number;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -35,28 +38,52 @@ export class PaymentsReconciliationService {
       .get<string>('MBIYO_API_URL', 'https://dashboard.mbiyo.africa/api/v1')
       .replace(/\/$/, '');
     this.mbiyoApiKey = this.configService.get<string>('MBIYO_SECRET_KEY', '');
+
+    // IMPORTANT: doit rester synchronisé avec la valeur utilisée dans
+    // PaymentsService.assertNoActivePayment (même variable d'env,
+    // PAYMENT_PENDING_EXPIRATION_MS). Idéalement, exposer une méthode
+    // publique getPendingPaymentExpirationMs() sur PaymentsService et
+    // l'appeler ici plutôt que de dupliquer la lecture de config — à faire
+    // en prochaine passe pour éviter toute divergence entre les deux.
+    const configured = this.configService.get<string>(
+      'PAYMENT_PENDING_EXPIRATION_MS',
+    );
+    const parsed = configured ? Number(configured) : NaN;
+    this.pendingPaymentExpirationMs = Number.isFinite(parsed) && parsed > 0
+      ? parsed
+      : DEFAULT_PENDING_EXPIRATION_MS;
   }
 
   @Cron('*/15 * * * *')
   async reconcileExpiredPayments() {
     const cutoffRecent = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const stalePendingCutoff = new Date(
+      Date.now() - this.pendingPaymentExpirationMs,
+    );
     let checked = 0;
     let confirmed = 0;
     let conflicts = 0;
     let failed = 0;
     let abandoned = 0;
 
-    const expiredPayments = await this.prisma.payment.findMany({
+    // EXPIRED récents (déjà basculés par une tentative de retry côté client)
+    // + PENDING devenus trop vieux mais jamais retentés par personne — sans
+    // ce second cas, un paiement dont le webhook échoue ET que le client ne
+    // relance jamais reste invisible pour ce cron indéfiniment.
+    const paymentsToCheck = await this.prisma.payment.findMany({
       where: {
-        status: 'EXPIRED',
         mbiyoRef: { not: null },
         createdAt: { gte: cutoffRecent },
+        OR: [
+          { status: 'EXPIRED' },
+          { status: 'PENDING', createdAt: { lt: stalePendingCutoff } },
+        ],
       },
       include: { request: true },
       orderBy: { createdAt: 'asc' },
     });
 
-    for (const payment of expiredPayments) {
+    for (const payment of paymentsToCheck) {
       checked += 1;
 
       try {
@@ -85,9 +112,11 @@ export class PaymentsReconciliationService {
           });
           failed += 1;
           this.logger.warn(
-            `❌ Paiement expiré marqué FAILED après réconciliation | paymentId=${payment.id} | mbiyoRef=${payment.mbiyoRef} | status=${mbiyoStatus}`,
+            `❌ Paiement marqué FAILED après réconciliation | paymentId=${payment.id} | mbiyoRef=${payment.mbiyoRef} | statusAvant=${payment.status} | statusMbiyo=${mbiyoStatus}`,
           );
         }
+        // Si toujours "pending" côté Mbiyo : rien à faire, on retentera au
+        // prochain passage du cron (dans 15 min).
       } catch (error: any) {
         this.logger.error(
           `🚨 Réconciliation Mbiyo échouée | paymentId=${payment.id} | mbiyoRef=${payment.mbiyoRef} | error=${error.message}`,
@@ -95,9 +124,11 @@ export class PaymentsReconciliationService {
       }
     }
 
+    // Au-delà de 48h sans résolution (EXPIRED ou PENDING), on abandonne et
+    // on notifie les admins pour investigation manuelle.
     const abandonedPayments = await this.prisma.payment.findMany({
       where: {
-        status: 'EXPIRED',
+        status: { in: ['EXPIRED', 'PENDING'] },
         createdAt: { lt: cutoffRecent },
       },
       orderBy: { createdAt: 'asc' },
