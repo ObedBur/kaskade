@@ -33,7 +33,7 @@ describe('NotificationsController', () => {
   it('findAll should call service findAllForUser', async () => {
     mockNotificationsService.findAllForUser.mockResolvedValue([]);
     await expect(controller.findAll('u1')).resolves.toEqual([]);
-    expect(mockNotificationsService.findAllForUser).toHaveBeenCalledWith('u1');
+    expect(mockNotificationsService.findAllForUser).toHaveBeenCalledWith('u1', expect.objectContaining({ page: expect.any(Number), limit: expect.any(Number) }));
   });
 
   it('markAllAsRead should call service markAllAsRead', async () => {

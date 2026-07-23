@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { RequestStatus, Role, Status } from '@prisma/client';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 const mockPrismaService = {
   user: {
@@ -22,11 +23,22 @@ const mockPrismaService = {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
+  service: {
+    findUnique: jest.fn(),
+  },
+  payment: {
+    findFirst: jest.fn(),
+  },
   $transaction: jest.fn(),
 };
 
 const mockEventEmitter = {
   emit: jest.fn(),
+};
+
+const mockCloudinaryService = {
+  uploadBuffer: jest.fn(),
+  deleteByUrl: jest.fn(),
 };
 
 describe('ProvidersService', () => {
@@ -40,6 +52,7 @@ describe('ProvidersService', () => {
         ProvidersService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: CloudinaryService, useValue: mockCloudinaryService },
       ],
     }).compile();
 
@@ -70,10 +83,11 @@ describe('ProvidersService', () => {
       prisma.user.findUnique.mockResolvedValue({ role: Role.CLIENT });
       prisma.providerApplication.findFirst.mockResolvedValue(null);
       prisma.providerApplication.create.mockResolvedValue({ id: 'app1' });
+      prisma.$transaction.mockImplementation((ops: any[]) => Promise.all(ops));
       
-      const res = await service.apply('uid', { motivation: 'mot' });
+      const res = await service.apply('uid', { motivation: 'mot', metier: 'Plombier', experience: '3 ans' });
       expect(res).toEqual({ id: 'app1' });
-      expect(eventEmitter.emit).toHaveBeenCalledWith('provider.applied', { userId: 'uid' });
+      expect(eventEmitter.emit).toHaveBeenCalledWith('provider.applied', { userId: 'uid', applicationId: 'app1' });
     });
   });
 
@@ -206,12 +220,14 @@ describe('ProvidersService', () => {
     it('throws if provider cannot handle service', async () => {
       prisma.user.findUnique.mockResolvedValue({ role: Role.PROVIDER, status: Status.DISPONIBLE, services: [{ id: 's1' }] });
       prisma.request.findUnique.mockResolvedValue({ status: RequestStatus.APPROVED, serviceId: 's2' });
+      prisma.service.findUnique.mockResolvedValue({ name: 'Autre', category: 'Autre' });
       await expect(service.acceptRequest('rid', 'pid')).rejects.toThrow(BadRequestException);
     });
 
     it('accepts request via transaction and emits event', async () => {
       prisma.user.findUnique.mockResolvedValue({ role: Role.PROVIDER, status: Status.DISPONIBLE, services: [{ id: 's1' }] });
       prisma.request.findUnique.mockResolvedValue({ status: RequestStatus.APPROVED, serviceId: 's1', clientId: 'cid', id: 'rid' });
+      prisma.payment.findFirst.mockResolvedValue({ id: 'pay1', status: 'SUCCESS' });
       prisma.$transaction.mockResolvedValue([{ id: 'rid', clientId: 'cid' }]);
 
       const res = await service.acceptRequest('rid', 'pid');

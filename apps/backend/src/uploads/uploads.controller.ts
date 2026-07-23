@@ -56,7 +56,7 @@ export class UploadsController {
       `📸 Upload avatar | Taille: ${(file.size / 1024).toFixed(1)} KB | Type: ${file.mimetype}`,
     );
 
-    const result = this.uploadsService.saveAvatar(file);
+    const result = await this.uploadsService.saveAvatar(file);
 
     this.logger.log(`Avatar enregistré -> ${result.url}`);
     return result;
@@ -90,7 +90,7 @@ export class UploadsController {
       `Upload service | Taille: ${(file.size / 1024).toFixed(1)} KB | Type: ${file.mimetype}`,
     );
 
-    const result = this.uploadsService.saveServiceImage(file);
+    const result = await this.uploadsService.saveServiceImage(file);
 
     this.logger.log(`Image service enregistrée -> ${result.url}`);
     return result;

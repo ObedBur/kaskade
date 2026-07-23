@@ -37,10 +37,10 @@ const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1581578731548-c64695cc6958?q=80&w=800";
 
 const getServiceImageUrl = (service: any) =>
-  getMediaUrl(service?.imageUrl) ||
-  getMediaUrl(
-    service?.imageKey ? `/uploads/services/${service.imageKey}` : null,
-  ) ||
+  service?.imageUrl ||
+  (service?.imageKey?.startsWith("http")
+    ? service.imageKey
+    : `/uploads/services/${service.imageKey}`) ||
   FALLBACK_IMAGE;
 
 const getPaymentCurrency = (currency?: string | null): PaymentCurrency =>

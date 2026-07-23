@@ -137,9 +137,7 @@ export default function AdminServicesPage() {
         isActive: cat.isActive,
         imageKey: cat.imageKey || "",
       });
-      setPreviewUrl(
-        cat.imageKey ? getMediaUrl(`/uploads/services/${cat.imageKey}`) : null,
-      );
+      setPreviewUrl(cat.imageUrl || cat.imageKey || null);
     } else {
       setEditingCategory(null);
       setFormData({
@@ -179,7 +177,7 @@ export default function AdminServicesPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData({ ...formData, imageKey: res.data.filename });
-      setPreviewUrl(getMediaUrl(res.data.url));
+      setPreviewUrl(res.data.url);
       toast.success("Image uploadée !");
     } catch (error) {
       toast.error("Erreur lors de l'upload de l'image.");
@@ -351,11 +349,11 @@ export default function AdminServicesPage() {
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-6">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100">
-                  {cat.imageKey ? (
+                  {cat.imageUrl || cat.imageKey ? (
                     <img
                       src={
-                        getMediaUrl(cat.imageUrl) ||
-                        getMediaUrl(`/uploads/services/${cat.imageKey}`)
+                        cat.imageUrl ||
+                        `/uploads/services/${cat.imageKey}`
                       }
                       alt={cat.name}
                       className="w-full h-full object-cover"

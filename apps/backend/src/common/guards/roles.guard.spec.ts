@@ -49,14 +49,18 @@ describe('RolesGuard', () => {
   });
 
   it('should throw ForbiddenException when user does not have the required role', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+    jest.spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValueOnce(false)         // IS_PUBLIC_KEY → not public
+      .mockReturnValueOnce([Role.ADMIN]);  // ROLES_KEY → requires ADMIN
     const context = mockExecutionContext(Role.CLIENT);
 
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
 
   it('should throw ForbiddenException with correct message', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+    jest.spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce([Role.ADMIN]);
     const context = mockExecutionContext(Role.CLIENT);
 
     expect(() => guard.canActivate(context)).toThrow(

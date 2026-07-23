@@ -22,6 +22,9 @@ const mockPrismaService = {
   request: {
     findUnique: jest.fn(),
   },
+  service: {
+    findUnique: jest.fn(),
+  },
 };
 
 describe('NotificationsListener', () => {
@@ -116,13 +119,22 @@ describe('NotificationsListener', () => {
     });
 
     it('handleRequestApproved with providers', async () => {
-      prisma.user.findMany.mockResolvedValue([{ id: 'p1' }]);
+      // service.findUnique retourne un service avec des prestataires liés
+      prisma.service.findUnique.mockResolvedValue({
+        id: 's1', name: 'Coiffure', category: 'Général',
+        providers: [{ id: 'p1', isActive: true }],
+      });
       mockNotificationsService.createManyNotifications.mockResolvedValue([{ id: 'n1', userId: 'p1' }]);
       await listener.handleRequestApproved({ requestId: 'r1', serviceId: 's1' });
       expect(notificationsService.createManyNotifications).toHaveBeenCalled();
     });
 
     it('handleRequestApproved without providers', async () => {
+      // service sans prestataires liés, fallback findMany retourne []
+      prisma.service.findUnique.mockResolvedValue({
+        id: 's1', name: 'Coiffure', category: 'Général',
+        providers: [],
+      });
       prisma.user.findMany.mockResolvedValue([]);
       await listener.handleRequestApproved({ requestId: 'r1', serviceId: 's1' });
       expect(notificationsService.createManyNotifications).not.toHaveBeenCalled();

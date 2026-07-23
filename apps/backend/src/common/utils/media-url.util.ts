@@ -21,6 +21,13 @@ export function toAbsoluteMediaUrl(
 export function withServiceImageUrl<T extends { imageKey?: string | null }>(
   service: T,
 ): T & { imageUrl: string | null } {
+  if (service.imageKey?.startsWith('http')) {
+    return {
+      ...service,
+      imageUrl: service.imageKey,
+    };
+  }
+
   const relativePath = service.imageKey
     ? `/uploads/services/${service.imageKey}`
     : null;

@@ -7,7 +7,9 @@ describe('Providers DTO Validation', () => {
   describe('ApplyProviderDto', () => {
     it('should validate a correct DTO', async () => {
       const dto = new ApplyProviderDto();
-      dto.motivation = 'Je suis extrêmement motivé';
+      dto.motivation = 'Je suis extrêmement motivé pour ce poste';
+      dto.metier = 'Coiffeur';
+      dto.experience = '5 ans';
       const errors = await validate(dto);
       expect(errors.length).toBe(0);
     });

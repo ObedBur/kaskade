@@ -13,6 +13,7 @@ import { RequestStatus, Role, Status } from '@prisma/client';
 import { UpdateProviderProfileDto } from './dto/update-provider-profile.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { withServiceImageUrl } from '../common/utils/media-url.util';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class ProvidersService {
@@ -21,6 +22,7 @@ export class ProvidersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   private withImageUrl<T extends { imageKey?: string | null }>(
@@ -540,17 +542,10 @@ export class ProvidersService {
       user.avatarUrl !== updateProfileDto.avatarUrl
     ) {
       try {
-        const oldPath = join(
-          process.cwd(),
-          user.avatarUrl.startsWith('/')
-            ? user.avatarUrl.substring(1)
-            : user.avatarUrl,
-        );
-        if (existsSync(oldPath)) {
-          unlinkSync(oldPath);
-          this.logger.log(`Nettoyage : Ancien avatar supprimé (${oldPath})`);
+        if (user.avatarUrl.includes('cloudinary.com')) {
+          await this.cloudinaryService.deleteByUrl(user.avatarUrl);
         }
-      } catch (err) {
+      } catch (err: any) {
         this.logger.error(
           `Erreur lors du nettoyage de l'ancien avatar : ${err.message}`,
         );

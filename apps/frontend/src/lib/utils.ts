@@ -1,7 +1,10 @@
 export function getMediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
+  
+  // Cloudinary URLs already start with http
   if (path.startsWith('http')) return path;
 
+  // Fallback if there's still some old local paths stored
   const mediaBase =
     process.env.NEXT_PUBLIC_MEDIA_URL ||
     (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1').replace(

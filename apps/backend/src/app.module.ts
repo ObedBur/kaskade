@@ -18,8 +18,11 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { AdminFinancialsModule } from './admin/financials/admin-financials.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
+
 @Module({
   imports: [
+    CloudinaryModule,
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),

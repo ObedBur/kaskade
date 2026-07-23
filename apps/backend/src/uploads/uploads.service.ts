@@ -1,73 +1,48 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { join } from 'path';
-import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
-import { v4 as uuidv4 } from 'uuid';
-import { extname } from 'path';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
-  private readonly avatarDir: string;
-  private readonly serviceDir: string;
 
-  constructor() {
-    this.avatarDir = join(process.cwd(), 'uploads', 'avatars');
-    this.serviceDir = join(process.cwd(), 'uploads', 'services');
-
-    [this.avatarDir, this.serviceDir].forEach((dir) => {
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
-      }
-    });
-  }
+  constructor(private readonly cloudinaryService: CloudinaryService) {}
 
   /**
-   * Sauvegarde un fichier image uploadé et retourne l'URL relative.
-   * @param file Buffer du fichier (fourni par Multer)
-   * @param originalName Nom original du fichier pour extraire l'extension
-   * @returns { url: string } - URL publique relative (ex: /uploads/avatars/uuid.jpg)
+   * Sauvegarde un avatar sur Cloudinary et retourne l'URL HTTPS publique.
+   * @param file - Buffer du fichier (fourni par Multer memoryStorage)
+   * @returns { url: string } - URL publique Cloudinary (ex: https://res.cloudinary.com/...)
    */
-  saveAvatar(file: Express.Multer.File): { url: string } {
-    const ext = extname(file.originalname).toLowerCase() || '.jpg';
-    const filename = `${uuidv4()}${ext}`;
-    const filePath = join(this.avatarDir, filename);
-
-    writeFileSync(filePath, file.buffer);
-
-    this.logger.log(`Avatar sauvegardé : ${filePath}`);
-    return { url: `/uploads/avatars/${filename}` };
-  }
-
-  saveServiceImage(file: Express.Multer.File): {
-    filename: string;
-    url: string;
-  } {
-    const ext = extname(file.originalname).toLowerCase() || '.jpg';
-    const filename = `${uuidv4()}${ext}`;
-    const filePath = join(this.serviceDir, filename);
-
-    writeFileSync(filePath, file.buffer);
-
-    this.logger.log(`Image service sauvegardée : ${filePath}`);
-    return { filename, url: `/uploads/services/${filename}` };
-  }
-
-  /**
-   * Supprime un ancien avatar du disque (appel optionnel au nettoyage).
-   */
-  deleteAvatar(relativePath: string): void {
-    if (!relativePath) return;
-    const absolutePath = join(
-      process.cwd(),
-      relativePath.startsWith('/') ? relativePath.substring(1) : relativePath,
+  async saveAvatar(file: Express.Multer.File): Promise<{ url: string }> {
+    const result = await this.cloudinaryService.uploadBuffer(
+      file.buffer,
+      'kaskade/avatars',
     );
-    if (existsSync(absolutePath)) {
-      try {
-        unlinkSync(absolutePath);
-        this.logger.log(`Ancien avatar supprimé : ${absolutePath}`);
-      } catch (err: any) {
-        this.logger.error(`Erreur suppression avatar : ${err.message}`);
-      }
-    }
+    this.logger.log(`Avatar uploadé sur Cloudinary: ${result.url}`);
+    return { url: result.url };
+  }
+
+  /**
+   * Sauvegarde une image de service sur Cloudinary et retourne l'URL HTTPS publique.
+   * @param file - Buffer du fichier (fourni par Multer memoryStorage)
+   * @returns { filename: string, url: string } - publicId Cloudinary et URL publique
+   */
+  async saveServiceImage(
+    file: Express.Multer.File,
+  ): Promise<{ filename: string; url: string }> {
+    const result = await this.cloudinaryService.uploadBuffer(
+      file.buffer,
+      'kaskade/services',
+    );
+    this.logger.log(`Image service uploadée sur Cloudinary: ${result.url}`);
+    // filename = publicId Cloudinary (utilisé comme imageKey en DB)
+    return { filename: result.publicId, url: result.url };
+  }
+
+  /**
+   * Supprime un avatar Cloudinary lors du remplacement.
+   * @param url - URL Cloudinary de l'ancien avatar
+   */
+  async deleteAvatar(url: string | null | undefined): Promise<void> {
+    await this.cloudinaryService.deleteByUrl(url);
   }
 }

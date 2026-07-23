@@ -132,7 +132,11 @@ describe('UsersService', () => {
       expect(result).toEqual(safeUser);
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
         where: { id: '1' },
-        select: { id: true, email: true, fullName: true, phone: true, quartier: true, role: true, isVerified: true },
+        select: {
+          id: true, email: true, fullName: true, phone: true,
+          quartier: true, role: true, isPremium: true, isVerified: true,
+          metier: true, experience: true, bio: true, avatarUrl: true,
+        },
       });
     });
     
@@ -210,8 +214,13 @@ describe('UsersService', () => {
           email: true,
           fullName: true,
           role: true,
+          isPremium: true,
           isVerified: true,
           isActive: true,
+          phone: true,
+          quartier: true,
+          status: true,
+          createdAt: true,
         },
       });
     });

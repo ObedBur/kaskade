@@ -19,12 +19,10 @@ import MobileMoneyPaymentModal, {
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
-const getServiceImageUrl = (service: Service) =>
-  getMediaUrl(service.imageUrl) ||
-  getMediaUrl(
-    service.imageKey ? `/uploads/services/${service.imageKey}` : null,
-  ) ||
-  FALLBACK_IMAGE;
+const getServiceImageUrl = (service: Service) => {
+  const imageUrl = service.imageUrl || (service.imageKey?.startsWith("http") ? service.imageKey : `/uploads/services/${service.imageKey}`) || FALLBACK_IMAGE;
+  return imageUrl;
+};
 
 // Types partagés
 interface SchedulePlan {
