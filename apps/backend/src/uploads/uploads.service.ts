@@ -34,8 +34,9 @@ export class UploadsService {
       'kaskade/services',
     );
     this.logger.log(`Image service uploadée sur Cloudinary: ${result.url}`);
-    // filename = publicId Cloudinary (utilisé comme imageKey en DB)
-    return { filename: result.publicId, url: result.url };
+    // On utilise directement l'URL Cloudinary au lieu du publicId
+    // Cela évitera aux utilitaires (media-url.util.ts, getMediaUrl) d'ajouter le prefix localhost
+    return { filename: result.url, url: result.url };
   }
 
   /**
