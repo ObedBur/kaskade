@@ -8,8 +8,8 @@ import {
   Logger,
   Headers,
   Req,
-  UnauthorizedException,
   HttpCode,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
