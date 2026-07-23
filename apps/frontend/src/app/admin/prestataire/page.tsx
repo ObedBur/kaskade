@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PrestatairesSkeleton } from "@/components/admin/Skeleton";
@@ -85,6 +86,7 @@ export default function AdminPrestatairePage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteConfirmApp, setDeleteConfirmApp] = useState<Application | null>(null);
+  const [validationApp, setValidationApp] = useState<Application | null>(null);
   const ITEMS_PER_PAGE = 10;
 
   const fetchApplications = async () => {
@@ -104,17 +106,18 @@ export default function AdminPrestatairePage() {
     fetchApplications();
   }, [isAuthenticated]);
 
-  const handleApprove = async (applicationId: string) => {
+  const handleApprove = async (applicationId: string, serviceId: string) => {
     setActionLoading(applicationId);
     try {
-      await api.patch(`/admin/providers/applications/${applicationId}/approve`);
-      toast.success("Candidature approuvée !");
+      await api.patch(`/admin/providers/applications/${applicationId}/approve`, { serviceId });
+      toast.success("Candidature approuvée et métier assigné !");
       setApplications((prev) =>
         prev.map((a) => (a.id === applicationId ? { ...a, status: "APPROVED" } : a))
       );
       if (selectedApp?.id === applicationId) {
         setSelectedApp((prev) => prev ? { ...prev, status: "APPROVED" } : null);
       }
+      setValidationApp(null);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Erreur lors de l'approbation.");
     } finally {
@@ -553,7 +556,7 @@ export default function AdminPrestatairePage() {
                     {selectedApp.status === "PENDING" ? (
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
                         <button
-                          onClick={() => handleApprove(selectedApp.id)}
+                          onClick={() => setValidationApp(selectedApp)}
                           disabled={actionLoading === selectedApp.id}
                           className="flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-xs hover:bg-emerald-600 transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-emerald-500/20"
                         >
@@ -655,6 +658,16 @@ export default function AdminPrestatairePage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Validation Intelligente */}
+      {validationApp && (
+        <IntelligentValidationModal
+          application={validationApp}
+          onClose={() => setValidationApp(null)}
+          onConfirm={(serviceId) => handleApprove(validationApp.id, serviceId)}
+          loading={actionLoading === validationApp.id}
+        />
+      )}
     </div>
   );
 }
@@ -678,6 +691,223 @@ function InfoCard({
         </span>
       </div>
       <p className="text-sm font-bold text-slate-700">{value || "Non renseigné"}</p>
+    </div>
+  );
+}
+
+/* ── Intelligent Validation Modal ───────────────────────────────────────────── */
+function IntelligentValidationModal({
+  application,
+  onClose,
+  onConfirm,
+  loading
+}: {
+  application: Application;
+  onClose: () => void;
+  onConfirm: (serviceId: string) => void;
+  loading: boolean;
+}) {
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [allServices, setAllServices] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const [sugRes, allRes] = await Promise.all([
+          api.get(`/admin/providers/applications/${application.id}/suggestions`),
+          api.get("/services")
+        ]);
+        setSuggestions(sugRes.data || []);
+        setAllServices(Array.isArray(allRes.data) ? allRes.data : allRes.data.data || []);
+        
+        if (sugRes.data?.length > 0) {
+          setSelectedServiceId(sugRes.data[0].id);
+        }
+      } catch (err) {
+        toast.error("Erreur lors du chargement des suggestions.");
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    fetchSuggestions();
+  }, [application.id]);
+
+  const filteredServices = allServices.filter(s => 
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    s.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !loading && onClose()} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div>
+            <h2 className="text-xl font-black text-[#321B13]">Valider et attribuer un métier</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Sélectionnez le métier principal de <strong className="text-[#321B13]">{application.user.fullName}</strong>.
+            </p>
+          </div>
+          <button onClick={() => !loading && onClose()} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 transition-colors">
+            <X className="w-4 h-4 text-slate-600" />
+          </button>
+        </div>
+
+        <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
+          {dataLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-[#BC9C6C] animate-spin mb-4" />
+              <p className="text-sm font-bold text-slate-400 animate-pulse">Analyse intelligente du profil...</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Profil analysé */}
+              <div className="bg-amber-50 rounded-2xl p-5 border border-amber-100 flex gap-4 items-start">
+                <div className="bg-white p-2 rounded-xl text-amber-500 shadow-sm shrink-0">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-amber-900 mb-2">Profil du candidat</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {application.user.metier && (
+                      <span className="px-2.5 py-1 bg-white rounded-lg text-xs font-bold text-amber-700 shadow-sm">Métier: {application.user.metier}</span>
+                    )}
+                    {application.user.experience && (
+                      <span className="px-2.5 py-1 bg-white rounded-lg text-xs font-bold text-amber-700 shadow-sm">Exp: {application.user.experience}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Suggestions */}
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-[#BC9C6C]" />
+                  Suggestions Intelligentes
+                </h3>
+                
+                {suggestions.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {suggestions.slice(0, 4).map((sug) => {
+                      const isSelected = selectedServiceId === sug.id;
+                      const stars = Math.round((sug.matchPercentage / 100) * 5);
+                      
+                      return (
+                        <div 
+                          key={sug.id}
+                          onClick={() => setSelectedServiceId(sug.id)}
+                          className={`cursor-pointer rounded-2xl border-2 p-4 transition-all ${
+                            isSelected 
+                              ? 'border-[#BC9C6C] bg-orange-50 shadow-sm' 
+                              : 'border-slate-100 hover:border-slate-200 bg-white'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className={`font-bold ${isSelected ? 'text-[#321B13]' : 'text-slate-700'}`}>{sug.name}</h4>
+                            <span className={`text-[10px] font-black px-2 py-1 rounded-full ${isSelected ? 'bg-[#BC9C6C] text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              {sug.matchPercentage}%
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-0.5 text-amber-400">
+                            {[...Array(5)].map((_, i) => (
+                              <svg key={i} className={`w-3.5 h-3.5 ${i < stars ? 'fill-current' : 'text-slate-200 fill-current'}`} viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-2 truncate">
+                            Catégorie: {sug.category}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 p-6 rounded-2xl text-center text-slate-500 text-sm">
+                    Aucune suggestion trouvée pour ce profil.
+                  </div>
+                )}
+              </div>
+
+              {/* Tous les services (fallback) */}
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center justify-between">
+                  <span>Rechercher un autre métier</span>
+                </h3>
+                
+                <div className="relative mb-3">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Chercher dans tous les métiers de la plateforme..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#BC9C6C]/50"
+                  />
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-xl overflow-hidden max-h-[200px] overflow-y-auto custom-scrollbar">
+                  {filteredServices.length > 0 ? (
+                    filteredServices.map(service => (
+                      <div 
+                        key={service.id}
+                        onClick={() => setSelectedServiceId(service.id)}
+                        className={`px-4 py-3 border-b border-slate-50 cursor-pointer flex justify-between items-center transition-colors ${selectedServiceId === service.id ? 'bg-[#BC9C6C]/10' : 'hover:bg-slate-50'}`}
+                      >
+                        <div>
+                          <p className={`text-sm font-bold ${selectedServiceId === service.id ? 'text-[#321B13]' : 'text-slate-700'}`}>{service.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{service.category}</p>
+                        </div>
+                        {selectedServiceId === service.id && (
+                          <CheckCircle className="w-5 h-5 text-[#BC9C6C]" />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-slate-500 text-sm">Aucun métier correspondant</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 md:p-8 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+          <button 
+            onClick={() => window.open('/admin/service', '_blank')}
+            className="text-xs font-bold text-[#BC9C6C] hover:text-[#321B13] transition-colors"
+          >
+            + Créer un nouveau métier
+          </button>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="px-6 py-3.5 bg-white text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors disabled:opacity-50 shadow-sm"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => selectedServiceId && onConfirm(selectedServiceId)}
+              disabled={loading || !selectedServiceId}
+              className="flex items-center gap-2 px-8 py-3.5 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading ? "Validation..." : "Valider le prestataire"}
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

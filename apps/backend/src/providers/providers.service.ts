@@ -121,7 +121,7 @@ export class ProvidersService {
     return application;
   }
 
-  async approve(applicationId: string) {
+  async approve(applicationId: string, serviceId?: string) {
     const application = await this.prisma.providerApplication.findUnique({
       where: { id: applicationId },
       include: { user: true },
@@ -136,6 +136,18 @@ export class ProvidersService {
       );
     }
 
+    if (!serviceId) {
+      throw new BadRequestException('Vous devez assigner un métier (service) pour approuver le prestataire.');
+    }
+
+    // Vérifier que le service existe
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+    });
+    if (!service) {
+      throw new NotFoundException('Le métier (service) sélectionné est introuvable.');
+    }
+
     const updatedApp = await this.prisma.providerApplication.update({
       where: { id: applicationId },
       data: { status: RequestStatus.APPROVED },
@@ -143,12 +155,17 @@ export class ProvidersService {
 
     await this.prisma.user.update({
       where: { id: application.userId },
-      data: { role: Role.PROVIDER },
+      data: { 
+        role: Role.PROVIDER,
+        services: {
+          connect: { id: serviceId }
+        }
+      },
     });
 
     // Notification temporaire via logs (le client l'a explicitement demandé)
     this.logger.log(
-      `[NOTIFICATION] L'utilisateur ${application.user.email} (ID: ${application.userId}) a été approuvé en tant que PROVIDER.`,
+      `[NOTIFICATION] L'utilisateur ${application.user.email} (ID: ${application.userId}) a été approuvé en tant que PROVIDER et assigné au métier ${service.name}.`,
     );
 
     this.eventEmitter.emit('provider.application.resolved', {
@@ -158,6 +175,78 @@ export class ProvidersService {
     });
 
     return updatedApp;
+  }
+
+  async getServiceSuggestions(applicationId: string) {
+    const application = await this.prisma.providerApplication.findUnique({
+      where: { id: applicationId },
+      include: { user: true },
+    });
+
+    if (!application) {
+      throw new NotFoundException('Candidature introuvable');
+    }
+
+    const services = await this.prisma.service.findMany({
+      where: { isActive: true },
+    });
+
+    // Combiner les textes du profil pour l'analyse
+    const profileText = [
+      application.user.metier || '',
+      application.user.experience || '',
+      application.user.bio || '',
+      application.motivation || ''
+    ].join(' ').toLowerCase();
+
+    // Fonction utilitaire pour normaliser
+    const normalize = (str: string) => 
+      str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    const normalizedProfileText = normalize(profileText);
+    const metierUser = application.user.metier ? normalize(application.user.metier) : '';
+
+    const suggestions = services.map(service => {
+      let score = 0;
+      const serviceName = normalize(service.name);
+      const serviceCategory = normalize(service.category);
+      
+      // Forte correspondance sur le nom du métier exact
+      if (metierUser && (metierUser.includes(serviceName) || serviceName.includes(metierUser))) {
+        score += 60;
+      }
+      
+      // Correspondance sur la catégorie
+      if (metierUser && (metierUser.includes(serviceCategory) || serviceCategory.includes(metierUser))) {
+        score += 30;
+      }
+
+      // Analyse des mots-clés dans tout le profil
+      const serviceWords = [...serviceName.split(' '), ...serviceCategory.split(' ')].filter(w => w.length > 3);
+      serviceWords.forEach(word => {
+        if (normalizedProfileText.includes(word)) {
+          score += 15; // Chaque mot trouvé dans le profil donne des points
+        }
+      });
+
+      // Calcul d'un pourcentage (plafonné à 99%)
+      // On s'assure qu'un score de 75+ donne un très bon %
+      const rawPercentage = Math.min(99, Math.round((score / 80) * 100));
+      
+      // Si le score est très bas, on met un minimum pour ne pas avoir 0% (esthétique)
+      const percentage = Math.max(15, rawPercentage);
+
+      return {
+        ...withServiceImageUrl(service),
+        matchPercentage: percentage,
+        score
+      };
+    });
+
+    // Trier par score décroissant et retourner le top 10
+    return suggestions
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
   }
 
   async reject(applicationId: string) {
@@ -302,35 +391,47 @@ export class ProvidersService {
       `🔍 [DEBUG] Provider: ${user.fullName} | Metier: ${user.metier} | assignedServices: ${assignedServiceIds.length}`,
     );
 
+    // Correspondance bidirectionnelle : on cherche si le métier est CONTENU dans le nom/catégorie du service
+    // OU si le nom/catégorie du service est CONTENU dans le métier
+    const metierConditions = user.metier
+      ? [
+          {
+            service: {
+              OR: [
+                // Le métier contient le nom du service (ex: "coiffeur" → "coiff")
+                { category: { contains: user.metier, mode: 'insensitive' as const } },
+                { name: { contains: user.metier, mode: 'insensitive' as const } },
+                // Le nom du service contient le métier (ex: "Coiffure" contient "coiff")
+                ...(user.metier.length >= 4
+                  ? [
+                      { category: { contains: user.metier.substring(0, Math.min(6, user.metier.length)), mode: 'insensitive' as const } },
+                      { name: { contains: user.metier.substring(0, Math.min(6, user.metier.length)), mode: 'insensitive' as const } },
+                    ]
+                  : []),
+              ],
+            },
+          },
+        ]
+      : [];
+
+    const orConditions = [
+      ...(assignedServiceIds.length > 0 ? [{ serviceId: { in: assignedServiceIds } }] : []),
+      ...metierConditions,
+    ];
+
+    // Prisma ne supporte pas OR: [] — on retourne une liste vide si aucune condition
+    if (orConditions.length === 0) {
+      this.logger.warn(
+        `Prestataire ${user.fullName} sans métier ni service assigné — aucune mission à afficher.`,
+      );
+      return [];
+    }
+
     const missions = await this.prisma.request.findMany({
       where: {
         status: { in: [RequestStatus.APPROVED, RequestStatus.ACCEPTED] },
         providerId: null,
-        OR: [
-          { serviceId: { in: assignedServiceIds } },
-          ...(user.metier
-            ? [
-                {
-                  service: {
-                    OR: [
-                      {
-                        category: {
-                          contains: user.metier,
-                          mode: 'insensitive' as const,
-                        },
-                      },
-                      {
-                        name: {
-                          contains: user.metier,
-                          mode: 'insensitive' as const,
-                        },
-                      },
-                    ],
-                  },
-                },
-              ]
-            : []),
-        ],
+        OR: orConditions,
       },
       include: {
         service: true,
