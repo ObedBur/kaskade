@@ -78,7 +78,35 @@ async function main() {
   });
   console.log(`✅ Provider: ${provider.email}`);
 
-  console.log('✅ Seed des utilisateurs terminé avec succès!');
+  // 4. SERVICES (MÉTIERS)
+  const servicesData = [
+    { name: "Développeur Web", category: "TECH", description: "Création de sites web, d'applications web et e-commerce." },
+    { name: "Développeur Backend", category: "TECH", description: "Création d'APIs, gestion de bases de données et serveurs." },
+    { name: "UI/UX Designer", category: "TECH", description: "Conception d'interfaces utilisateurs et d'expériences digitales." },
+    { name: "Technicien Informatique", category: "TECH", description: "Maintenance, dépannage PC, installation réseaux." },
+    { name: "Photographe", category: "ÉVÉNEMENTIEL", description: "Couverture photo pour mariages, événements, portraits." },
+    { name: "Plombier", category: "MAINTENANCE BÂTIMENT", description: "Installation et réparation de tuyauterie et sanitaires." },
+    { name: "Électricien", category: "MAINTENANCE BÂTIMENT", description: "Installation électrique, dépannage, câblage." },
+    { name: "Maçon", category: "CONSTRUCTION", description: "Travaux de gros œuvre, murs, crépissage." },
+    { name: "Femme de ménage", category: "AIDE À DOMICILE", description: "Nettoyage, entretien de maisons, appartements et bureaux." },
+    { name: "Nounou", category: "AIDE À DOMICILE", description: "Garde d'enfants, accompagnement école." },
+    { name: "Cuisinier", category: "RESTAURATION", description: "Préparation de repas à domicile ou pour événements." },
+    { name: "Chauffeur", category: "TRANSPORT", description: "Conduite de véhicules, livraison, transport privé." }
+  ];
+
+  for (const s of servicesData) {
+    await prisma.service.create({
+      data: {
+        name: s.name,
+        category: s.category,
+        description: s.description,
+        isActive: true,
+      }
+    });
+  }
+  console.log(`✅ ${servicesData.length} Métiers/Services ajoutés avec succès !`);
+
+  console.log('✅ Seed complet terminé avec succès!');
 }
 
 main()
