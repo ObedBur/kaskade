@@ -783,6 +783,29 @@ export class PaymentsService {
     });
   }
 
+  async getPaymentHistory(clientId: string) {
+    return this.prisma.payment.findMany({
+      where: { clientId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        request: {
+          select: {
+            id: true,
+            status: true,
+            service: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                imageKey: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   private async verifyTransactionStatus(
     transactionId: string,
   ): Promise<VerifiedMbiyoTransactionStatus> {

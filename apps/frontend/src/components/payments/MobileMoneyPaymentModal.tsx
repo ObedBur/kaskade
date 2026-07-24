@@ -52,6 +52,7 @@ export default function MobileMoneyPaymentModal({
   const [instructions, setInstructions] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [confirmedAmount, setConfirmedAmount] = useState<number | null>(null);
   const [phase, setPhase] = useState<
     | "INITIAL"
     | "INITIATING"
@@ -70,10 +71,17 @@ export default function MobileMoneyPaymentModal({
       ? "/payments/initiate/deposit"
       : "/payments/initiate/final";
 
+  const displayAmount = confirmedAmount ?? amount;
+
   const formattedAmount =
     currency === "USD"
-      ? `$${amount.toLocaleString("fr-CD", { maximumFractionDigits: 2 })}`
-      : `${amount.toLocaleString("fr-CD", { maximumFractionDigits: 0 })} CDF`;
+      ? `$${displayAmount.toLocaleString("fr-CD", { maximumFractionDigits: 2 })}`
+      : `${displayAmount.toLocaleString("fr-CD", { maximumFractionDigits: 0 })} CDF`;
+
+  const handleCloseModal = () => {
+    setConfirmedAmount(null);
+    onClose();
+  };
 
   const sanitizedInstructions = useMemo(() => {
     if (!instructions) {
@@ -107,6 +115,17 @@ export default function MobileMoneyPaymentModal({
         currency,
       });
 
+      const resAmount = res.data?.amount;
+      const numAmount =
+        typeof resAmount === "number"
+          ? resAmount
+          : resAmount
+          ? Number(resAmount)
+          : null;
+      if (numAmount !== null && !isNaN(numAmount)) {
+        setConfirmedAmount(numAmount);
+      }
+
       setPaymentId(res.data.paymentId);
       setAuthMode(res.data.authMode ?? null);
       setStatusMessage(null);
@@ -132,6 +151,7 @@ export default function MobileMoneyPaymentModal({
         duration: 60000,
       });
     } catch (err: any) {
+      setConfirmedAmount(null);
       setPhase("INITIAL");
       toast.error(
         err.response?.data?.message ||
@@ -272,7 +292,7 @@ export default function MobileMoneyPaymentModal({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCloseModal}
             disabled={phase === "WAITING_USSD"}
             className="rounded-full p-2 hover:bg-zinc-100 disabled:opacity-50"
           >
@@ -282,9 +302,16 @@ export default function MobileMoneyPaymentModal({
 
         <div className="overflow-y-auto p-5 sm:p-6">
           <div className="mb-6 rounded-2xl bg-chocolat p-5 text-white">
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/50">
-              Montant à payer
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/50">
+                Montant à payer
+              </p>
+              {confirmedAmount !== null && (
+                <span className="rounded-full bg-ocre/30 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+                  Montant confirmé
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-4xl font-black">{formattedAmount}</p>
           </div>
 

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function ParametresPaiementAjouterPage() {
-  return <div />;
+  redirect("/parametres/paiement");
 }

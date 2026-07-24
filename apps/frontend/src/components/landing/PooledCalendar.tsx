@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, Clock, CheckCircle2, X, Loader2, Users, AlertCircle } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronLeft, Calendar, Clock, CheckCircle2, X, Loader2, Users, AlertCircle, Zap, Star, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
 
@@ -40,6 +40,7 @@ interface SelectedSlot {
   date: string;
   dayName: string;
   time: string;
+  duration: number;
 }
 
 interface PooledCalendarProps {
@@ -48,12 +49,36 @@ interface PooledCalendarProps {
   onConfirm: (slot: SelectedSlot) => void;
 }
 
+const variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 50 : -50,
+    opacity: 0,
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    zIndex: 0,
+    x: direction < 0 ? 50 : -50,
+    opacity: 0,
+  }),
+};
+
+const DAYS_OF_WEEK = ["L", "M", "M", "J", "V", "S", "D"];
+
 export default function PooledCalendar({ serviceId, onClose, onConfirm }: PooledCalendarProps) {
   const [data, setData] = useState<PooledCalendarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
-  const [selected, setSelected] = useState<SelectedSlot | null>(null);
+  
+  const [step, setStep] = useState(0); // 0: Date & Duration, 1: Time
+  const [direction, setDirection] = useState(1);
+  
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<Day | null>(null);
+  const [duration, setDuration] = useState(2);
 
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -69,75 +94,153 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
     fetchAvailability();
   }, [serviceId]);
 
-  const currentWeek = data?.weeks[currentWeekIndex];
-  const totalWeeks = data?.weeks.length ?? 0;
+  // Flatten weeks into a single array of days
+  const allDays = useMemo(() => {
+    if (!data) return [];
+    return data.weeks.flatMap(w => w.days);
+  }, [data]);
 
-  const handleSlotClick = (day: Day, slot: Slot) => {
-    if (!slot.available) return;
-    setSelected({ date: day.date, dayName: day.dayName, time: slot.time });
+  // Group by month
+  const months = useMemo(() => {
+    if (!allDays.length) return [];
+    const map = new Map<string, { label: string, year: number, month: number, days: Day[] }>();
+    
+    allDays.forEach(day => {
+      const d = new Date(day.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          label: d.toLocaleString('fr-FR', { month: 'long' }),
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          days: []
+        });
+      }
+      map.get(key)!.days.push(day);
+    });
+    
+    return Array.from(map.values());
+  }, [allDays]);
+
+  const selectedMonth = months[selectedMonthIndex];
+
+  const daysInMonthGrid = useMemo(() => {
+    if (!selectedMonth) return [];
+    const firstDay = new Date(selectedMonth.year, selectedMonth.month, 1);
+    const lastDay = new Date(selectedMonth.year, selectedMonth.month + 1, 0);
+    const totalDays = lastDay.getDate();
+    const startingDayOfWeek = (firstDay.getDay() || 7) - 1; // 0 = Lundi, 6 = Dimanche
+    
+    const grid = [];
+    // Empty cells before the 1st
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      grid.push(null);
+    }
+    
+    // Fill actual days
+    for (let i = 1; i <= totalDays; i++) {
+      const dateStr = `${selectedMonth.year}-${String(selectedMonth.month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      // Find this day in our available API days
+      const apiDay = allDays.find(d => {
+        const dDate = new Date(d.date);
+        return dDate.getFullYear() === selectedMonth.year && 
+               dDate.getMonth() === selectedMonth.month && 
+               dDate.getDate() === i;
+      });
+      grid.push({ dayNumber: i, apiDay });
+    }
+    return grid;
+  }, [selectedMonth, allDays]);
+
+  const handleDayClick = (day: Day) => {
+    if (!day.slots.some(s => s.available)) return;
+    setSelectedDay(day);
+    setDirection(1);
+    setStep(1); // Go to step 2
   };
 
-  const handleConfirm = () => {
-    if (!selected) return;
-    onConfirm(selected);
+  const handleTimeClick = (time: string) => {
+    if (!selectedDay) return;
+    onConfirm({
+      date: selectedDay.date,
+      dayName: selectedDay.dayName,
+      time: time,
+      duration: duration
+    });
+  };
+
+  const prevStep = () => {
+    setDirection(-1);
+    setStep(0);
   };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("fr-FR", {
       day: "numeric",
       month: "long",
+      weekday: "long"
     });
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-[#321B13]/80 backdrop-blur-md">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-[#321B13]/70 backdrop-blur-xl"
-      />
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ type: "spring", damping: 25, stiffness: 350 }}
-        className="relative bg-white w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        initial={{ opacity: 0, y: 60 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 60 }}
+        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+        className="bg-white w-full sm:max-w-xl sm:mx-4 rounded-t-[40px] sm:rounded-[40px] shadow-2xl flex flex-col h-[85vh] sm:h-auto sm:max-h-[90vh] overflow-hidden relative"
       >
-        <div className="px-8 pt-8 pb-6 border-b border-zinc-100 flex items-center justify-between shrink-0">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="w-4 h-4 text-[#BC9C6C]" />
-              <span className="text-[10px] font-black text-[#BC9C6C] uppercase tracking-[0.3em]">
+        {/* Drag handle (mobile) */}
+        <div className="flex justify-center pt-4 pb-2 sm:hidden shrink-0 absolute top-0 w-full z-20 bg-white">
+          <div className="w-12 h-1.5 bg-zinc-200 rounded-full" />
+        </div>
+
+        {/* ─── Header ─── */}
+        <div className="px-6 pt-10 pb-5 sm:px-10 sm:pt-10 flex flex-col gap-4 shrink-0 border-b border-zinc-100 z-10 bg-white">
+          <div className="flex items-center justify-between">
+            {step > 0 ? (
+              <button
+                onClick={prevStep}
+                className="shrink-0 p-3 bg-zinc-50 hover:bg-zinc-100 rounded-2xl transition-all active:scale-90 border border-zinc-100"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#321B13]" />
+              </button>
+            ) : (
+              <div className="w-[46px]" />
+            )}
+            
+            <div className="flex items-center gap-2 bg-[#BC9C6C]/10 px-4 py-1.5 rounded-full border border-[#BC9C6C]/20">
+              <Calendar className="w-3.5 h-3.5 text-[#BC9C6C]" />
+              <span className="text-[#BC9C6C] text-[9px] font-black uppercase tracking-[0.2em]">
                 Disponibilités
               </span>
             </div>
-            <h2 className="text-2xl font-black text-[#321B13] tracking-tighter">
-              Choisir un créneau
-            </h2>
-            {data && (
-              <p className="text-xs text-[#321B13]/40 mt-1 font-medium">
-                {data.totalProviders > 0
-                  ? `${data.totalProviders} prestataire${data.totalProviders > 1 ? "s" : ""} disponibles`
-                  : "Aucun prestataire disponible actuellement"}
-              </p>
-            )}
+
+            <button
+              onClick={onClose}
+              className="shrink-0 p-3 bg-zinc-50 hover:bg-zinc-100 rounded-2xl transition-all active:scale-90 border border-zinc-100"
+            >
+              <X className="w-4 h-4 text-[#321B13]" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-3 rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-[#321B13] transition-all active:scale-95"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden mt-2">
+            <motion.div
+              className="h-full bg-[#BC9C6C] rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: step === 0 ? '50%' : '100%' }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* ─── Body ─── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar relative bg-white">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <Loader2 className="w-10 h-10 text-[#BC9C6C] animate-spin" />
-              <p className="text-sm text-[#321B13]/40 font-medium">Calcul des disponibilités...</p>
+              <p className="text-sm text-[#321B13]/40 font-medium">Recherche des prestataires...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4 px-8">
@@ -154,194 +257,226 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                   Service momentanément indisponible
                 </p>
                 <p className="text-sm text-[#321B13]/40 font-medium leading-relaxed">
-                  Nous n'avons pas encore de prestataires actifs assignés à ce service dans votre zone. 
-                  Revenez plus tard ou contactez le support.
+                  Nous n'avons pas encore de prestataires actifs assignés à ce service.
                 </p>
               </div>
             </div>
-          ) : data && currentWeek ? (
-            <div className="p-6 md:p-8">
-              <div className="flex items-center justify-between mb-8">
-                <button
-                  onClick={() => setCurrentWeekIndex((i) => Math.max(0, i - 1))}
-                  disabled={currentWeekIndex === 0}
-                  className="p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[#321B13]" />
-                </button>
-
-                <div className="text-center">
-                  <p className="text-[9px] font-black text-[#321B13]/30 uppercase tracking-[0.3em] mb-1">
-                    Semaine {currentWeek.weekNumber} / {totalWeeks}
-                  </p>
-                  <p className="text-base font-black text-[#321B13] tracking-tight">
-                    {currentWeek.label}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setCurrentWeekIndex((i) => Math.min(totalWeeks - 1, i + 1))}
-                  disabled={currentWeekIndex >= totalWeeks - 1}
-                  className="p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
-                >
-                  <ChevronRight className="w-5 h-5 text-[#321B13]" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-7 gap-2 mb-6">
-                {currentWeek.days.map((day) => {
-                  const isSelected = selected?.date === day.date;
-                  const hasAvailableSlot = day.slots.some((s) => s.available);
-
-                  return (
-                    <div
-                      key={day.date}
-                      className={`flex flex-col items-center gap-1 ${day.isSunday ? "opacity-30" : ""}`}
-                    >
-                      <span
-                        className={`text-[8px] font-black uppercase tracking-widest ${
-                          day.isToday ? "text-[#BC9C6C]" : "text-[#321B13]/40"
-                        }`}
-                      >
-                        {day.dayName.slice(0, 3)}
-                      </span>
-
-                      <span
-                        className={`text-sm font-black w-8 h-8 flex items-center justify-center rounded-xl transition-all ${
-                          day.isToday
-                            ? "bg-[#BC9C6C] text-white"
-                            : day.isSunday 
-                              ? "bg-zinc-100 text-zinc-400 cursor-not-allowed" 
-                              : "text-[#321B13]/70"
-                        } ${isSelected ? "ring-2 ring-[#321B13]" : ""}`}
-                      >
-                        {new Date(day.date).getDate()}
-                      </span>
-
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          day.isSunday 
-                            ? "bg-zinc-200" 
-                            : (hasAvailableSlot ? "bg-emerald-400" : "bg-zinc-200")
-                        }`}
-                      />
+          ) : (
+            <AnimatePresence initial={false} custom={direction} mode="wait">
+              <motion.div
+                key={step}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="absolute inset-0 px-6 py-6 sm:px-10 sm:py-8 overflow-y-auto custom-scrollbar"
+              >
+                {step === 0 && (
+                  <div className="space-y-8">
+                    <div className="text-center mb-6">
+                      <h3 className="text-lg sm:text-xl font-black text-[#321B13] uppercase tracking-tighter">Choisir la date d'intervention</h3>
+                      <p className="text-xs text-[#321B13]/50 mt-2 font-medium">
+                        {data?.totalProviders} prestataire(s) actif(s) dans votre zone
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
 
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentWeekIndex}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-4"
-                >
-                  {currentWeek.days.map((day) => {
-                    if (day.isSunday) return null;
-                    const availableSlots = day.slots.filter((s) => s.available);
-
-                    return (
-                      <div key={day.date}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <p className="text-xs font-black text-[#321B13] uppercase tracking-widest">
-                            {day.dayName}
-                            {day.isToday && (
-                              <span className="ml-2 text-[9px] font-bold text-[#BC9C6C] normal-case tracking-normal">
-                                Aujourd'hui
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10px] text-[#321B13]/30 font-medium">
-                            {formatDate(day.date)}
-                          </p>
-                          <div className="flex-1 h-px bg-zinc-100" />
-                        </div>
-
-                        {availableSlots.length > 0 ? (
-                          <div className="flex flex-wrap gap-2 mb-6">
-                            {availableSlots.map((slot) => {
-                              const isSlotSelected =
-                                selected?.date === day.date && selected?.time === slot.time;
-
-                              return (
-                                <motion.button
-                                  key={slot.time}
-                                  whileHover={{ scale: 1.03 }}
-                                  whileTap={{ scale: 0.97 }}
-                                  onClick={() => handleSlotClick(day, slot)}
-                                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-black transition-all ${
-                                    isSlotSelected
-                                      ? "bg-[#321B13] border-[#321B13] text-white shadow-lg shadow-[#321B13]/20"
-                                      : "bg-white border-zinc-200 text-[#321B13] hover:border-[#BC9C6C] hover:bg-[#BC9C6C]/5"
-                                  }`}
-                                >
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {slot.time}
-                                  {isSlotSelected && <CheckCircle2 className="w-3.5 h-3.5 ml-1" />}
-                                </motion.button>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="bg-zinc-50 border border-dashed border-zinc-100 rounded-xl p-3 mb-6 flex items-center justify-center">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
-                              Aucun créneau disponible pour ce jour
-                            </p>
-                          </div>
-                        )}
+                    {/* Duration Picker */}
+                    <div className="space-y-4 bg-zinc-50/50 p-5 rounded-[24px] border border-zinc-100">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#BC9C6C]" />
+                        <p className="text-[10px] font-black text-[#321B13]/40 uppercase tracking-[0.2em]">
+                          Durée estimée
+                        </p>
                       </div>
-                    );
-                  })}
+                      <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                        {[1, 2, 3, 4, 8].map((h) => (
+                          <button
+                            key={h}
+                            onClick={() => setDuration(h)}
+                            className={`shrink-0 px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all border ${duration === h
+                              ? "bg-[#BC9C6C] border-[#BC9C6C] text-white shadow-md shadow-[#BC9C6C]/20"
+                              : "bg-white border-zinc-200 text-[#321B13]/50 hover:border-[#BC9C6C]/40 hover:text-[#321B13]"
+                              }`}
+                          >
+                            {h === 4 ? "4h (Demi-journée)" : h === 8 ? "8h (Journée complète)" : `${h} heure${h > 1 ? 's' : ''}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  {!currentWeek.days.some(
-                    (d) => !d.isWeekend && d.slots.some((s) => s.available)
-                  ) && (
-                    <div className="text-center py-12 text-[#321B13]/30">
-                      <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-black uppercase tracking-widest">
-                        Aucun créneau disponible cette semaine
-                      </p>
-                      <p className="text-xs mt-1">
-                        Essayez la semaine suivante
+                    {/* Month Picker */}
+                    <div className="space-y-4">
+                      <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                        {months.map((m, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedMonthIndex(idx)}
+                            className={`shrink-0 px-6 py-3 rounded-2xl text-[11px] font-black transition-all border capitalize ${selectedMonthIndex === idx
+                              ? "bg-[#321B13] border-[#321B13] text-white shadow-md"
+                              : "bg-white border-zinc-200 text-[#321B13]/40 hover:border-[#BC9C6C]/30"
+                              }`}
+                          >
+                            {m.label} {m.year}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="bg-white border border-zinc-100 shadow-sm rounded-[32px] p-5">
+                      <div className="grid grid-cols-7 gap-2 mb-4">
+                        {DAYS_OF_WEEK.map((d, i) => (
+                          <div key={i} className="text-center text-[10px] font-black text-[#321B13]/30 uppercase">
+                            {d}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-2">
+                        {daysInMonthGrid.map((cell, idx) => {
+                          if (!cell) return <div key={`empty-${idx}`} />;
+                          
+                          const apiDay = cell.apiDay;
+                          const hasAvailableSlots = apiDay?.slots.some(s => s.available);
+                          const totalAvailableSlots = apiDay?.slots.filter(s => s.available).length || 0;
+                          
+                          // Determine Heatmap color
+                          let heatmapColor = "bg-zinc-100";
+                          if (hasAvailableSlots) {
+                            if (totalAvailableSlots >= 4) heatmapColor = "bg-emerald-400";
+                            else heatmapColor = "bg-orange-400";
+                          }
+
+                          const isDisabled = !apiDay || !hasAvailableSlots;
+
+                          return (
+                            <button
+                              key={`day-${cell.dayNumber}`}
+                              onClick={() => !isDisabled && apiDay && handleDayClick(apiDay)}
+                              disabled={isDisabled}
+                              className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-all border relative ${
+                                isDisabled
+                                  ? "bg-zinc-50 border-zinc-100 text-zinc-300 cursor-not-allowed"
+                                  : "bg-white border-zinc-200 text-[#321B13] hover:border-[#BC9C6C] hover:bg-[#BC9C6C]/5 hover:scale-105 active:scale-95"
+                              }`}
+                            >
+                              <span className="text-[12px] font-bold">{cell.dayNumber}</span>
+                              <div className="flex gap-0.5 mt-1">
+                                <div className={`w-1.5 h-1.5 rounded-full ${heatmapColor}`} />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Legend */}
+                      <div className="mt-5 pt-5 border-t border-zinc-100 flex items-center justify-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="text-[9px] font-bold text-[#321B13]/40 uppercase tracking-widest">Disponible</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-orange-400" />
+                          <span className="text-[9px] font-bold text-[#321B13]/40 uppercase tracking-widest">Limité</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 1 && selectedDay && (
+                  <div className="space-y-6">
+                    <div className="text-center mb-8">
+                      <h3 className="text-lg sm:text-xl font-black text-[#321B13] uppercase tracking-tighter">Choisissez votre heure</h3>
+                      <p className="text-xs text-[#BC9C6C] mt-2 font-black uppercase tracking-widest">
+                        {formatDate(selectedDay.date)}
                       </p>
                     </div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          ) : null}
-        </div>
 
-        <AnimatePresence>
-          {selected && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="px-8 py-6 border-t border-zinc-100 bg-white shrink-0"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-[9px] font-black text-[#BC9C6C] uppercase tracking-[0.3em] mb-1">
-                    Créneau sélectionné
-                  </p>
-                  <p className="text-lg font-black text-[#321B13] tracking-tight">
-                    {selected.dayName} {formatDate(selected.date)} à {selected.time}
-                  </p>
-                </div>
-                <button
-                  onClick={handleConfirm}
-                  className="shrink-0 bg-[#321B13] text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#BC9C6C] transition-all shadow-lg active:scale-95"
-                >
-                  Confirmer ce créneau →
-                </button>
-              </div>
-            </motion.div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                      {/* Matin */}
+                      <div>
+                        <p className="text-[10px] font-bold text-[#321B13]/40 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                          <Zap className="w-3 h-3 text-[#BC9C6C]" /> Matin
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {selectedDay.slots.filter(s => parseInt(s.time.split(':')[0]) < 13).map((slot) => {
+                            const slotHour = parseInt(slot.time.split(':')[0]);
+                            const endHour = slotHour + duration;
+                            const exceedsDayLimit = endHour > 18; // fermeture par défaut à 18h
+                            const isDisabled = !slot.available || exceedsDayLimit;
+                            return (
+                              <button
+                                key={slot.time}
+                                disabled={isDisabled}
+                                onClick={() => handleTimeClick(slot.time)}
+                                title={exceedsDayLimit ? `Ce créneau dépasse la fermeture (fin à ${endHour}h)` : undefined}
+                                className={`py-3.5 rounded-2xl text-[11px] font-black transition-all border relative overflow-hidden group ${
+                                  isDisabled 
+                                    ? "bg-zinc-50 border-zinc-100 text-zinc-300 cursor-not-allowed"
+                                    : "bg-white border-zinc-200 text-[#321B13] hover:border-[#BC9C6C] hover:bg-[#BC9C6C] hover:text-white"
+                                }`}
+                              >
+                                <span>{slot.time}</span>
+                                {exceedsDayLimit && !slot.available && (
+                                  <span className="block text-[8px] text-zinc-400 font-bold">fin à {endHour}h</span>
+                                )}
+                                {!isDisabled && (
+                                  <div className="absolute inset-y-0 right-3 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <CheckCircle2 className="w-4 h-4 text-white" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Après-midi */}
+                      <div>
+                        <p className="text-[10px] font-bold text-[#321B13]/40 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                          <Star className="w-3 h-3 text-[#BC9C6C]" /> Après-midi
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {selectedDay.slots.filter(s => parseInt(s.time.split(':')[0]) >= 13).map((slot) => {
+                            const slotHour = parseInt(slot.time.split(':')[0]);
+                            const endHour = slotHour + duration;
+                            const exceedsDayLimit = endHour > 18;
+                            const isDisabled = !slot.available || exceedsDayLimit;
+                            return (
+                              <button
+                                key={slot.time}
+                                disabled={isDisabled}
+                                onClick={() => handleTimeClick(slot.time)}
+                                title={exceedsDayLimit ? `Ce créneau dépasse la fermeture (fin à ${endHour}h)` : undefined}
+                                className={`py-3.5 rounded-2xl text-[11px] font-black transition-all border relative overflow-hidden group ${
+                                  isDisabled 
+                                    ? "bg-zinc-50 border-zinc-100 text-zinc-300 cursor-not-allowed"
+                                    : "bg-white border-zinc-200 text-[#321B13] hover:border-[#BC9C6C] hover:bg-[#BC9C6C] hover:text-white"
+                                }`}
+                              >
+                                <span>{slot.time}</span>
+                                {exceedsDayLimit && (
+                                  <span className="block text-[8px] text-zinc-400 font-bold">fin à {endHour}h</span>
+                                )}
+                                {!isDisabled && (
+                                  <div className="absolute inset-y-0 right-3 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <CheckCircle2 className="w-4 h-4 text-white" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           )}
-        </AnimatePresence>
+        </div>
       </motion.div>
     </div>
   );

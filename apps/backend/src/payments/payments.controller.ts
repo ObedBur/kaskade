@@ -140,6 +140,13 @@ export class PaymentsController {
     );
   }
 
+  @Get('my-history')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CLIENT)
+  async getPaymentHistory(@CurrentUser('id') clientId: string) {
+    return this.paymentsService.getPaymentHistory(clientId);
+  }
+
   @Get('status/:paymentId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CLIENT)

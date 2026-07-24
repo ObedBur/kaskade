@@ -293,14 +293,14 @@ export default function ServiceCardBento({ service }: { service: Service }) {
             onClose={() => setShowPooledCalendar(false)}
             onConfirm={(slot) => {
               setShowPooledCalendar(false);
-              // Plan minimal avec la date et l'heure choisies
+              // Plan avec la date, l'heure et la durée choisies dans PooledCalendar
               const plan: SchedulePlan = {
                 frequency: "ONCE",
                 day: slot.dayName,
                 time: slot.time,
-                duration: 2,
+                duration: slot.duration ?? 2,
                 startDate: slot.date,
-                dateLabel: `${slot.dayName} à ${slot.time}`,
+                dateLabel: `${slot.dayName} à ${slot.time} (${slot.duration ?? 2}h)`,
               };
               setSchedulePlan(plan);
               setShowAddressForm(true);
