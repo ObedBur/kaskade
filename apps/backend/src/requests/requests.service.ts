@@ -294,6 +294,10 @@ export class RequestsService {
         `Aucun prestataire lié à "${service.name}". Recherche par métier "${service.category}" ou "${service.name}"...`,
       );
 
+      const serviceNameNorm = service.name.toLowerCase().trim();
+      const serviceCategoryNorm = service.category.toLowerCase().trim();
+      const minMatchLen = Math.min(4, serviceNameNorm.length);
+
       const fallbackProviders = await this.prisma.user.findMany({
         where: {
           role: Role.PROVIDER,
@@ -301,13 +305,13 @@ export class RequestsService {
           OR: [
             {
               metier: {
-                contains: service.name.substring(0, 4),
+                contains: service.name.substring(0, minMatchLen),
                 mode: 'insensitive',
               },
             },
             {
               metier: {
-                contains: service.category.substring(0, 4),
+                contains: service.category.substring(0, Math.min(4, service.category.length)),
                 mode: 'insensitive',
               },
             },
@@ -322,11 +326,37 @@ export class RequestsService {
         },
       });
 
-      if (fallbackProviders.length > 0) {
-        this.logger.log(
-          `${fallbackProviders.length} prestataire(s) trouvé(s) par métier.`,
+      const extraProviders = (await this.prisma.user.findMany({
+        where: {
+          role: Role.PROVIDER,
+          isActive: true,
+          NOT: { id: { in: fallbackProviders.map((p) => p.id } },
+        },
+        select: {
+          id: true,
+          fullName: true,
+          isActive: true,
+          role: true,
+          metier: true,
+        },
+      })).filter((p) => {
+        if (!p.metier) return false;
+        const m = p.metier.toLowerCase().trim();
+        return (
+          m.includes(serviceNameNorm) ||
+          serviceNameNorm.includes(m) ||
+          m.includes(serviceCategoryNorm) ||
+          serviceCategoryNorm.includes(m)
         );
-        activeProviders = fallbackProviders;
+      }));
+
+      const allFallback = [...fallbackProviders, ...extraProviders];
+
+      if (allFallback.length > 0) {
+        this.logger.log(
+          `${allFallback.length} prestataire(s) trouvé(s) par métier (fallback + matching bidirectionnel).`,
+        );
+        activeProviders = allFallback;
       }
     }
 

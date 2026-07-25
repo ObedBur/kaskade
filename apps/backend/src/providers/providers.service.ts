@@ -157,6 +157,8 @@ export class ProvidersService {
       where: { id: application.userId },
       data: { 
         role: Role.PROVIDER,
+        isActive: true,
+        status: Status.DISPONIBLE,
         services: {
           connect: { id: serviceId }
         }
