@@ -330,7 +330,7 @@ export class RequestsService {
         where: {
           role: Role.PROVIDER,
           isActive: true,
-          NOT: { id: { in: fallbackProviders.map((p) => p.id } },
+          NOT: { id: { in: fallbackProviders.map((p) => p.id) } },
         },
         select: {
           id: true,
@@ -348,7 +348,7 @@ export class RequestsService {
           m.includes(serviceCategoryNorm) ||
           serviceCategoryNorm.includes(m)
         );
-      }));
+      });
 
       const allFallback = [...fallbackProviders, ...extraProviders];
 
