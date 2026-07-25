@@ -357,6 +357,25 @@ export class RequestsService {
           `${allFallback.length} prestataire(s) trouvé(s) par métier (fallback + matching bidirectionnel).`,
         );
         activeProviders = allFallback;
+
+        // ⚡️ Auto-linking : lie automatiquement les PROVIDER trouvés au service
+        // Corrige les anciennes approbations qui n'ont pas set la relation `services`
+        try {
+          const idsToLink = allFallback.map((p) => p.id);
+          await this.prisma.service.update({
+            where: { id: serviceId },
+            data: {
+              providers: { connect: idsToLink.map((id) => ({ id })) },
+            },
+          });
+          this.logger.log(
+            `🔗 Auto-linking : ${idsToLink.length} prestataire(s) lié(s) au service "${service.name}".`,
+          );
+        } catch (linkErr: any) {
+          this.logger.warn(
+            `Auto-linking impossible (probablement déjà liés): ${linkErr.message}`,
+          );
+        }
       }
     }
 

@@ -224,16 +224,39 @@ export class NotificationsListener {
 
       if (providersToNotify.length === 0) {
         this.logger.log(`Aucun prestataire lié au service ${service.name}. Recherche par métier (fallback)...`);
-        providersToNotify = await this.prisma.user.findMany({
+        const serviceNameNorm = service.name.toLowerCase().trim();
+        const serviceCategoryNorm = service.category.toLowerCase().trim();
+        const minMatchLen = Math.min(4, service.name.length);
+
+        const firstPass = await this.prisma.user.findMany({
           where: {
             role: 'PROVIDER',
             isActive: true,
             OR: [
-              { metier: { contains: service.name.substring(0, 4), mode: 'insensitive' } },
-              { metier: { contains: service.category.substring(0, 4), mode: 'insensitive' } },
+              { metier: { contains: service.name.substring(0, minMatchLen), mode: 'insensitive' } },
+              { metier: { contains: service.category.substring(0, Math.min(4, service.category.length)), mode: 'insensitive' } },
             ],
           },
         });
+
+        const secondPass = (await this.prisma.user.findMany({
+          where: {
+            role: 'PROVIDER',
+            isActive: true,
+            NOT: { id: { in: firstPass.map((p) => p.id) } },
+          },
+        })).filter((p) => {
+          if (!p.metier) return false;
+          const m = p.metier.toLowerCase().trim();
+          return (
+            m.includes(serviceNameNorm) ||
+            serviceNameNorm.includes(m) ||
+            m.includes(serviceCategoryNorm) ||
+            serviceCategoryNorm.includes(m)
+          );
+        });
+
+        providersToNotify = [...firstPass, ...secondPass];
       }
 
       const notifications = providersToNotify.map((provider) => ({
@@ -360,16 +383,39 @@ export class NotificationsListener {
 
         if (providersToNotify.length === 0) {
           this.logger.log(`Paiement reçu pour ${service.name}. Recherche de prestataires par métier (fallback)...`);
-          providersToNotify = await this.prisma.user.findMany({
+          const serviceNameNorm = service.name.toLowerCase().trim();
+          const serviceCategoryNorm = service.category.toLowerCase().trim();
+          const minMatchLen = Math.min(4, service.name.length);
+
+          const firstPass = await this.prisma.user.findMany({
             where: {
               role: 'PROVIDER',
               isActive: true,
               OR: [
-                { metier: { contains: service.name.substring(0, 4), mode: 'insensitive' } },
-                { metier: { contains: service.category.substring(0, 4), mode: 'insensitive' } },
+                { metier: { contains: service.name.substring(0, minMatchLen), mode: 'insensitive' } },
+                { metier: { contains: service.category.substring(0, Math.min(4, service.category.length)), mode: 'insensitive' } },
               ],
             },
           });
+
+          const secondPass = (await this.prisma.user.findMany({
+            where: {
+              role: 'PROVIDER',
+              isActive: true,
+              NOT: { id: { in: firstPass.map((p) => p.id) } },
+            },
+          })).filter((p) => {
+            if (!p.metier) return false;
+            const m = p.metier.toLowerCase().trim();
+            return (
+              m.includes(serviceNameNorm) ||
+              serviceNameNorm.includes(m) ||
+              m.includes(serviceCategoryNorm) ||
+              serviceCategoryNorm.includes(m)
+            );
+          });
+
+          providersToNotify = [...firstPass, ...secondPass];
         }
 
         const notifications = providersToNotify.map((provider) => ({
