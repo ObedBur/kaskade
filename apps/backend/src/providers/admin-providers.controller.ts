@@ -62,6 +62,12 @@ export class AdminProvidersController {
     return this.providersService.assignServices(providerId, assignServicesDto);
   }
 
+  // Lister les services d'un prestataire (assignés + tous disponibles)
+  @Get(':providerId/services')
+  getProviderServices(@Param('providerId') providerId: string) {
+    return this.providersService.getProviderServices(providerId);
+  }
+
   // Retirer un service d'un prestataire
   @Delete(':providerId/services/:serviceId')
   removeService(

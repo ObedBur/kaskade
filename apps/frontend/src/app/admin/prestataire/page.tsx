@@ -22,6 +22,9 @@ import {
   ChevronRight,
   Trash2,
   Star,
+  Plus,
+  Briefcase as BriefcaseIcon,
+  Settings2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PrestatairesSkeleton } from "@/components/admin/Skeleton";
@@ -88,6 +91,22 @@ export default function AdminPrestatairePage() {
   const [deleteConfirmApp, setDeleteConfirmApp] = useState<Application | null>(null);
   const [validationApp, setValidationApp] = useState<Application | null>(null);
   const ITEMS_PER_PAGE = 10;
+
+  // ── Gestion des services assignés au provider ──
+  type ProviderService = {
+    id: string;
+    name: string;
+    category: string;
+    price?: number;
+    imageUrl?: string;
+    isActive?: boolean;
+  };
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [assignedServices, setAssignedServices] = useState<ProviderService[]>([]);
+  const [availableServices, setAvailableServices] = useState<ProviderService[]>([]);
+  const [showAssignService, setShowAssignService] = useState(false);
+  const [svcActionLoading, setSvcActionLoading] = useState<string | null>(null);
+  const [svcSearch, setSvcSearch] = useState("");
 
   const fetchApplications = async () => {
     try {
@@ -185,6 +204,60 @@ export default function AdminPrestatairePage() {
     approved: applications.filter((a) => a.status === "APPROVED").length,
     rejected: applications.filter((a) => a.status === "REJECTED").length,
   };
+
+  // ── Gestion des services d'un provider ──
+  const fetchProviderServices = async (providerId: string) => {
+    setServicesLoading(true);
+    try {
+      const res = await api.get(`/admin/providers/${providerId}/services`);
+      setAssignedServices(res.data.assignedServices || []);
+      setAvailableServices(res.data.availableServices || []);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Erreur lors du chargement des services.");
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  const assignService = async (providerId: string, serviceId: string) => {
+    setSvcActionLoading(`assign-${serviceId}`);
+    try {
+      await api.post(`/admin/providers/${providerId}/services`, { serviceIds: [serviceId] });
+      toast.success("Service ajouté au prestataire !");
+      await fetchProviderServices(providerId);
+      setShowAssignService(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Erreur lors de l'ajout.");
+    } finally {
+      setSvcActionLoading(null);
+    }
+  };
+
+  const removeService = async (providerId: string, serviceId: string) => {
+    setSvcActionLoading(`remove-${serviceId}`);
+    try {
+      await api.delete(`/admin/providers/${providerId}/services/${serviceId}`);
+      toast.success("Service retiré du prestataire.");
+      await fetchProviderServices(providerId);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Erreur lors du retrait.");
+    } finally {
+      setSvcActionLoading(null);
+    }
+  };
+
+  // Charge les services quand on ouvre un provider APPROUVED
+  useEffect(() => {
+    if (!selectedApp) {
+      setAssignedServices([]);
+      setAvailableServices([]);
+      setShowAssignService(false);
+      return;
+    }
+    if (selectedApp.status === "APPROVED" && selectedApp.user.role === "PROVIDER") {
+      fetchProviderServices(selectedApp.user.id);
+    }
+  }, [selectedApp?.id, selectedApp?.status]);
 
   // Close modal on Escape key
   useEffect(() => {
@@ -535,7 +608,7 @@ export default function AdminPrestatairePage() {
                 )}
 
                 {/* Motivation */}
-                <div className="bg-[#BC9C6C]/5 border border-[#BC9C6C]/15 rounded-2xl p-6">
+                <div className="bg-[#BC9C6C]/5 border border-[#BC9C6C]/15 rounded-2xl p-6 mb-6">
                   <div className="flex items-center gap-2 mb-4">
                     <FileText className="w-4 h-4 text-[#BC9C6C]" />
                     <span className="text-[10px] font-black text-[#BC9C6C] uppercase tracking-widest">
@@ -546,6 +619,160 @@ export default function AdminPrestatairePage() {
                     {selectedApp.motivation}
                   </p>
                 </div>
+
+                {/* ══════════════════════════════════════════════ */}
+                {/*  SERVICES ASSIGNÉS — Seulement si APPROUVÉ    */}
+                {/* ══════════════════════════════════════════════ */}
+                {selectedApp.status === "APPROVED" && selectedApp.user.role === "PROVIDER" && (
+                  <div className="border-t border-slate-100 pt-8">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-[#BC9C6C]/10">
+                          <Settings2 className="w-4 h-4 text-[#BC9C6C]" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-widest text-[#321B13]">
+                            Services & Métiers assignés
+                          </h4>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            {assignedServices.length} service(s) — Ce prestataire apparaîtra sur ces services
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowAssignService((v) => !v)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.18em] bg-[#321B13] text-white hover:bg-[#BC9C6C] hover:text-[#321B13] transition-all active:scale-[0.98] shadow-md"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Ajouter un métier
+                      </button>
+                    </div>
+
+                    {/* Ajout de service */}
+                    {showAssignService && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="mb-5"
+                      >
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+                          <div className="relative mb-4">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Rechercher un service à ajouter..."
+                              value={svcSearch}
+                              onChange={(e) => setSvcSearch(e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:ring-4 focus:ring-[#BC9C6C]/15"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
+                            {availableServices
+                              .filter((s) =>
+                                s.name.toLowerCase().includes(svcSearch.toLowerCase()) ||
+                                s.category.toLowerCase().includes(svcSearch.toLowerCase())
+                              )
+                              .map((svc) => (
+                                <div
+                                  key={svc.id}
+                                  className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 hover:border-[#BC9C6C]/40 hover:bg-[#BC9C6C]/5 transition-all"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-black text-[#321B13] truncate">{svc.name}</p>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">{svc.category}</p>
+                                  </div>
+                                  <button
+                                    onClick={() => assignService(selectedApp.user.id, svc.id)}
+                                    disabled={svcActionLoading === `assign-${svc.id}`}
+                                    className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all disabled:opacity-50 shrink-0"
+                                    title="Ajouter ce service"
+                                  >
+                                    {svcActionLoading === `assign-${svc.id}` ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Plus className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              ))}
+                            {availableServices.filter((s) =>
+                              s.name.toLowerCase().includes(svcSearch.toLowerCase()) ||
+                              s.category.toLowerCase().includes(svcSearch.toLowerCase())
+                            ).length === 0 && (
+                              <div className="col-span-full text-center py-8 text-xs text-slate-400 font-bold">
+                                Aucun service disponible — Tous les services sont déjà assignés à ce prestataire.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Liste des services assignés */}
+                    {servicesLoading ? (
+                      <div className="flex flex-col items-center justify-center py-10">
+                        <Loader2 className="w-8 h-8 text-[#BC9C6C] animate-spin mb-3" />
+                        <p className="text-xs font-bold text-slate-400">Chargement des services...</p>
+                      </div>
+                    ) : assignedServices.length === 0 ? (
+                      <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl p-8 text-center">
+                        <BriefcaseIcon className="w-10 h-10 text-amber-400 mx-auto mb-3 opacity-60" />
+                        <p className="text-sm font-black text-[#321B13]/80 mb-1">Aucun service assigné</p>
+                        <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                          Ce prestataire n'apparaîtra pas dans les recherches de disponibilités.
+                          Ajoutez-lui au moins un métier ci-dessus 👆.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {assignedServices.map((svc) => (
+                          <div
+                            key={svc.id}
+                            className="group flex items-center gap-4 bg-white border border-slate-200 rounded-2xl p-4 hover:border-[#BC9C6C]/30 hover:shadow-sm transition-all"
+                          >
+                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center">
+                              {svc.imageUrl ? (
+                                <img
+                                  src={svc.imageUrl}
+                                  alt={svc.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <BriefcaseIcon className="w-6 h-6 text-slate-300" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-black text-[#321B13] truncate">{svc.name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="px-2 py-0.5 bg-slate-50 text-[9px] font-bold uppercase tracking-wider text-slate-500 rounded-lg">
+                                  {svc.category}
+                                </span>
+                                {svc.price != null && (
+                                  <span className="text-[10px] font-black text-[#BC9C6C]">
+                                    ${svc.price.toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => removeService(selectedApp.user.id, svc.id)}
+                              disabled={svcActionLoading === `remove-${svc.id}`}
+                              className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all shrink-0 disabled:opacity-50 group-hover:opacity-100"
+                              title="Retirer ce service"
+                            >
+                              {svcActionLoading === `remove-${svc.id}` ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <X className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Footer Actions — Fixed at bottom */}

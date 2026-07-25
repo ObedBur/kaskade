@@ -378,6 +378,41 @@ export class ProvidersService {
     return this.withServicesImageUrls(updatedUser);
   }
 
+  async getProviderServices(providerId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: providerId },
+      include: { services: true },
+    });
+
+    if (!user || user.role !== Role.PROVIDER) {
+      throw new BadRequestException(
+        "Cet utilisateur n'existe pas ou n'a pas le statut de PROVIDER.",
+      );
+    }
+
+    const allServices = await this.prisma.service.findMany({
+      where: { isActive: true },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+
+    const assignedIds = new Set(user.services.map((s: any) => s.id));
+
+    return {
+      provider: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        metier: user.metier,
+      },
+      assignedServices: user.services.map((s: any) =>
+        this.withImageUrl(s),
+      ),
+      availableServices: allServices
+        .filter((s: any) => !assignedIds.has(s.id))
+        .map((s: any) => this.withImageUrl(s)),
+    };
+  }
+
   async findAvailableRequests(providerId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: providerId },
