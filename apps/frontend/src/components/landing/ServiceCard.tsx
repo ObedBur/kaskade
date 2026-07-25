@@ -20,8 +20,13 @@ const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
 
 const getServiceImageUrl = (service: Service) => {
-  const imageUrl = service.imageUrl || (service.imageKey?.startsWith("http") ? service.imageKey : `/uploads/services/${service.imageKey}`) || FALLBACK_IMAGE;
-  return imageUrl;
+  if (service.imageUrl && service.imageUrl.trim() && service.imageUrl !== "null") {
+    return service.imageUrl;
+  }
+  if (service.imageKey && service.imageKey.trim() && service.imageKey !== "null") {
+    return service.imageKey.startsWith("http") ? service.imageKey : `/uploads/services/${service.imageKey}`;
+  }
+  return FALLBACK_IMAGE;
 };
 
 // Types partagés

@@ -22,12 +22,32 @@ async function bootstrap() {
   }));
 
   const frontendUrlStr = process.env.FRONTEND_URL;
-  const allowedOrigins = frontendUrlStr 
-    ? frontendUrlStr.split(',').map(url => url.trim().replace(/\/$/, '')) 
-    : 'http://localhost:3000';
+  const baseOrigins = frontendUrlStr
+    ? frontendUrlStr.split(',').map(url => url.trim().replace(/\/$/, ''))
+    : [];
+
+  const allowedOriginsCallback = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+    const isAllowed = baseOrigins.some(o => origin.startsWith(o)) ||
+      origin.includes('vercel.app') ||
+      origin.includes('kaskade') ||
+      origin.startsWith('http://localhost') ||
+      origin.startsWith('http://127.0.0.1') ||
+      origin.startsWith('capacitor://') ||
+      origin.startsWith('ionic://');
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      Logger.warn(`Origine CORS refusée: ${origin}`, 'CORS');
+      callback(new Error('Not allowed by CORS'));
+    }
+  };
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: allowedOriginsCallback,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
     credentials: true,
     optionsSuccessStatus: 200,

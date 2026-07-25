@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, Calendar, Clock, CheckCircle2, X, Loader2, Users, AlertCircle, Zap, Star, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { ChevronLeft, Calendar, Clock, CheckCircle2, X, Loader2, Users, AlertCircle, Zap, Star, ArrowLeft, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/api";
 
@@ -72,6 +72,7 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
   const [data, setData] = useState<PooledCalendarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   
   const [step, setStep] = useState(0); // 0: Date & Duration, 1: Time
   const [direction, setDirection] = useState(1);
@@ -80,18 +81,75 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
   const [selectedDay, setSelectedDay] = useState<Day | null>(null);
   const [duration, setDuration] = useState(2);
 
-  useEffect(() => {
-    const fetchAvailability = async () => {
-      try {
-        const res = await api.get(`/requests/availability/pooled/${serviceId}`);
-        setData(res.data);
-      } catch (err: any) {
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startProgressBar = () => {
+    setLoadingProgress(0);
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    // On simule une progression jusqu'à ~80% pendant le cold start (90s max)
+    const startTime = Date.now();
+    const maxMs = 90_000;
+    progressTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(80, (elapsed / maxMs) * 85);
+      setLoadingProgress(Math.round(pct));
+    }, 500);
+  };
+
+  const stopProgressBar = () => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setLoadingProgress(100);
+  };
+
+  const fetchAvailability = async () => {
+    setLoading(true);
+    setError(null);
+    setData(null);
+    startProgressBar();
+
+    const timeoutMs = 90_000; // 90s pour le cold start Render Free (50s+ annoncé)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await api.get(`/requests/availability/pooled/${serviceId}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      setData(res.data);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+
+      const isTimeout = err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED' || (err as any)?.message?.includes('timeout') || (err as any)?.message?.includes('aborted');
+      const isCorsOrNetwork = !err?.response && (
+        (err as any)?.message?.includes('CORS') ||
+        (err as any)?.message?.includes('Network') ||
+        (err as any)?.code === 'ERR_NETWORK'
+      );
+
+      if (isTimeout) {
+        setError(
+          "Le serveur est en cours de réveil (Cold Start Render Free - jusqu'à 50s). Veuillez réessayer dans quelques instants."
+        );
+      } else if (isCorsOrNetwork) {
+        setError(
+          "Problème de connexion au serveur. Vérifiez votre connexion ou que le backend est démarré."
+        );
+      } else {
         setError(err.response?.data?.message || "Impossible de charger les disponibilités.");
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      stopProgressBar();
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAvailability();
+    return () => stopProgressBar();
   }, [serviceId]);
 
   // Flatten weeks into a single array of days
@@ -229,7 +287,13 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
             <motion.div
               className="h-full bg-[#BC9C6C] rounded-full"
               initial={{ width: 0 }}
-              animate={{ width: step === 0 ? '50%' : '100%' }}
+              animate={{
+                width: loading
+                  ? `${loadingProgress}%`
+                  : step === 0
+                    ? '50%'
+                    : '100%',
+              }}
               transition={{ duration: 0.3 }}
             />
           </div>
@@ -238,14 +302,44 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
         {/* ─── Body ─── */}
         <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar relative bg-white">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <Loader2 className="w-10 h-10 text-[#BC9C6C] animate-spin" />
-              <p className="text-sm text-[#321B13]/40 font-medium">Recherche des prestataires...</p>
+            <div className="flex flex-col items-center justify-center py-24 gap-5 px-8">
+              <div className="relative">
+                <Loader2 className="w-12 h-12 text-[#BC9C6C] animate-spin" />
+                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-[#BC9C6C]/70">
+                  {loadingProgress}%
+                </span>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-[#321B13]/60 font-bold">Recherche des prestataires...</p>
+                {loadingProgress > 25 && loadingProgress < 85 && (
+                  <p className="text-xs text-[#321B13]/40 font-medium max-w-xs leading-relaxed">
+                    Le serveur se réveille (Cold Start Render Free). Cela peut prendre 30 à 60 secondes à la première requête.
+                  </p>
+                )}
+              </div>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-4 px-8">
-              <AlertCircle className="w-12 h-12 text-red-300" />
-              <p className="text-sm text-red-400 font-bold text-center">{error}</p>
+            <div className="flex flex-col items-center justify-center py-24 gap-6 px-8">
+              <AlertCircle className="w-14 h-14 text-red-300" />
+              <div className="text-center space-y-2 max-w-sm">
+                <p className="text-[11px] font-black text-[#321B13]/80 uppercase tracking-wider">Oups !</p>
+                <p className="text-sm text-red-500 font-bold leading-relaxed">{error}</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  onClick={fetchAvailability}
+                  className="flex items-center gap-2 bg-[#321B13] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#BC9C6C] hover:text-[#321B13] transition-all active:scale-95 shadow-lg"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Réessayer
+                </button>
+                <button
+                  onClick={onClose}
+                  className="flex items-center justify-center gap-2 border-2 border-zinc-200 text-[#321B13]/60 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:border-zinc-300 hover:text-[#321B13] transition-all active:scale-95"
+                >
+                  Fermer
+                </button>
+              </div>
             </div>
           ) : data && data.totalProviders === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 gap-6 px-12 text-center">
