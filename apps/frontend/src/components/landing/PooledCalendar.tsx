@@ -355,6 +355,51 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                 </p>
               </div>
             </div>
+          ) : data && (!data.weeks || data.weeks.length === 0) ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-6 px-12 text-center">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-10 h-10 text-red-400 opacity-70" />
+              </div>
+              <div className="space-y-2 max-w-sm">
+                <p className="text-lg font-black text-[#321B13] uppercase tracking-tight mb-2">
+                  Données calendrier vides
+                </p>
+                <p className="text-xs text-[#321B13]/50 font-bold">
+                  <span className="block font-black text-[#BC9C6C]">DEBUG :</span> Le serveur renvoie 0 semaine. Provider count: {data?.totalProviders}. Cliquez sur Réessayer.
+                </p>
+                <p className="text-[11px] text-[#321B13]/40">
+                  Cela vient d'un Cold Start interrompu. Réessayez (1 à 2 fois)
+                </p>
+              </div>
+              <button
+                onClick={fetchAvailability}
+                className="flex items-center gap-2 bg-[#321B13] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#BC9C6C] hover:text-[#321B13] transition-all active:scale-95 shadow-lg"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Réessayer maintenant
+              </button>
+            </div>
+          ) : data && months.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-6 px-12 text-center">
+              <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center">
+                <Calendar className="w-10 h-10 text-rose-400 opacity-70" />
+              </div>
+              <div className="space-y-2 max-w-sm">
+                <p className="text-lg font-black text-[#321B13] uppercase tracking-tight mb-2">
+                  Aucun mois à afficher
+                </p>
+                <p className="text-xs text-[#321B13]/50 font-medium">
+                  {data?.weeks?.length ?? 0} semaine(s) reçue(s) mais impossible de grouper par mois. Réessayez.
+                </p>
+              </div>
+              <button
+                onClick={fetchAvailability}
+                className="flex items-center gap-2 bg-[#321B13] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-[#BC9C6C] hover:text-[#321B13] transition-all active:scale-95 shadow-lg"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Réessayer
+              </button>
+            </div>
           ) : (
             <AnimatePresence initial={false} custom={direction} mode="wait">
               <motion.div
@@ -365,7 +410,7 @@ export default function PooledCalendar({ serviceId, onClose, onConfirm }: Pooled
                 animate="center"
                 exit="exit"
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="absolute inset-0 px-6 py-6 sm:px-10 sm:py-8 overflow-y-auto custom-scrollbar"
+                className="relative w-full min-h-full shrink-0 px-6 py-6 sm:px-10 sm:py-8 overflow-y-auto custom-scrollbar"
               >
                 {step === 0 && (
                   <div className="space-y-8">

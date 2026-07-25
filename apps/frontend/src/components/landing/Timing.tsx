@@ -4,7 +4,7 @@ import { useState, ReactNode, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     X, Calendar, Clock, Check, ArrowRight, ArrowLeft,
-    Zap, Star, MapPin
+    Zap, Star, MapPin, Loader2, AlertCircle, RefreshCw
 } from "lucide-react";
 import { Service } from "./ServiceExplorer";
 import api from "@/lib/api";
@@ -68,24 +68,68 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
     
     const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
     const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const [timingError, setTimingError] = useState<string | null>(null);
+    const [fetchCounter, setFetchCounter] = useState(0);
+
+    const retryTiming = () => {
+        if (!service?.id) return;
+        setTimingError(null);
+        setOccupiedSlots([]);
+        setLoadingProgress(0);
+        setIsLoadingAvailability(true);
+        setFetchCounter(c => c + 1);
+    };
 
     useEffect(() => {
         const fetchAvailability = async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+            const progressTimer = setInterval(() => {
+                setLoadingProgress((p) => Math.min(p + 1, 80));
+            }, 900);
+
             try {
-                setIsLoadingAvailability(true);
-                const response = await api.get(`/requests/availability/${service.id}`);
+                setTimingError(null);
+                const response = await api.get(`/requests/availability/${service.id}`, {
+                    signal: controller.signal,
+                });
                 setOccupiedSlots(Array.isArray(response.data) ? response.data : []);
-            } catch (err) {
+                setLoadingProgress(100);
+            } catch (err: any) {
                 console.error("Erreur chargement disponibilités:", err);
+                if (err?.name === 'AbortError' || err?.code === 'ERR_CANCELED') {
+                    setTimingError(
+                        "Temps d'attente dépassé. Le serveur est peut-être en cours de réveil (Cold Start Render Free - jusqu'à 50s). Veuillez réessayer."
+                    );
+                } else if (
+                    typeof window !== 'undefined' &&
+                    !navigator.onLine
+                ) {
+                    setTimingError("Aucune connexion internet. Vérifiez votre réseau.");
+                } else if (
+                    err?.message?.toLowerCase().includes('cors') ||
+                    err?.message?.toLowerCase().includes('network') ||
+                    !err?.response
+                ) {
+                    setTimingError("Problème de connexion au serveur. CORS ou réseau instable. Veuillez réessayer.");
+                } else {
+                    setTimingError(err?.response?.data?.message || "Erreur serveur. Veuillez réessayer.");
+                }
+                setOccupiedSlots([]);
             } finally {
+                clearTimeout(timeoutId);
+                clearInterval(progressTimer);
                 setIsLoadingAvailability(false);
+                setLoadingProgress((p) => (p < 100 ? 100 : p));
             }
         };
 
         if (service?.id) {
             fetchAvailability();
         }
-    }, [service.id]);
+    }, [service.id, fetchCounter]);
 
     const isSlotOccupied = (day: number, month: number, year: number, time: string) => {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}-${time}`;
@@ -559,7 +603,13 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                         <motion.div
                             className="h-full bg-ocre rounded-full"
                             initial={{ width: 0 }}
-                            animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
+                            animate={{
+                                width: isLoadingAvailability
+                                    ? `${loadingProgress}%`
+                                    : timingError
+                                        ? '0%'
+                                        : `${((step + 1) / steps.length) * 100}%`
+                            }}
                             transition={{ duration: 0.3 }}
                         />
                     </div>
@@ -567,6 +617,68 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
 
                 {/* ─── Body ─── */}
                 <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar relative bg-white">
+                    {isLoadingAvailability ? (
+                        <div className="flex flex-col items-center justify-center py-24 gap-5 px-8">
+                            <div className="relative">
+                                <Loader2 className="w-12 h-12 text-ocre animate-spin" />
+                                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-ocre/70">
+                                    {loadingProgress}%
+                                </span>
+                            </div>
+                            <div className="text-center space-y-2">
+                                <p className="text-sm text-chocolat/60 font-bold">Chargement du planning...</p>
+                                {loadingProgress > 25 && loadingProgress < 85 && (
+                                    <p className="text-xs text-chocolat/40 font-medium max-w-xs leading-relaxed">
+                                        Le serveur se réveille (Cold Start Render Free). Cela peut prendre 30 à 60 secondes à la première requête.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    ) : timingError ? (
+                        <div className="flex flex-col items-center justify-center py-24 gap-6 px-8">
+                            <AlertCircle className="w-14 h-14 text-red-300" />
+                            <div className="text-center space-y-2 max-w-sm">
+                                <p className="text-[11px] font-black text-chocolat/80 uppercase tracking-wider">Oups !</p>
+                                <p className="text-sm text-red-500 font-bold leading-relaxed">{timingError}</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                <button
+                                    onClick={retryTiming}
+                                    className="flex items-center gap-2 bg-chocolat text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all active:scale-95 shadow-lg"
+                                >
+                                    <RefreshCw className="w-4 h-4" />
+                                    Réessayer
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="flex items-center justify-center gap-2 border-2 border-zinc-200 text-chocolat/60 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:border-zinc-300 hover:text-chocolat transition-all active:scale-95"
+                                >
+                                    Fermer
+                                </button>
+                            </div>
+                        </div>
+                    ) : months.length === 0 || daysInMonth.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-24 gap-6 px-12 text-center">
+                            <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center">
+                                <Calendar className="w-10 h-10 text-amber-400 opacity-70" />
+                            </div>
+                            <div className="space-y-2 max-w-sm">
+                                <p className="text-lg font-black text-chocolat uppercase tracking-tight mb-2">
+                                    Aucun créneau disponible
+                                </p>
+                                <p className="text-sm text-chocolat/40 font-medium leading-relaxed">
+                                    Impossible de générer le planning des 4 prochains mois. Réessayez.
+                                </p>
+                            </div>
+                            <button
+                                onClick={retryTiming}
+                                className="flex items-center gap-2 bg-chocolat text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-ocre hover:text-chocolat transition-all active:scale-95 shadow-lg"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Réessayer
+                            </button>
+                        </div>
+                    ) : (
                     <AnimatePresence initial={false} custom={direction} mode="wait">
                         <motion.div
                             key={step}
@@ -579,11 +691,12 @@ export default function Timing({ service, onClose, onConfirm }: TimingProps) {
                                 x: { type: "spring", stiffness: 300, damping: 30 },
                                 opacity: { duration: 0.2 }
                             }}
-                            className="absolute inset-0 px-6 py-6 sm:px-10 sm:py-8 overflow-y-auto custom-scrollbar"
+                            className="relative w-full min-h-full shrink-0 px-6 py-6 sm:px-10 sm:py-8 overflow-y-auto custom-scrollbar"
                         >
                             {renderStepContent()}
                         </motion.div>
                     </AnimatePresence>
+                    )}
                 </div>
             </motion.div>
         </div>
