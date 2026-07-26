@@ -312,7 +312,7 @@ export default function MobileMoneyPaymentModal({
                 </span>
               )}
             </div>
-            <p className="mt-1 text-4xl font-black">{formattedAmount}</p>
+            <p className="mt-1 text-4xl font-black text-white">{formattedAmount}</p>
           </div>
 
           {phase === "SUCCESS" ? (
