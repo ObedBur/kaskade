@@ -1,6 +1,10 @@
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
 
 import SettingsNav from "@/components/settings/shared/SettingsNav";
+import { usePathname, useRouter } from "next/navigation";
+import { Sun, Globe, ChevronDown, UserRound, ArrowLeft } from "lucide-react";
 
 const settingsShellVars = {
   "--off-white": "#FCFBF7",
@@ -20,22 +24,50 @@ interface ParametresLayoutProps {
   children: ReactNode;
 }
 
-import { Sun, Globe, ChevronDown, UserRound } from "lucide-react";
+// Mapping des chemins vers des titres lisibles
+const pageTitles: { [key: string]: string } = {
+  "/parametres": "Paramètres",
+  "/parametres/profil": "Mon Profil",
+  "/parametres/securite": "Sécurité",
+  "/parametres/notifications": "Notifications",
+  "/parametres/preferences": "Langue & Devise",
+  "/parametres/paiement": "Moyens de paiement",
+  "/parametres/confidentialite": "Confidentialité",
+  "/parametres/aide": "Aide",
+  "/parametres/a-propos": "À propos",
+};
 
 export default function ParametresLayout({ children }: ParametresLayoutProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const isRootSettingsPage = pathname === "/parametres";
+
+  // Déterminer le titre de la page courante
+  const currentPageTitle = pageTitles[pathname] || "Paramètres";
+
   return (
     <div
       style={settingsShellVars}
       className="flex h-screen flex-col overflow-hidden bg-white text-[var(--chocolat)]"
     >
       {/* Top Header */}
-      <header className="flex h-[88px] shrink-0 items-center justify-between border-b border-[color:var(--settings-border-strong)] px-8 lg:px-12">
+      <header className="flex h-[88px] shrink-0 items-center justify-between border-b border-[color:var(--settings-border-strong)] px-4 lg:px-12">
         <div className="flex items-center gap-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--settings-ocre-soft)] text-xs font-bold text-[var(--ocre)] tracking-widest">
+          {!isRootSettingsPage && (
+            <button
+              onClick={() => router.back()}
+              className="md:hidden text-[var(--chocolat-muted)] hover:text-[var(--chocolat)] transition-colors"
+              aria-label="Retour"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+          )}
+          <div className="hidden md:flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--settings-ocre-soft)] text-xs font-bold text-[var(--ocre)] tracking-widest">
             LOGO
           </div>
           <h1 className="text-xl font-bold uppercase tracking-widest text-[var(--chocolat)]">
-            Paramètres
+            {currentPageTitle}
           </h1>
         </div>
 

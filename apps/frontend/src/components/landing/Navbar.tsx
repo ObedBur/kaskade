@@ -53,103 +53,98 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 md:gap-6">
-          {!isMobileMenuOpen && (
-            <>
-              <Link href="/notifications" className="relative p-2 text-white/60 hover:text-ocre transition-colors">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-ocre border-2 border-chocolat rounded-full"></span>
-              </Link>
+          <div className="flex items-center gap-3 md:gap-6">
+            <Link href="/notifications" className="relative p-2 text-white/60 hover:text-ocre transition-colors">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-ocre border-2 border-chocolat rounded-full"></span>
+            </Link>
 
-              {isAuthenticated && user ? (
-                <div className="hidden md:flex items-center gap-4">
-                  {user.role === 'PROVIDER' && (
-                    <button
-                      onClick={() => switchMode('PROVIDER')}
-                      className="bg-transparent border border-white/10 hover:border-ocre/30 text-ocre px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-all"
-                    >
-                      Mode Prestataire
-                    </button>
+            {/* Desktop Only: Auth/Profile/Connect */} 
+            {isAuthenticated && user ? (
+              <div className="hidden lg:flex items-center gap-4"> {/* Changed from md:flex to lg:flex */} 
+                {user.role === 'PROVIDER' && (
+                  <button
+                    onClick={() => switchMode('PROVIDER')}
+                    className="bg-transparent border border-white/10 hover:border-ocre/30 text-ocre px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-all"
+                  >
+                    Mode Prestataire
+                  </button>
+                )}
+
+                {user.role === 'CLIENT' && (
+                  <Link
+                    href="/devenir-prestataire"
+                    className="bg-transparent border border-white/10 hover:border-ocre/30 text-ocre px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-all"
+                  >
+                    Devenir Prestataire
+                  </Link>
+                )}
+
+                <div className="relative">
+                  <button 
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className="flex items-center gap-3 cursor-pointer group"
+                  >
+                    <div className="flex flex-col items-end hidden lg:flex">
+                      <span className="text-[10px] font-black tracking-widest uppercase text-white">{user.fullName}</span>
+                      <span className="text-[8px] text-white/50 tracking-[0.2em] font-bold">{user.role}</span>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden outline outline-2 outline-transparent group-hover:outline-ocre/50 transition-all">
+                      {user.avatarUrl ? (
+                        <img src={getMediaUrl(user.avatarUrl)} alt={user.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        user.fullName.charAt(0)
+                      )}
+                    </div>
+                    <ChevronDown className={`hidden lg:block h-3 w-3 text-white/40 group-hover:text-ocre transition-all ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {isProfileMenuOpen && (
+                    <div className="absolute right-0 mt-4 w-48 bg-chocolat border border-white/10 rounded-md shadow-xl py-1 flex flex-col overflow-hidden">
+                      <Link 
+                        href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} 
+                        className="px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        Tableau de bord
+                      </Link>
+                      <Link
+                        href="/parametres"
+                        className="px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
+                        Paramètres
+                      </Link>
+                      <hr className="border-white/5 my-1" />
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsProfileMenuOpen(false);
+                        }}
+                        className="px-4 py-3 text-xs text-left text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors font-bold uppercase tracking-widest"
+                      >
+                        Se déconnecter
+                      </button>
+                    </div>
                   )}
-
-                  {user.role === 'CLIENT' && (
-                    <Link
-                      href="/devenir-prestataire"
-                      className="bg-transparent border border-white/10 hover:border-ocre/30 text-ocre px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest transition-all"
-                    >
-                      Devenir Prestataire
-                    </Link>
-                  )}
-
-                  <div className="relative">
-                    <button 
-                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                      className="flex items-center gap-3 cursor-pointer group"
-                    >
-                      <div className="flex flex-col items-end hidden lg:flex">
-                        <span className="text-[10px] font-black tracking-widest uppercase text-white">{user.fullName}</span>
-                        <span className="text-[8px] text-white/50 tracking-[0.2em] font-bold">{user.role}</span>
-                      </div>
-                      <div className="w-8 h-8 rounded-full bg-black/30 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden outline outline-2 outline-transparent group-hover:outline-ocre/50 transition-all">
-                        {user.avatarUrl ? (
-                          <img src={getMediaUrl(user.avatarUrl)} alt={user.fullName} className="w-full h-full object-cover" />
-                        ) : (
-                          user.fullName.charAt(0)
-                        )}
-                      </div>
-                      <ChevronDown className={`hidden lg:block h-3 w-3 text-white/40 group-hover:text-ocre transition-all ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {isProfileMenuOpen && (
-                      <div className="absolute right-0 mt-4 w-48 bg-chocolat border border-white/10 rounded-md shadow-xl py-1 flex flex-col overflow-hidden">
-                        <Link 
-                          href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} 
-                          className="px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                          onClick={() => setIsProfileMenuOpen(false)}
-                        >
-                          Tableau de bord
-                        </Link>
-                        <Link
-                          href="/parametres"
-                          className="px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                          onClick={() => setIsProfileMenuOpen(false)}
-                        >
-                          Paramètres
-                        </Link>
-                        <hr className="border-white/5 my-1" />
-                        <button
-                          onClick={() => {
-                            logout();
-                            setIsProfileMenuOpen(false);
-                          }}
-                          className="px-4 py-3 text-xs text-left text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors font-bold uppercase tracking-widest"
-                        >
-                          Se déconnecter
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
-              ) : (
-                <Link
-                  href="/login"
-                  className="hidden md:block bg-ocre hover:bg-white text-chocolat px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-widest transition-all"
-                >
-                  Se connecter
-                </Link>
-              )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden lg:block bg-ocre hover:bg-white text-chocolat px-4 py-1.5 rounded-md text-xs font-black uppercase tracking-widest transition-all"> {/* Changed from md:block to lg:block */} 
+                Se connecter
+              </Link>
+            )}
 
-            </>
-          )}
-
-          {/* Toggle Mobile */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 text-white hover:text-ocre"
-          >
-            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
+            {/* Toggle Mobile */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 text-white hover:text-ocre"
+            >
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
       </div>
 
       {/* --- SECONDARY NAV BAR --- */}
@@ -206,8 +201,29 @@ export default function Navbar() {
               )
             })}
 
-            {isAuthenticated && user && (
+            {isAuthenticated && user ? (
               <div className="w-full mt-4 pt-4 border-t border-white/5 px-4">
+                {user.role === 'PROVIDER' && (
+                  <button
+                    onClick={() => {
+                      switchMode('PROVIDER');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full py-3 bg-transparent border border-ocre/20 text-ocre text-center rounded-lg text-[11px] font-bold uppercase tracking-widest hover:bg-ocre hover:text-chocolat transition-all mb-2"
+                  >
+                    Mode Prestataire
+                  </button>
+                )}
+                {user.role === 'CLIENT' && (
+                  <Link
+                    href="/devenir-prestataire"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block w-full py-3 bg-transparent border border-ocre/20 text-ocre text-center rounded-lg text-[11px] font-bold uppercase tracking-widest hover:bg-ocre hover:text-chocolat transition-all mb-2"
+                  >
+                    Devenir Prestataire
+                  </Link>
+                )}
+                
                 <div className="w-full py-3 bg-black/20 rounded-xl flex items-center gap-3 border border-white/5 px-4">
                   <div className="w-9 h-9 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-black text-ocre text-sm overflow-hidden">
                     {user.avatarUrl ? (
@@ -221,11 +237,33 @@ export default function Navbar() {
                     <span className="text-[9px] text-white/40 uppercase tracking-[0.2em]">{user.role}</span>
                   </div>
                 </div>
+                <Link 
+                  href={user.role === 'ADMIN' ? '/admin/dashboard' : '/mes-demandes'} 
+                  className="block px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Tableau de bord
+                </Link>
+                <Link
+                  href="/parametres"
+                  className="block px-4 py-3 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Paramètres
+                </Link>
+                <hr className="border-white/5 my-1" />
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="px-4 py-3 text-xs text-left text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors font-bold uppercase tracking-widest"
+                >
+                  Se déconnecter
+                </button>
               </div>
-            )}
-
-            <div className="px-4 mt-2">
-              {!isAuthenticated ? (
+            ) : (
+              <div className="px-4 mt-2">
                 <Link
                   href="/login"
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -233,18 +271,8 @@ export default function Navbar() {
                 >
                   Se connecter
                 </Link>
-              ) : (
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full py-3 bg-transparent text-red-500/60 hover:text-red-400 hover:bg-red-500/5 text-center rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
-                >
-                  Se déconnecter
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </nav>
         </div>
       )}
