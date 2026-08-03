@@ -62,8 +62,9 @@ export class AuthController {
   async refreshTokens(
     @CurrentUser('sub') userId: string,
     @CurrentUser('refreshToken') refreshToken: string,
+    @CurrentUser('rememberMe') rememberMe: boolean,
   ) {
-    return this.authService.refreshTokens(userId, refreshToken);
+    return this.authService.refreshTokens(userId, refreshToken, rememberMe);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -84,7 +85,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 3, ttl: 900000 } })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    this.logger.log(`Demande de réinitialisation de mot de passe pour : ${forgotPasswordDto.email}`);
+    this.logger.log(
+      `Demande de réinitialisation de mot de passe pour : ${forgotPasswordDto.email}`,
+    );
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
@@ -93,7 +96,10 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 900000 } })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     this.logger.log(`Réinitialisation effective du mot de passe via token`);
-    return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

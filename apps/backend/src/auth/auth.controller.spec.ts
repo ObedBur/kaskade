@@ -32,9 +32,9 @@ describe('AuthController', () => {
         },
       ],
     })
-    .overrideGuard(ThrottlerGuard)
-    .useValue({ canActivate: () => true }) // Mock rate limiter since we just want unit tests
-    .compile();
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true }) // Mock rate limiter since we just want unit tests
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
     service = module.get<AuthService>(AuthService);
@@ -53,9 +53,13 @@ describe('AuthController', () => {
         password: 'Password123!',
         fullName: 'Test',
         phone: '123',
-        quartier: 'Qtr'
+        quartier: 'Qtr',
       };
-      const expectedResult = { message: 'Inscrit', userId: '1', email: dto.email };
+      const expectedResult = {
+        message: 'Inscrit',
+        userId: '1',
+        email: dto.email,
+      };
       mockAuthService.register.mockResolvedValue(expectedResult);
 
       const result = await controller.register(dto);
@@ -70,7 +74,10 @@ describe('AuthController', () => {
       mockAuthService.verifyOtp.mockResolvedValue({ message: 'Verified' });
 
       await controller.verifyOtp(dto);
-      expect(mockAuthService.verifyOtp).toHaveBeenCalledWith(dto.email, dto.otp);
+      expect(mockAuthService.verifyOtp).toHaveBeenCalledWith(
+        dto.email,
+        dto.otp,
+      );
     });
   });
 
@@ -86,7 +93,11 @@ describe('AuthController', () => {
     it('should call authService.login', async () => {
       const dto = { email: 'test@test.com', password: 'Password123!' };
       const tokens = { accessToken: 'a', refreshToken: 'r' };
-      mockAuthService.login.mockResolvedValue({ message: 'Success', tokens, user: {} });
+      mockAuthService.login.mockResolvedValue({
+        message: 'Success',
+        tokens,
+        user: {},
+      });
 
       const result = await controller.login(dto);
       expect(mockAuthService.login).toHaveBeenCalledWith(dto);
@@ -105,8 +116,12 @@ describe('AuthController', () => {
 
   describe('refreshTokens', () => {
     it('should call authService.refreshTokens', async () => {
-      await controller.refreshTokens('userId', 'refreshToken');
-      expect(mockAuthService.refreshTokens).toHaveBeenCalledWith('userId', 'refreshToken');
+      await controller.refreshTokens('userId', 'refreshToken', true);
+      expect(mockAuthService.refreshTokens).toHaveBeenCalledWith(
+        'userId',
+        'refreshToken',
+        true,
+      );
     });
   });
 
@@ -116,18 +131,26 @@ describe('AuthController', () => {
       expect(mockAuthService.getMe).toHaveBeenCalledWith('userId');
     });
   });
-  
+
   describe('forgotPassword', () => {
     it('should call authService.forgotPassword', async () => {
       await controller.forgotPassword({ email: 'test@test.com' });
-      expect(mockAuthService.forgotPassword).toHaveBeenCalledWith('test@test.com');
+      expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(
+        'test@test.com',
+      );
     });
   });
 
   describe('resetPassword', () => {
     it('should call authService.resetPassword', async () => {
-      await controller.resetPassword({ token: 'abc', newPassword: 'NewPassword123!' });
-      expect(mockAuthService.resetPassword).toHaveBeenCalledWith('abc', 'NewPassword123!');
+      await controller.resetPassword({
+        token: 'abc',
+        newPassword: 'NewPassword123!',
+      });
+      expect(mockAuthService.resetPassword).toHaveBeenCalledWith(
+        'abc',
+        'NewPassword123!',
+      );
     });
   });
 
@@ -141,23 +164,38 @@ describe('AuthController', () => {
 
   describe('Sécurité - Rate Limiting (Throttle)', () => {
     it('should have Throttle metadata on register route (max 5 req)', () => {
-      const allMetadataKeys = Reflect.getMetadataKeys(AuthController.prototype.register);
+      const allMetadataKeys = Reflect.getMetadataKeys(
+        AuthController.prototype.register,
+      );
       expect(allMetadataKeys).toContain('THROTTLER:LIMITdefault');
-      const limitMetadata = Reflect.getMetadata('THROTTLER:LIMITdefault', AuthController.prototype.register);
+      const limitMetadata = Reflect.getMetadata(
+        'THROTTLER:LIMITdefault',
+        AuthController.prototype.register,
+      );
       expect(limitMetadata).toBe(5);
     });
 
     it('should have Throttle metadata on login route (max 5 req)', () => {
-      const allMetadataKeys = Reflect.getMetadataKeys(AuthController.prototype.login);
+      const allMetadataKeys = Reflect.getMetadataKeys(
+        AuthController.prototype.login,
+      );
       expect(allMetadataKeys).toContain('THROTTLER:LIMITdefault');
-      const limitMetadata = Reflect.getMetadata('THROTTLER:LIMITdefault', AuthController.prototype.login);
+      const limitMetadata = Reflect.getMetadata(
+        'THROTTLER:LIMITdefault',
+        AuthController.prototype.login,
+      );
       expect(limitMetadata).toBe(5);
     });
 
     it('should have Throttle metadata on forgot-password route (max 3 req)', () => {
-      const allMetadataKeys = Reflect.getMetadataKeys(AuthController.prototype.forgotPassword);
+      const allMetadataKeys = Reflect.getMetadataKeys(
+        AuthController.prototype.forgotPassword,
+      );
       expect(allMetadataKeys).toContain('THROTTLER:LIMITdefault');
-      const limitMetadata = Reflect.getMetadata('THROTTLER:LIMITdefault', AuthController.prototype.forgotPassword);
+      const limitMetadata = Reflect.getMetadata(
+        'THROTTLER:LIMITdefault',
+        AuthController.prototype.forgotPassword,
+      );
       expect(limitMetadata).toBe(3);
     });
   });

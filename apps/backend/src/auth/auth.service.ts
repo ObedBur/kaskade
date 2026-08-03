@@ -33,22 +33,28 @@ export class AuthService {
 
   async register(createUserDto: CreateUserDto) {
     const user = await this.usersService.create(createUserDto);
-    
+
     // Génération OTP (6 chiffres)
     const otp = this.generateOtp();
-    
+
     // Stockage dans Redis (Expire après 10 min)
     await this.redisService.set(`otp:${user.email}`, otp, 600);
-    
+
     // Envoi de l'e-mail via Brevo
     try {
-      await this.mailService.sendVerificationEmail(user.email, user.fullName, otp, user.role);
+      await this.mailService.sendVerificationEmail(
+        user.email,
+        user.fullName,
+        otp,
+        user.role,
+      );
     } catch (error) {
       this.logger.error(`Échec de l'envoi de l'e-mail à ${user.email}`, error);
     }
 
     return {
-      message: 'Inscription réussie. Veuillez vérifier votre boîte e-mail pour activer votre compte.',
+      message:
+        'Inscription réussie. Veuillez vérifier votre boîte e-mail pour activer votre compte.',
       userId: user.id,
       email: user.email,
     };
@@ -56,14 +62,14 @@ export class AuthService {
 
   async verifyOtp(email: string, otp: string) {
     const storedOtp = await this.redisService.get(`otp:${email}`);
-    
+
     if (!storedOtp || storedOtp !== otp) {
       throw new BadRequestException('Code de vérification invalide ou expiré');
     }
 
     // Activer l'utilisateur
     await this.usersService.updateByEmail(email, { isVerified: true });
-    
+
     // Supprimer l'OTP
     await this.redisService.del(`otp:${email}`);
 
@@ -73,7 +79,10 @@ export class AuthService {
       this.eventEmitter.emit('auth.registered', { userId: user.id });
     }
 
-    return { message: 'Compte vérifié avec succès. Vous pouvez maintenant vous connecter.' };
+    return {
+      message:
+        'Compte vérifié avec succès. Vous pouvez maintenant vous connecter.',
+    };
   }
 
   async login(loginDto: LoginDto) {
@@ -85,7 +94,9 @@ export class AuthService {
 
     // Vérifier si l'utilisateur est vérifié (Brevo Flow)
     if (!user.isVerified) {
-      throw new UnauthorizedException('Veuillez vérifier votre compte par e-mail avant de vous connecter.');
+      throw new UnauthorizedException(
+        'Veuillez vérifier votre compte par e-mail avant de vous connecter.',
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -100,17 +111,14 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      rememberMe: Boolean(loginDto.rememberMe),
     };
     const tokens = await this.getTokens(payload);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     this.logger.log(`Connexion réussie: ${user.email} (ID: ${user.id})`);
 
-    const {
-      password: _pw,
-      refreshToken: _rt,
-      ...userWithoutSecrets
-    } = user;
+    const { password: _pw, refreshToken: _rt, ...userWithoutSecrets } = user;
 
     return {
       message: 'Connexion réussie',
@@ -132,16 +140,22 @@ export class AuthService {
     const otp = this.generateOtp();
     await this.redisService.set(`otp:${email}`, otp, 600);
 
-    await this.mailService.sendVerificationEmail(email, user.fullName, otp, user.role);
+    await this.mailService.sendVerificationEmail(
+      email,
+      user.fullName,
+      otp,
+      user.role,
+    );
 
-    return { message: 'Un nouveau code de vérification a été envoyé à votre adresse e-mail.' };
+    return {
+      message:
+        'Un nouveau code de vérification a été envoyé à votre adresse e-mail.',
+    };
   }
 
   async logout(userId: string) {
     await this.usersService.updateRefreshToken(userId, null);
-    this.logger.log(
-      `Déconnexion réussie pour l'utilisateur ID: ${userId}`,
-    );
+    this.logger.log(`Déconnexion réussie pour l'utilisateur ID: ${userId}`);
     return { message: 'Déconnexion réussie' };
   }
 
@@ -149,30 +163,49 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       // Pour éviter le User Enumeration, on répond toujours la même chose
-      return { message: 'Si un compte existe avec cette adresse, un e-mail de réinitialisation a été envoyé.' };
+      return {
+        message:
+          'Si un compte existe avec cette adresse, un e-mail de réinitialisation a été envoyé.',
+      };
     }
 
     // Génération du token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    
+
     // Enregistrement dans Redis avec un TTL de 1 heure (3600 secondes)
-    await this.redisService.set(`reset-password:${resetToken}`, user.email, 3600);
+    await this.redisService.set(
+      `reset-password:${resetToken}`,
+      user.email,
+      3600,
+    );
 
     try {
-      await this.mailService.sendPasswordResetEmail(user.email, user.fullName, resetToken);
+      await this.mailService.sendPasswordResetEmail(
+        user.email,
+        user.fullName,
+        resetToken,
+      );
       this.logger.log(`E-mail de réinitialisation envoyé à ${user.email}`);
     } catch (error) {
-      this.logger.error(`Échec de l'envoi de l'e-mail de réinitialisation à ${user.email}`, error);
+      this.logger.error(
+        `Échec de l'envoi de l'e-mail de réinitialisation à ${user.email}`,
+        error,
+      );
     }
 
-    return { message: 'Si un compte existe avec cette adresse, un e-mail de réinitialisation a été envoyé.' };
+    return {
+      message:
+        'Si un compte existe avec cette adresse, un e-mail de réinitialisation a été envoyé.',
+    };
   }
 
   async resetPassword(token: string, newPassword: string) {
     const email = await this.redisService.get(`reset-password:${token}`);
-    
+
     if (!email) {
-      throw new BadRequestException('Le lien de réinitialisation est invalide ou a expiré.');
+      throw new BadRequestException(
+        'Le lien de réinitialisation est invalide ou a expiré.',
+      );
     }
 
     const user = await this.usersService.findByEmail(email);
@@ -186,10 +219,17 @@ export class AuthService {
     // On supprime le token de Redis pour qu'il soit à usage unique
     await this.redisService.del(`reset-password:${token}`);
 
-    return { message: 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.' };
+    return {
+      message:
+        'Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.',
+    };
   }
 
-  async refreshTokens(userId: string, refreshToken: string) {
+  async refreshTokens(
+    userId: string,
+    refreshToken: string,
+    rememberMe = false,
+  ) {
     const user = await this.usersService.findOne(userId);
 
     if (!user || !user.refreshToken) {
@@ -208,6 +248,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      rememberMe,
     };
     const tokens = await this.getTokens(payload);
     await this.updateRefreshToken(user.id, tokens.refreshToken);
@@ -242,7 +283,7 @@ export class AuthService {
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: '7d',
+        expiresIn: payload.rememberMe ? '30d' : '1d',
       }),
     ]);
 

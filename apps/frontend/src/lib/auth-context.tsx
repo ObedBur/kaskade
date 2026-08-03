@@ -1,10 +1,24 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { useRouter } from "next/navigation";
+import api from "./api";
+import {
+  AUTH_STORAGE_KEYS,
+  clearAuthStorage,
+  getStoredAuthItem,
+  saveAuthSession,
+  setStoredAuthItem,
+} from "./auth-storage";
 
-export type UserRole = 'CLIENT' | 'PROVIDER' | 'ADMIN';
-export type UserMode = 'CLIENT' | 'PROVIDER' | 'ADMIN';
+export type UserRole = "CLIENT" | "PROVIDER" | "ADMIN";
+export type UserMode = "CLIENT" | "PROVIDER" | "ADMIN";
 
 export interface AuthUser {
   id: string;
@@ -26,9 +40,13 @@ interface AuthContextType {
   accessToken: string | null;
   userMode: UserMode | null;
   isLoading: boolean;
-  login: (tokens: { accessToken: string; refreshToken: string }, user: AuthUser) => void;
+  login: (
+    tokens: { accessToken: string; refreshToken: string },
+    user: AuthUser,
+    rememberMe?: boolean,
+  ) => void;
   logout: () => void;
-  switchMode: (newMode: 'CLIENT' | 'PROVIDER') => void;
+  switchMode: (newMode: "CLIENT" | "PROVIDER") => void;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -44,51 +62,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const token = localStorage.getItem('kaskade_access_token');
+      const token = getStoredAuthItem(AUTH_STORAGE_KEYS.accessToken);
       if (!token) return;
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const { data: userData } = await api.get("/auth/me");
+      const storedUser = JSON.parse(
+        getStoredAuthItem(AUTH_STORAGE_KEYS.user) || "{}",
+      );
 
-      if (res.ok) {
-        const userData = await res.json();
-        const storedUser = JSON.parse(localStorage.getItem('kaskade_user') || '{}');
-        
-        if (userData.role !== storedUser.role) {
-          const refreshRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/refresh`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Bearer ${localStorage.getItem('kaskade_refresh_token')}` 
-            }
-          });
-
-          if (refreshRes.ok) {
-            const tokens = await refreshRes.json();
-            localStorage.setItem('kaskade_access_token', tokens.accessToken);
-            localStorage.setItem('kaskade_refresh_token', tokens.refreshToken);
-            setAccessToken(tokens.accessToken);
-          }
-        }
-
-        localStorage.setItem('kaskade_user', JSON.stringify(userData));
-        setUser(userData);
-        if (!localStorage.getItem('kaskade_user_mode')) {
-          localStorage.setItem('kaskade_user_mode', userData.role);
-          setUserMode(userData.role);
-        }
+      setStoredAuthItem(AUTH_STORAGE_KEYS.user, JSON.stringify(userData));
+      setAccessToken(getStoredAuthItem(AUTH_STORAGE_KEYS.accessToken));
+      setUser(userData);
+      if (
+        userData.role !== storedUser.role ||
+        !getStoredAuthItem(AUTH_STORAGE_KEYS.userMode)
+      ) {
+        setStoredAuthItem(AUTH_STORAGE_KEYS.userMode, userData.role);
+        setUserMode(userData.role);
       }
     } catch (err) {
       console.error("Erreur profil:", err);
+      clearAuthStorage();
+      setAccessToken(null);
+      setUser(null);
+      setUserMode(null);
     }
   }, []);
 
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const storedToken = localStorage.getItem('kaskade_access_token');
-        const storedUser = localStorage.getItem('kaskade_user');
-        const storedMode = localStorage.getItem('kaskade_user_mode');
+        const storedToken = getStoredAuthItem(AUTH_STORAGE_KEYS.accessToken);
+        const storedUser = getStoredAuthItem(AUTH_STORAGE_KEYS.user);
+        const storedMode = getStoredAuthItem(AUTH_STORAGE_KEYS.userMode);
 
         if (storedToken && storedUser) {
           setAccessToken(storedToken);
@@ -98,9 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           refreshUser();
         }
       } catch (e) {
-        localStorage.removeItem('kaskade_access_token');
-        localStorage.removeItem('kaskade_user');
-        localStorage.removeItem('kaskade_user_mode');
+        clearAuthStorage();
       } finally {
         setIsLoading(false);
       }
@@ -108,63 +112,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [refreshUser]);
 
-  const login = useCallback((tokens: { accessToken: string; refreshToken: string }, userData: AuthUser) => {
-    localStorage.setItem('kaskade_access_token', tokens.accessToken);
-    localStorage.setItem('kaskade_refresh_token', tokens.refreshToken);
-    localStorage.setItem('kaskade_user', JSON.stringify(userData));
-    localStorage.setItem('kaskade_user_mode', userData.role);
-    
-    setAccessToken(tokens.accessToken);
-    setUser(userData);
-    setUserMode(userData.role);
-    
-    if (userData.role === 'ADMIN') {
-      router.push('/admin/dashboard');
-    } else if (userData.role === 'PROVIDER') {
-      router.push('/dashboard');
-    } else {
-      router.push('/');
-    }
-  }, [router]);
+  const login = useCallback(
+    (
+      tokens: { accessToken: string; refreshToken: string },
+      userData: AuthUser,
+      rememberMe = false,
+    ) => {
+      saveAuthSession(tokens, userData, userData.role, rememberMe);
+
+      setAccessToken(tokens.accessToken);
+      setUser(userData);
+      setUserMode(userData.role);
+
+      if (userData.role === "ADMIN") {
+        router.push("/admin/dashboard");
+      } else if (userData.role === "PROVIDER") {
+        router.push("/dashboard");
+      } else {
+        router.push("/");
+      }
+    },
+    [router],
+  );
 
   const logout = useCallback(() => {
-    localStorage.removeItem('kaskade_access_token');
-    localStorage.removeItem('kaskade_refresh_token');
-    localStorage.removeItem('kaskade_user');
-    localStorage.removeItem('kaskade_user_mode');
+    const refreshToken = getStoredAuthItem(AUTH_STORAGE_KEYS.refreshToken);
+
+    if (refreshToken) {
+      void api
+        .post(
+          "/auth/logout",
+          {},
+          {
+            headers: { Authorization: `Bearer ${refreshToken}` },
+          },
+        )
+        .catch(() => undefined);
+    }
+
+    clearAuthStorage();
     setAccessToken(null);
     setUser(null);
     setUserMode(null);
-    router.push('/login');
+    router.push("/login");
   }, [router]);
 
-  const switchMode = useCallback((newMode: 'CLIENT' | 'PROVIDER') => {
-    if (!user) return;
-    
-    if (user.role === 'PROVIDER' || user.role === 'ADMIN') {
-      setUserMode(newMode);
-      localStorage.setItem('kaskade_user_mode', newMode);
-      
-      if (newMode === 'CLIENT') {
-        router.push('/mes-demandes');
-      } else {
-        router.push('/dashboard');
+  const switchMode = useCallback(
+    (newMode: "CLIENT" | "PROVIDER") => {
+      if (!user) return;
+
+      if (user.role === "PROVIDER" || user.role === "ADMIN") {
+        setUserMode(newMode);
+        setStoredAuthItem(AUTH_STORAGE_KEYS.userMode, newMode);
+
+        if (newMode === "CLIENT") {
+          router.push("/mes-demandes");
+        } else {
+          router.push("/dashboard");
+        }
       }
-    }
-  }, [user, router]);
+    },
+    [user, router],
+  );
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      accessToken,
-      userMode,
-      isLoading,
-      login,
-      logout,
-      switchMode,
-      refreshUser,
-      isAuthenticated: !!accessToken,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        accessToken,
+        userMode,
+        isLoading,
+        login,
+        logout,
+        switchMode,
+        refreshUser,
+        isAuthenticated: !!accessToken,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -173,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

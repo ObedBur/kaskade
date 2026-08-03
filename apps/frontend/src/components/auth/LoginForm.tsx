@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import { loginSchema, LoginInput } from '@/lib/validations/auth';
-import api from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
-import { useAuthGuard } from '@/lib/use-auth-guard';
+import React, { useState } from "react";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { loginSchema, LoginInput } from "@/lib/validations/auth";
+import api from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { useAuthGuard } from "@/lib/use-auth-guard";
 
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,18 +27,24 @@ export default function LoginForm() {
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      rememberMe: false,
+    },
   });
 
   const onSubmit = async (data: LoginInput) => {
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/login', data);
+      const response = await api.post("/auth/login", data);
       const { tokens, user } = response.data;
       // Store tokens & redirect to home
-      login(tokens, user);
+      login(tokens, user, data.rememberMe);
       toast.success("Authentification réussie. Bienvenue dans le système.");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Échec de l'initialisation de la session.");
+      toast.error(
+        error.response?.data?.message ||
+          "Échec de l'initialisation de la session.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -80,21 +86,27 @@ export default function LoginForm() {
             {/* Email Field */}
             <div className="group space-y-2">
               <label
-                className={`block font-sans text-[9px] uppercase tracking-[0.15em] transition-colors ${errors.email ? 'text-red-500' : 'text-chocolat/60 group-focus-within:text-ocre'
-                  }`}
+                className={`block font-sans text-[9px] uppercase tracking-[0.15em] transition-colors ${
+                  errors.email
+                    ? "text-red-500"
+                    : "text-chocolat/60 group-focus-within:text-ocre"
+                }`}
               >
                 Identification (Email)
               </label>
               <input
-                {...register('email')}
-                className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.email ? 'border-red-500 bg-red-50/10' : ''
-                  }`}
+                {...register("email")}
+                className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${
+                  errors.email ? "border-red-500 bg-red-50/10" : ""
+                }`}
                 placeholder="kaskade@gmail.com"
                 type="email"
                 disabled={isLoading}
               />
               {errors.email && (
-                <p className="mt-1 text-[8px] text-red-500 uppercase tracking-widest font-bold">{errors.email.message}</p>
+                <p className="mt-1 text-[8px] text-red-500 uppercase tracking-widest font-bold">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -102,8 +114,11 @@ export default function LoginForm() {
             <div className="group space-y-2">
               <div className="flex justify-between items-center mb-1">
                 <label
-                  className={`block font-sans text-[9px] uppercase tracking-[0.15em] transition-colors ${errors.password ? 'text-red-500' : 'text-chocolat/60 group-focus-within:text-ocre'
-                    }`}
+                  className={`block font-sans text-[9px] uppercase tracking-[0.15em] transition-colors ${
+                    errors.password
+                      ? "text-red-500"
+                      : "text-chocolat/60 group-focus-within:text-ocre"
+                  }`}
                 >
                   Clé d'Accès
                 </label>
@@ -116,9 +131,10 @@ export default function LoginForm() {
               </div>
               <div className="relative">
                 <input
-                  {...register('password')}
-                  className={`w-full min-h-[44px] py-3 px-4 pr-12 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${errors.password ? 'border-red-500 bg-red-50/10' : ''
-                    }`}
+                  {...register("password")}
+                  className={`w-full min-h-[44px] py-3 px-4 pr-12 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${
+                    errors.password ? "border-red-500 bg-red-50/10" : ""
+                  }`}
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
                   disabled={isLoading}
@@ -132,21 +148,35 @@ export default function LoginForm() {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-[8px] text-red-500 uppercase tracking-widest font-bold">{errors.password.message}</p>
+                <p className="mt-1 text-[8px] text-red-500 uppercase tracking-widest font-bold">
+                  {errors.password.message}
+                </p>
               )}
             </div>
           </div>
 
           <div className="pt-6 space-y-8">
+            <label className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.1em] text-chocolat/60">
+              <input
+                type="checkbox"
+                {...register("rememberMe")}
+                disabled={isLoading}
+                className="h-4 w-4 rounded-[4px] border-ocre/30 text-ocre focus:ring-ocre/30 disabled:opacity-50"
+              />
+              Se souvenir de moi
+            </label>
+
             <button
               type="submit"
               disabled={isLoading}
               className="w-full py-5 px-8 bg-ocre text-chocolat font-bold uppercase tracking-[0.2em] text-[11px] rounded-[4px] shadow-[0_4px_20px_rgba(188,156,108,0.15)] hover:bg-chocolat hover:text-ocre hover:shadow-[0_8px_30px_rgba(50,27,19,0.2)] transition-all duration-500 disabled:opacity-50 cursor-pointer"
             >
-              {isLoading ? 'Connexion...' : 'Connexion'}
+              {isLoading ? "Connexion..." : "Connexion"}
             </button>
             <div className="flex flex-col md:flex-row items-center justify-between pt-6 border-t border-ocre/10 gap-4">
-              <span className="text-chocolat/40 text-[9px] uppercase tracking-[0.1em] font-medium">Nouveau ici ?</span>
+              <span className="text-chocolat/40 text-[9px] uppercase tracking-[0.1em] font-medium">
+                Nouveau ici ?
+              </span>
               <Link
                 href="/register"
                 className="text-ocre font-bold uppercase tracking-[0.1em] text-[10px] hover:text-chocolat transition-all underline underline-offset-4 decoration-ocre/30"
