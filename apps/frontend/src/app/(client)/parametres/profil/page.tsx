@@ -5,9 +5,7 @@ import ProfileForm from "@/components/settings/profile/ProfileForm";
 export default function ParametresProfilPage() {
   return (
     <SettingsSection title="Mon Profil">
-      <SettingsCard>
-        <ProfileForm />
-      </SettingsCard>
+      <ProfileForm />
     </SettingsSection>
   );
 }

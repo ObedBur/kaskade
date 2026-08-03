@@ -77,7 +77,7 @@ export default function VerifyOtpForm() {
       <motion.h2 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-chocolat font-black text-5xl md:text-7xl lg:text-8xl tracking-tighter mb-6 md:mb-10"
+        className="text-chocolat font-black text-4xl sm:text-5xl md:text-7xl lg:text-8xl tracking-tighter mb-4 sm:mb-6 md:mb-10"
       >
         Verify.
       </motion.h2>

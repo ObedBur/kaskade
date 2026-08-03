@@ -139,12 +139,12 @@ function StaticToggle({
 
 function SmsLockBadge() {
   return (
-    <div className="mx-auto inline-flex min-w-[88px] flex-col items-center rounded-xl border border-[color:var(--settings-border)] bg-[var(--off-white)] px-3 py-2 text-center">
-      <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--chocolat)]">
-        <LockKeyhole className="h-3.5 w-3.5" />
-        Activé
-      </span>
-      <span className="mt-1 text-[10px] text-[var(--chocolat-muted)]">Non désactivable</span>
+    <div className="flex flex-col items-center gap-0.5">
+      <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--settings-border)] bg-[var(--off-white)] px-2 py-1">
+        <LockKeyhole className="h-3 w-3 text-[var(--chocolat-muted)]" />
+        <span className="text-[10px] font-bold text-[var(--chocolat)]">Activé</span>
+      </div>
+      <span className="text-[9px] text-[var(--chocolat-muted)] text-center leading-tight">Non désactivable</span>
     </div>
   );
 }
@@ -190,39 +190,46 @@ export default function ParametresNotificationsPage() {
               return (
                 <div
                   key={row.title}
-                  className="grid gap-5 px-5 py-5 md:grid-cols-[1.9fr_0.7fr_0.7fr_0.7fr] md:items-center md:px-6"
+                  className="px-5 py-5 md:grid md:grid-cols-[1.9fr_0.7fr_0.7fr_0.7fr] md:items-center md:gap-5 md:px-6"
                 >
-                  <div className="flex items-start gap-4">
+                  {/* Infos de la notification */}
+                  <div className="flex items-start gap-3 mb-4 md:mb-0">
                     <NotificationIcon tone={row.iconTone}>
                       <Icon className="h-5 w-5" />
                     </NotificationIcon>
                     <div>
                       <p className="text-sm font-semibold text-[var(--chocolat)]">{row.title}</p>
-                      <p className="mt-1 text-xs leading-5 text-[var(--chocolat-muted)]">
+                      <p className="mt-0.5 text-xs leading-5 text-[var(--chocolat-muted)]">
                         {row.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-4 md:block">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--chocolat-muted)] md:hidden">
-                      SMS
-                    </span>
-                    {row.smsLocked ? <SmsLockBadge /> : <StaticToggle enabled={true} />}
-                  </div>
+                  {/* Canaux sur mobile : 3 colonnes avec label+toggle empilés */}
+                  <div className="grid grid-cols-3 gap-3 md:contents">
+                    {/* SMS */}
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--chocolat-muted)] md:hidden">
+                        SMS
+                      </span>
+                      {row.smsLocked ? <SmsLockBadge /> : <StaticToggle enabled={true} />}
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 md:block">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--chocolat-muted)] md:hidden">
-                      Push
-                    </span>
-                    <StaticToggle enabled={row.pushEnabled} />
-                  </div>
+                    {/* Push */}
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--chocolat-muted)] md:hidden">
+                        Push
+                      </span>
+                      <StaticToggle enabled={row.pushEnabled} />
+                    </div>
 
-                  <div className="flex items-center justify-between gap-4 md:block">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--chocolat-muted)] md:hidden">
-                      Email
-                    </span>
-                    <StaticToggle enabled={row.emailEnabled} />
+                    {/* Email */}
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--chocolat-muted)] md:hidden">
+                        Email
+                      </span>
+                      <StaticToggle enabled={row.emailEnabled} />
+                    </div>
                   </div>
                 </div>
               );

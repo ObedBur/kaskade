@@ -4,7 +4,7 @@ node_modules
 
 # Turborepo
 .turbo
-
+.trae
 # Build outputs
 dist
 .next

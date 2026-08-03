@@ -94,8 +94,8 @@ export default function ParametresLayout({ children }: ParametresLayoutProps) {
         </aside>
 
         {/* Right Content */}
-        <main className="min-h-0 flex-1 overflow-y-auto bg-[var(--off-white)] p-8 lg:p-14">
-          <div className="mx-auto max-w-[900px]">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-[var(--off-white)] p-4 sm:p-8 lg:p-14">
+          <div className="mx-auto max-w-7xl">
             {children}
           </div>
         </main>

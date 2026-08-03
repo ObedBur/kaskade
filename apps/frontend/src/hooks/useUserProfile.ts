@@ -9,7 +9,8 @@ export interface UserProfile {
   quartier: string;
   bio?: string;
   role: 'CLIENT' | 'PROVIDER' | 'ADMIN';
-  avatar?: string;
+  avatar?: string;    // alias côté frontend
+  avatarUrl?: string; // nom réel en base de données
   createdAt: string;
   updatedAt: string;
 }
@@ -32,7 +33,9 @@ export function useUserProfile() {
       setLoading(true);
       setError(null);
       const response = await api.get('/auth/me');
-      setProfile(response.data);
+      // Normalise : le backend stocke avatarUrl, le frontend utilise avatar
+      const data = response.data;
+      setProfile({ ...data, avatar: data.avatarUrl || data.avatar });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors du chargement du profil');
     } finally {
@@ -45,8 +48,9 @@ export function useUserProfile() {
       setIsUpdating(true);
       setError(null);
       const response = await api.patch('/auth/me', data);
-      setProfile(response.data);
-      return { success: true, data: response.data };
+      const updated = response.data;
+      setProfile({ ...updated, avatar: updated.avatarUrl || updated.avatar });
+      return { success: true, data: updated };
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erreur lors de la mise à jour du profil';
       setError(errorMessage);
@@ -60,17 +64,23 @@ export function useUserProfile() {
     try {
       setIsUpdating(true);
       setError(null);
+
+      // Étape 1 : uploader le fichier sur Cloudinary
       const formData = new FormData();
-      formData.append('avatar', file);
-      
-      const response = await api.post('/uploads/avatar', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      formData.append('file', file);
+      const uploadResponse = await api.post('/uploads/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
-      setProfile(prev => prev ? { ...prev, avatar: response.data.avatarUrl } : null);
-      return { success: true, avatarUrl: response.data.avatarUrl };
+      const cloudinaryUrl: string = uploadResponse.data.url;
+
+      // Étape 2 : persister l'URL en base de données via PATCH /auth/me
+      const patchResponse = await api.patch('/auth/me', { avatarUrl: cloudinaryUrl });
+      const updated = patchResponse.data;
+
+      // Mettre à jour le state local avec la nouvelle photo
+      setProfile({ ...updated, avatar: updated.avatarUrl || cloudinaryUrl });
+
+      return { success: true, avatarUrl: cloudinaryUrl };
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Erreur lors du téléchargement de l\'avatar';
       setError(errorMessage);

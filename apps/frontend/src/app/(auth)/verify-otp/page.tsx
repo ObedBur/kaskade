@@ -4,11 +4,11 @@ import Link from 'next/link';
 
 export default function VerifyOtpPage() {
   return (
-    <div className="min-h-screen flex items-stretch overflow-hidden bg-off-white selection:bg-ocre/30">
+    <div className="min-h-screen flex items-stretch overflow-x-hidden overflow-y-auto bg-off-white selection:bg-ocre/30">
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col justify-center px-6 md:px-24 lg:px-32 z-10 bg-off-white">
+      <main className="flex-1 flex flex-col justify-center pt-24 pb-12 px-6 md:px-24 lg:px-32 z-10 bg-off-white">
         {/* Simplified Auth Header for OTP */}
-        <header className="fixed top-0 left-0 p-8 md:p-12">
+        <header className="fixed top-0 left-0 p-6 md:p-12 z-50 bg-off-white/80 backdrop-blur-md w-full md:w-auto md:bg-transparent md:backdrop-blur-none">
           <Link href="/">
             <h1 className="text-chocolat font-black tracking-tighter text-2xl uppercase">Kaskade</h1>
           </Link>

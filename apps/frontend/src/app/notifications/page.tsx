@@ -100,12 +100,12 @@ export default function ClientNotificationsPage() {
     <div className="min-h-screen bg-[#FCFBF7]">
       <Navbar />
       
-      <main className="max-w-4xl mx-auto px-4 min-[480px]:px-8 min-[1440px]:p-12 py-32">
+      <main className="max-w-4xl mx-auto px-4 min-[480px]:px-8 min-[1440px]:px-12 pt-24 lg:pt-36 pb-16">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-gray-100 pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-gray-100 pb-6">
           <div>
-            <h1 className="text-4xl font-serif font-bold text-chocolat">Mes Notifications</h1>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-chocolat">Mes Notifications</h1>
             <p className="text-ocre text-[10px] font-black uppercase tracking-[0.2em] mt-2">
               {unreadCount} message(s) non lu(s)
             </p>
@@ -114,20 +114,20 @@ export default function ClientNotificationsPage() {
           <button 
             onClick={markAllAsRead}
             disabled={unreadCount === 0}
-            className="px-6 py-3 bg-chocolat text-white text-[10px] font-black uppercase tracking-widest hover:bg-ocre hover:text-chocolat transition-all disabled:opacity-30 rounded-[4px]"
+            className="px-5 py-2.5 bg-chocolat text-white text-[9px] font-black uppercase tracking-widest hover:bg-ocre hover:text-chocolat transition-all disabled:opacity-30 rounded-[4px]"
           >
             Tout marquer comme lu
           </button>
         </div>
 
         {/* Notifications list */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {notifications.length > 0 ? (
             notifications.map((n) => (
               <div 
                 key={n.id}
                 onClick={() => !n.isRead && markAsRead(n.id)}
-                className={`relative flex items-start gap-6 p-6 md:p-8 bg-white border transition-all cursor-pointer rounded-[4px] ${
+                className={`group relative flex items-start gap-4 p-4 md:p-5 bg-white border transition-all cursor-pointer rounded-[4px] ${
                   n.isRead 
                     ? "border-gray-50 opacity-60" 
                     : "border-ocre/30 shadow-sm hover:border-ocre"
@@ -135,10 +135,10 @@ export default function ClientNotificationsPage() {
               >
                 {/* Unread dot */}
                 {!n.isRead && (
-                   <span className="absolute top-8 left-3 w-1.5 h-1.5 bg-ocre rounded-full" />
+                   <span className="absolute top-6 left-2 w-1.5 h-1.5 bg-ocre rounded-full" />
                 )}
 
-                <div className={`w-12 h-12 flex items-center justify-center rounded-full flex-shrink-0 ${
+                <div className={`w-10 h-10 flex items-center justify-center rounded-full flex-shrink-0 ${
                   n.isRead ? "bg-gray-50" : "bg-ocre/10"
                 }`}>
                   {getIcon(n.type)}
