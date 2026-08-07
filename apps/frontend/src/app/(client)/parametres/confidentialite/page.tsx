@@ -26,11 +26,10 @@ function SectionBadge({
 }) {
   return (
     <div
-      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
-        tone === "soft"
+      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${tone === "soft"
           ? "bg-sky-50 text-sky-700"
           : "bg-[var(--settings-ocre-soft)] text-[var(--ocre)]"
-      }`}
+        }`}
     >
       {children}
     </div>
@@ -40,17 +39,15 @@ function SectionBadge({
 function StaticToggle({ enabled = false }: { enabled?: boolean }) {
   return (
     <div
-      className={`relative h-7 w-12 rounded-full border ${
-        enabled
+      className={`relative h-7 w-12 rounded-full border ${enabled
           ? "border-[color:var(--ocre)] bg-[color:var(--ocre)]"
           : "border-[color:var(--settings-border-strong)] bg-white"
-      }`}
+        }`}
       aria-hidden="true"
     >
       <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm ${
-          enabled ? "left-6" : "left-1"
-        }`}
+        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm ${enabled ? "left-6" : "left-1"
+          }`}
       />
     </div>
   );
@@ -115,9 +112,8 @@ function ActionRow({
     <div className="flex flex-col gap-4 rounded-2xl border border-[color:var(--settings-border)] bg-white px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-start gap-4">
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-            danger ? "bg-red-50 text-red-500" : "bg-[var(--off-white)] text-[var(--ocre)]"
-          }`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${danger ? "bg-red-50 text-red-500" : "bg-[var(--off-white)] text-[var(--ocre)]"
+            }`}
         >
           {icon}
         </div>
@@ -129,11 +125,10 @@ function ActionRow({
 
       <Link
         href={href}
-        className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
-          danger
+        className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${danger
             ? "border-red-200 text-red-500 hover:bg-red-50"
             : "border-[color:var(--settings-border-strong)] text-[var(--chocolat)] hover:bg-[var(--settings-hover)]"
-        }`}
+          }`}
       >
         {cta}
         <ArrowRight className="h-4 w-4" />
@@ -203,7 +198,7 @@ export default function ParametresConfidentialitePage() {
             <ToggleRow
               icon={<Megaphone className="h-5 w-5" />}
               title="Communications marketing"
-              description="Recevez des offres, nouveautés et recommandations personnalisées liées à vos usages sur Kaskade."
+              description="Recevez des offres, nouveautés et recommandations personnalisées liées à vos usages sur Cascadheure."
               value="Activé"
             />
             <ToggleRow
@@ -243,7 +238,7 @@ export default function ParametresConfidentialitePage() {
             <ActionRow
               icon={<FileClock className="h-5 w-5" />}
               title="Voir l'historique complet de mes demandes"
-              description="Consultez l'ensemble de vos demandes passées, en cours et archivées depuis votre compte Kaskade."
+              description="Consultez l'ensemble de vos demandes passées, en cours et archivées depuis votre compte Cascadheure."
               cta="Voir l'historique"
             />
           </div>
@@ -271,7 +266,7 @@ export default function ParametresConfidentialitePage() {
             <ActionRow
               icon={<FileText className="h-5 w-5" />}
               title="Politique de confidentialité"
-              description="Consultez les règles de collecte, d'utilisation et de conservation de vos données personnelles sur Kaskade."
+              description="Consultez les règles de collecte, d'utilisation et de conservation de vos données personnelles sur Cascadheure."
               cta="Lire la politique"
             />
             <ActionRow

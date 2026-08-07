@@ -17,7 +17,7 @@ export class MailService {
     const roleName = role === 'PROVIDER' ? 'Prestataire' : (role === 'ADMIN' ? 'Administrateur' : 'Client');
     try {
       const result = await this.client.transactionalEmails.sendTransacEmail({
-        subject: `Bienvenue chez Kaskade - Inscription ${roleName}`,
+        subject: `Bienvenue chez Cascadheure - Inscription ${roleName}`,
         to: [{ email: email, name: fullName }],
         sender: {
           email: this.configService.get<string>('MAIL_FROM_EMAIL'),
@@ -27,7 +27,7 @@ export class MailService {
           <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
               <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h1 style="color: #D4AF37; text-align: center;">Bienvenue chez Kaskade !</h1>
+                <h1 style="color: #D4AF37; text-align: center;">Bienvenue chez Cascadheure !</h1>
                 <p>Bonjour <strong>${fullName}</strong>,</p>
                 <p>Merci de vous être inscrit en tant que <strong>${roleName}</strong> sur notre plateforme.</p>
                 <p>Pour activer votre compte, veuillez utiliser le code de vérification suivant :</p>
@@ -38,7 +38,7 @@ export class MailService {
                 </div>
                 <p>Ce code est valable pendant <strong>10 minutes</strong>. Si vous n'avez pas créé de compte, vous pouvez ignorer cet e-mail en toute sécurité.</p>
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 12px; color: #777; text-align: center;">&copy; 2026 Kaskade App. Tous droits réservés.</p>
+                <p style="font-size: 12px; color: #777; text-align: center;">&copy; 2026 Cascadheure App. Tous droits réservés.</p>
               </div>
             </body>
           </html>
@@ -57,7 +57,7 @@ export class MailService {
 
     try {
       await this.client.transactionalEmails.sendTransacEmail({
-        subject: 'Réinitialisation de votre mot de passe - Kaskade',
+        subject: 'Réinitialisation de votre mot de passe - Cascadheure',
         to: [{ email: email, name: fullName }],
         sender: {
           email: this.configService.get<string>('MAIL_FROM_EMAIL'),
@@ -77,7 +77,7 @@ export class MailService {
                 </div>
                 <p>Si vous n'avez pas demandé cela, veuillez ignorer cet e-mail. Votre mot de passe restera inchangé.</p>
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 12px; color: #777; text-align: center;">&copy; 2026 Kaskade App. Tous droits réservés.</p>
+                <p style="font-size: 12px; color: #777; text-align: center;">&copy; 2026 Cascadheure App. Tous droits réservés.</p>
               </div>
             </body>
           </html>

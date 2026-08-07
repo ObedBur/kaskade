@@ -91,7 +91,7 @@ export default function ParametresPage() {
           Bonjour, {user?.fullName?.split(' ')[0] || 'Client'}
         </h2>
         <p className="text-xs text-[var(--chocolat-muted)] mt-1 tracking-wide">
-          Gérez vos préférences et votre compte Kaskade.
+          Gérez vos préférences et votre compte Cascadheure.
         </p>
       </div>
 

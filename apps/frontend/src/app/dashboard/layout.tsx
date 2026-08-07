@@ -76,7 +76,7 @@ export default function DashboardLayout({
               <div className="w-8 h-1 bg-[#321B13] rounded-none"></div>
             </div>
             <h1 className="text-2xl font-black tracking-tighter text-[#321B13] uppercase">
-              Kaskade<span className="text-[#BC9C6C]">.</span>
+              Cascadheure<span className="text-[#BC9C6C]">.</span>
             </h1>
           </Link>
           <div className="mt-2 text-[#321B13]/50 text-xs uppercase tracking-[0.2em] font-medium">
@@ -145,7 +145,7 @@ export default function DashboardLayout({
       <header className="lg:hidden fixed top-0 w-full bg-[#FCFBF7]/90 backdrop-blur-md border-b border-[#321B13]/5 z-50 h-20 flex items-center justify-between px-6">
         <Link href="/" className="inline-block">
           <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
-            Kaskade<span className="text-[#BC9C6C]">.</span>
+            Cascadheure<span className="text-[#BC9C6C]">.</span>
           </h1>
         </Link>
         <button onClick={() => setIsSidebarOpen(true)} className="text-[#321B13] p-2">
@@ -159,7 +159,7 @@ export default function DashboardLayout({
           <div className="fixed inset-0 bg-[#321B13]/20 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
           <div className="w-[80%] max-w-sm bg-[#FCFBF7] h-full shadow-2xl relative z-[61] flex flex-col">
             <div className="p-6 flex items-center justify-between border-b border-[#321B13]/10">
-              <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">Kaskade.</h1>
+              <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">Cascadheure.</h1>
               <button onClick={() => setIsSidebarOpen(false)} className="text-[#321B13]/50 hover:text-[#321B13]">
                 <X className="w-6 h-6" />
               </button>

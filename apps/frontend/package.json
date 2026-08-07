@@ -1,5 +1,5 @@
 {
-  "name": "@kaskade/frontend",
+  "name": "@cascadheure/frontend",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@lucia-auth/adapter-prisma": "^4.0.1",
-    "@prisma/client": "6.19.2",
+    "@prisma/client": "^7.5.0",
     "axios": "^1.13.6",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.12",
@@ -37,7 +37,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.1.0",
     "postcss": "^8.4.40",
-    "prisma": "^6.0.0",
+    "prisma": "^7.5.0",
     "tailwindcss": "^3.4.10",
     "typescript": "^5.7.0"
   }

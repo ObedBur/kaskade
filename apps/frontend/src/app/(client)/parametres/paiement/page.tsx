@@ -118,7 +118,7 @@ export default function ParametresPaiementPage() {
   return (
     <SettingsSection
       title="Historique des paiements"
-      description="Consultez l'historique complet de vos paiements d'acomptes et soldes sur Kaskade."
+      description="Consultez l'historique complet de vos paiements d'acomptes et soldes sur Cascadheure."
     >
       <div className="space-y-6">
         <SettingsCard>

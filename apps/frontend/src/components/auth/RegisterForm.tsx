@@ -92,7 +92,7 @@ export default function RegisterForm() {
             transition={{ delay: 0.2 }}
             className="text-chocolat/85 text-xs font-sans leading-relaxed"
           >
-            Rejoignez l'écosystème Kaskade et accédez à nos services architecturaux.
+            Rejoignez l'écosystème Cascadheure et accédez à nos services architecturaux.
           </motion.p>
         </header>
 

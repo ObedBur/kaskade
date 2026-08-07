@@ -64,12 +64,12 @@ export default function ServiceExplorer() {
 
   return (
     <section className="py-24 md:py-32 bg-[#F5F3ED] relative overflow-hidden font-sans border-y border-ocre/10">
-      {/* Éléments de structure (Glows Kaskade) */}
+      {/* Éléments de structure (Glows Cascadheure) */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-ocre/5 rounded-full blur-[100px] -z-10 translate-x-1/4 -translate-y-1/4" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-chocolat/5 rounded-full blur-[100px] -z-10 -translate-x-1/4 translate-y-1/4" />
 
       <div className="arcture-container relative">
-        {/* EN-TÊTE : Inspiré de Stitch mais Style Kaskade */}
+        {/* EN-TÊTE : Inspiré de Stitch mais Style Cascadheure */}
         <div className="max-w-4xl mb-16 md:mb-24">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -89,7 +89,7 @@ export default function ServiceExplorer() {
 
           <p className="text-chocolat/60 text-lg md:text-xl font-medium leading-relaxed max-w-2xl">
             Parcourez et demandez des services locaux certifiés pour tous vos
-            besoins quotidiens, avec la garantie de qualité Kaskade.
+            besoins quotidiens, avec la garantie de qualité Cascadheure.
           </p>
         </div>
 

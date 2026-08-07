@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: kaskade-backend
+    name: cascadheure-backend
     env: node
     buildCommand: pnpm run render:build
     startCommand: pnpm run render:start

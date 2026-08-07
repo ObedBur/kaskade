@@ -153,7 +153,7 @@ export default function ParametresPreferencesPage() {
                 <div className="p-5">
                   <p className="text-base font-bold text-[var(--chocolat)]">Tableau de bord</p>
                   <p className="mt-2 text-sm text-[var(--chocolat-muted)]">
-                    Bienvenue sur Kaskade
+                    Bienvenue sur Cascadheure
                   </p>
                   <p className="mt-2 text-xs leading-6 text-[var(--chocolat-muted)]">
                     Voici un aperçu de l'interface dans la langue sélectionnée.
@@ -293,7 +293,7 @@ export default function ParametresPreferencesPage() {
                   Africa/Kinshasa (UTC+01:00)
                 </p>
                 <p className="mt-1 text-xs text-[var(--chocolat-muted)]">
-                  Fuseau horaire fixe pour Kaskade (RDC).
+                  Fuseau horaire fixe pour Cascadheure (RDC).
                 </p>
               </div>
               <LockKeyhole className="h-4 w-4 shrink-0 text-[var(--chocolat-muted)]" />

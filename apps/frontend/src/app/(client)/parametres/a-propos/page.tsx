@@ -90,7 +90,7 @@ export default function ParametresAProposPage() {
   return (
     <SettingsSection
       title="À propos"
-      description="Informations légales et à propos de Kaskade."
+      description="Informations légales et à propos de Cascadheure."
     >
       <SettingsCard>
         <div className="space-y-6">
@@ -100,7 +100,7 @@ export default function ParametresAProposPage() {
             </SectionBadge>
             <div>
               <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--chocolat)]">
-                1. Présentation de Kaskade
+                1. Présentation de Cascadheure
               </h3>
               <p className="mt-1 text-xs text-[var(--chocolat-muted)]">
                 Informations essentielles sur la plateforme et son positionnement.
@@ -112,14 +112,14 @@ export default function ParametresAProposPage() {
             <div className="rounded-2xl border border-[color:var(--settings-border)] bg-[linear-gradient(180deg,#fff_0%,#fdfbf7_100%)] px-6 py-6">
               <div className="flex items-start gap-5">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--ocre)] text-xl font-black tracking-wide text-white">
-                  K
+                  C
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--ocre)]">
-                    Kaskade
+                    Cascadheure
                   </p>
                   <h4 className="mt-2 text-2xl font-bold tracking-tight text-[var(--chocolat)]">
-                    Kaskade connecte les habitants de Goma à des prestataires de services
+                    Cascadheure connecte les habitants de Goma à des prestataires de services
                     vérifiés.
                   </h4>
                   <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--chocolat-muted)]">
@@ -135,7 +135,7 @@ export default function ParametresAProposPage() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--chocolat-muted)]">
                   Version de l'application
                 </p>
-                <p className="mt-3 text-xl font-bold text-[var(--chocolat)]">Kaskade v1.2.0</p>
+                <p className="mt-3 text-xl font-bold text-[var(--chocolat)]">Cascadheure v1.2.0</p>
               </div>
 
               <div className="rounded-2xl border border-[color:var(--settings-border)] bg-white px-5 py-5">
@@ -170,7 +170,7 @@ export default function ParametresAProposPage() {
             <PrivacyPolicyLink />
             <LegalLink
               title="Politique de remboursement / garantie de paiement"
-              description="Document formel détaillant les règles de remboursement, de médiation et la garantie de paiement Kaskade."
+              description="Document formel détaillant les règles de remboursement, de médiation et la garantie de paiement Cascadheure."
             />
             <LegalLink
               title="Mentions légales"
@@ -191,7 +191,7 @@ export default function ParametresAProposPage() {
                 3. Réseaux sociaux & contact
               </h3>
               <p className="mt-1 text-xs text-[var(--chocolat-muted)]">
-                Retrouvez Kaskade sur les canaux publics et l'adresse de contact général.
+                Retrouvez Cascadheure sur les canaux publics et l'adresse de contact général.
               </p>
             </div>
           </div>
@@ -200,20 +200,20 @@ export default function ParametresAProposPage() {
             <ContactLink
               icon={<Instagram className="h-5 w-5" />}
               title="Instagram"
-              value="@kaskade.app"
+              value="@cascadheure.app"
               href="#"
             />
             <ContactLink
               icon={<Linkedin className="h-5 w-5" />}
               title="LinkedIn"
-              value="Kaskade"
+              value="Cascadheure"
               href="#"
             />
             <ContactLink
               icon={<Mail className="h-5 w-5" />}
               title="Contact général"
-              value="contact@kaskade.app"
-              href="mailto:contact@kaskade.app"
+              value="contact@cascadheure.app"
+              href="mailto:contact@cascadheure.app"
             />
           </div>
         </div>
@@ -230,7 +230,7 @@ export default function ParametresAProposPage() {
                 4. Zone bas de page
               </h3>
               <p className="mt-1 text-xs text-[var(--chocolat-muted)]">
-                © 2026 Kaskade Systems
+                © 2026 Cascadheure Systems
               </p>
             </div>
           </div>

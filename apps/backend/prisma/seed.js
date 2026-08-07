@@ -32,27 +32,27 @@ async function main() {
       INSERT INTO "User" (id, email, password, "fullName", phone, role, city, "isVerified", "isActive", "createdAt", "updatedAt")
       VALUES (gen_random_uuid(), $1, $2, $3, $4, 'ADMIN'::"Role", 'Goma', true, true, NOW(), NOW())
       ON CONFLICT (email) DO NOTHING
-    `, ['kaskade@gmail.com', passwordHash, 'Julian Thorne (Admin)', '+243990000000']);
-    console.log('Admin: kaskade@gmail.com');
+    `, ['cascadheure@gmail.com', passwordHash, 'Julian Thorne (Admin)', '+243990000000']);
+    console.log('Admin: cascadheure@gmail.com');
 
     // 2. PROVIDER
     await client.query(`
       INSERT INTO "User" (id, email, password, "fullName", phone, role, city, "isVerified", "isActive", "createdAt", "updatedAt")
       VALUES (gen_random_uuid(), $1, $2, $3, $4, 'PROVIDER'::"Role", 'Goma', true, true, NOW(), NOW())
       ON CONFLICT (email) DO NOTHING
-    `, ['provider@kaskade.com', passwordHash, 'Jean Dupont (Prestataire)', '+243991111111']);
-    console.log('Provider: provider@kaskade.com');
+    `, ['provider@cascadheure.com', passwordHash, 'Jean Dupont (Prestataire)', '+243991111111']);
+    console.log('Provider: provider@cascadheure.com');
 
     // 3. CLIENT
     await client.query(`
       INSERT INTO "User" (id, email, password, "fullName", phone, role, city, "isVerified", "isActive", "createdAt", "updatedAt")
       VALUES (gen_random_uuid(), $1, $2, $3, $4, 'CLIENT'::"Role", 'Goma', true, true, NOW(), NOW())
       ON CONFLICT (email) DO NOTHING
-    `, ['client@kaskade.com', passwordHash, 'Alice Morelle (Client)', '+243992222222']);
-    console.log('Client: client@kaskade.com');
+    `, ['client@cascadheure.com', passwordHash, 'Alice Morelle (Client)', '+243992222222']);
+    console.log('Client: client@cascadheure.com');
 
     // Recuperer l'ID du provider
-    const providerResult = await client.query(`SELECT id FROM "User" WHERE email = $1`, ['provider@kaskade.com']);
+    const providerResult = await client.query(`SELECT id FROM "User" WHERE email = $1`, ['provider@cascadheure.com']);
     const providerId = providerResult.rows[0].id;
 
     // 4. Supprimer les services existants
@@ -81,9 +81,9 @@ async function main() {
 
     console.log('');
     console.log('=== Comptes de test ===');
-    console.log('Admin:    kaskade@gmail.com    | password123');
-    console.log('Provider: provider@kaskade.com | password123');
-    console.log('Client:   client@kaskade.com   | password123');
+    console.log('Admin:    cascadheure@gmail.com    | password123');
+    console.log('Provider: provider@cascadheure.com | password123');
+    console.log('Client:   client@cascadheure.com   | password123');
 
   } finally {
     client.release();

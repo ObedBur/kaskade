@@ -19,7 +19,7 @@ export default function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-ocre">L'EXCELLENCE KASKADE</span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-ocre">L'EXCELLENCE CASCADHEURE</span>
           </motion.div>
 
           {/* Titre Original : L'Humain au coeur de la structure */}
@@ -35,7 +35,7 @@ export default function Features() {
           </p>
         </div>
 
-        {/* Bento Grid - Pure UI minimalist aux couleurs Kaskade */}
+        {/* Bento Grid - Pure UI minimalist aux couleurs Cascadheure */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(320px,_auto)]">
           
           {/* Carte 1 : Large (Span 2) */}
@@ -104,7 +104,7 @@ export default function Features() {
                 <Clock className="w-8 h-8" strokeWidth={1.5} />
               </div>
               <h3 className="text-3xl lg:text-5xl font-black text-chocolat tracking-tighter mb-6 leading-tight uppercase">
-                Proximité <br/> Kaskade.
+                Proximité <br/> Cascadheure.
               </h3>
             </div>
 

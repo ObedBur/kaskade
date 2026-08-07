@@ -17,11 +17,11 @@ async function testBrevo() {
     console.log(`✉️ Tentative d'envoi d'un e-mail de test à : ${emailTo}`);
 
     const result = await client.transactionalEmails.sendTransacEmail({
-      subject: "Test de configuration Brevo - Kaskade",
-      to: [{ email: emailTo, name: "Admin Kaskade" }],
+      subject: "Test de configuration Brevo - Cascadheure",
+      to: [{ email: emailTo, name: "Admin Cascadheure" }],
       sender: {
-        email: process.env.MAIL_FROM_EMAIL || "contact@kaskade.com",
-        name: process.env.MAIL_FROM_NAME || "Kaskade Dev",
+        email: process.env.MAIL_FROM_EMAIL || "contact@cascadheure.com",
+        name: process.env.MAIL_FROM_NAME || "Cascadheure Dev",
       },
       htmlContent: "<h1>Succès !</h1><p>Si vous lisez ceci, votre configuration Brevo fonctionne parfaitement.</p>",
     });

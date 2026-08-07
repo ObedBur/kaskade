@@ -79,7 +79,7 @@ export default function AdminSettingsPage() {
             <div className="space-y-3">
                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-4">Adresse Email</label>
                <input 
-                 defaultValue={user?.email || "julian@kaskade.com"}
+                 defaultValue={user?.email || "julian@cascadheure.com"}
                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl py-4 px-6 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-[#FF6B00]/5 hover:border-slate-200 transition-all text-slate-700" 
                />
             </div>

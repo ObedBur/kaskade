@@ -93,7 +93,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
           {/* Wordmark */}
           <h1 className="text-2xl font-black tracking-tighter text-white uppercase leading-none">
-            Kaskade<span className="text-[#BC9C6C]">.</span>
+            Cascadheure<span className="text-[#BC9C6C]">.</span>
           </h1>
 
           {/* Badge */}

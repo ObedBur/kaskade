@@ -55,7 +55,7 @@ export class NotificationsListener {
     try {
       await this.createAndPush({
         userId: payload.userId,
-        title: 'Bienvenue chez Kaskade !',
+        title: 'Bienvenue chez Cascadheure !',
         message: 'Nous sommes ravis de vous compter parmi nous. Découvrez nos services dès maintenant.',
         type: NotificationType.AUTH_WELCOME,
       });
@@ -71,7 +71,7 @@ export class NotificationsListener {
       await this.createAndPush({
         userId: payload.userId,
         title: 'Candidature reçue',
-        message: 'Nous avons bien reçu votre demande. L\'équipe Kaskade vous contactera prochainement.',
+        message: 'Nous avons bien reçu votre demande. L\'équipe Cascadheure vous contactera prochainement.',
         type: NotificationType.PROVIDER_APPLY_RECEIVED,
         providerAppId: payload.applicationId,
       });
@@ -98,7 +98,7 @@ export class NotificationsListener {
         userId: payload.userId,
         title: isApproved ? 'Candidature Acceptée !' : 'Candidature Refusée',
         message: isApproved
-          ? 'Félicitations, vous êtes maintenant Prestataire chez Kaskade.'
+          ? 'Félicitations, vous êtes maintenant Prestataire chez Cascadheure.'
           : 'Malheureusement, votre demande pour devenir prestataire n\'a pas été retenue pour le moment.',
         type: NotificationType.PROVIDER_APPLY_RESOLVED,
         providerAppId: payload.applicationId,

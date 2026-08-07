@@ -377,7 +377,7 @@ export default function AvailableMissionsPage() {
                 {/* Contact Actions */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <a 
-                    href={`https://wa.me/${selectedMission.client.phone?.replace(/\+/g, '')}?text=Bonjour ${selectedMission.client.fullName}, je suis intéressé par votre demande de ${selectedMission.service.name} sur Kaskade.`}
+                    href={`https://wa.me/${selectedMission.client.phone?.replace(/\+/g, '')}?text=Bonjour ${selectedMission.client.fullName}, je suis intéressé par votre demande de ${selectedMission.service.name} sur Cascadheure.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-3 bg-[#25D366] text-white py-3.5 md:py-4 px-6 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-[#25D366]/20"

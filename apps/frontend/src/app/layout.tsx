@@ -5,7 +5,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 // 1. Configuration des polices
-// "Inter" est la police principale du design system Kaskade
+// "Inter" est la police principale du design system Cascadheure
 const sans = Inter({ 
   subsets: ["latin"],
   variable: "--font-sans",
@@ -27,29 +27,29 @@ const mono = JetBrains_Mono({
 
 // 2. Configuration SEO & Metadata avancée
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kaskade.com"),
+  metadataBase: new URL("https://cascadheure.com"),
   title: {
-    default: "Kaskade.com | L'Innovation Digitale",
-    template: "%s | Kaskade.com",
+    default: "Cascadheure.com | L'Innovation Digitale",
+    template: "%s | Cascadheure.com",
   },
   description: "Plateforme immersive et solutions digitales de nouvelle génération.",
-  applicationName: "Kaskade",
-  authors: [{ name: "Kaskade Team", url: "https://kaskade.com" }],
+  applicationName: "Cascadheure",
+  authors: [{ name: "Cascadheure Team", url: "https://cascadheure.com" }],
   keywords: ["Digital", "Creative", "Agency", "Web3", "UI/UX"],
-  creator: "Kaskade Team",
+  creator: "Cascadheure Team",
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    url: "https://kaskade.com",
-    title: "Kaskade.com",
+    url: "https://cascadheure.com",
+    title: "Cascadheure.com",
     description: "L'avenir du design numérique commence ici.",
-    siteName: "Kaskade.com",
+    siteName: "Cascadheure.com",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Kaskade Preview",
+        alt: "Cascadheure Preview",
       },
     ],
   },

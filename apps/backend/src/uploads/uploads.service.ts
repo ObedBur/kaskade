@@ -5,7 +5,7 @@ import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
 
-  constructor(private readonly cloudinaryService: CloudinaryService) {}
+  constructor(private readonly cloudinaryService: CloudinaryService) { }
 
   /**
    * Sauvegarde un avatar sur Cloudinary et retourne l'URL HTTPS publique.
@@ -15,7 +15,7 @@ export class UploadsService {
   async saveAvatar(file: Express.Multer.File): Promise<{ url: string }> {
     const result = await this.cloudinaryService.uploadBuffer(
       file.buffer,
-      'kaskade/avatars',
+      'cascadheure/avatars',
     );
     this.logger.log(`Avatar uploadé sur Cloudinary: ${result.url}`);
     return { url: result.url };
@@ -31,7 +31,7 @@ export class UploadsService {
   ): Promise<{ filename: string; url: string }> {
     const result = await this.cloudinaryService.uploadBuffer(
       file.buffer,
-      'kaskade/services',
+      'cascadheure/services',
     );
     this.logger.log(`Image service uploadée sur Cloudinary: ${result.url}`);
     // On utilise directement l'URL Cloudinary au lieu du publicId

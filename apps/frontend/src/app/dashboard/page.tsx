@@ -92,7 +92,7 @@ export default function DashboardPage() {
           <span className="text-[#BC9C6C]">{user?.fullName?.split(' ')[0].toUpperCase()}.</span>
         </h1>
         <p className="text-[#321B13]/70 max-w-lg text-sm md:text-base leading-relaxed border-l-2 border-[#BC9C6C] pl-6">
-          Suivez vos performances en temps réel et gérez vos missions avec l'excellence Kaskade.
+          Suivez vos performances en temps réel et gérez vos missions avec l'excellence Cascadheure.
         </p>
       </motion.section>
 

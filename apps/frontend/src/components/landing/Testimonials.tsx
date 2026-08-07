@@ -9,7 +9,7 @@ const testimonials = [
     id: 1,
     name: "Sophie M.",
     role: "Propriétaire",
-    content: "Une plateforme exceptionnelle. J'ai trouvé un plombier qualifié en moins de 10 minutes. La sécurisation du paiement via Kaskade m'a totalement rassurée.",
+    content: "Une plateforme exceptionnelle. J'ai trouvé un plombier qualifié en moins de 10 minutes. La sécurisation du paiement via Cascadheure m'a totalement rassurée.",
     rating: 5,
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop"
   },
@@ -25,7 +25,7 @@ const testimonials = [
     id: 3,
     name: "Élodie P.",
     role: "Architecte d'intérieur",
-    content: "En tant que prestataire, Kaskade a révolutionné ma façon de trouver des clients premium. La garantie de paiement est un avantage inestimable.",
+    content: "En tant que prestataire, Cascadheure a révolutionné ma façon de trouver des clients premium. La garantie de paiement est un avantage inestimable.",
     rating: 5,
     image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop"
   }
@@ -67,7 +67,7 @@ export default function Testimonials() {
             transition={{ delay: 0.2 }}
             className="text-chocolat/60 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto"
           >
-            Ce que disent ceux qui ont redéfini leur quotidien avec l'écosystème Kaskade.
+            Ce que disent ceux qui ont redéfini leur quotidien avec l'écosystème Cascadheure.
           </motion.p>
         </div>
 

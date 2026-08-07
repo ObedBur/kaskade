@@ -1,6 +1,6 @@
-# 🧪 Kaskade - Fichiers de Tests REST Client
+# 🧪 cascadheure - Fichiers de Tests REST Client
 
-Suite de fichiers `.http` pour valider manuellement chaque module backend Kaskade.
+Suite de fichiers `.http` pour valider manuellement chaque module backend cascadheure.
 
 ## Prérequis
 
@@ -58,7 +58,7 @@ Exemple dans `prisma/seed.ts` :
 ```ts
 await prisma.user.create({
   data: {
-    email: 'admin@kaskade.com',
+    email: 'admin@cascadheure.com',
     password: await bcrypt.hash('AdminPassword123!', 10),
     fullName: 'Super Admin',
     role: 'ADMIN',

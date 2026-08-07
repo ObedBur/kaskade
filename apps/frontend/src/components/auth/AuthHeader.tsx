@@ -13,7 +13,7 @@ export default function AuthHeader() {
       <div className="flex justify-between items-center w-full px-8 md:px-20 py-6">
         <Link href="/">
           <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
-             Kaskade<span className="text-[#BC9C6C]">.</span>
+             Cascadheure<span className="text-[#BC9C6C]">.</span>
           </h1>
         </Link>
         <nav className="flex items-center space-x-4 md:space-x-8">

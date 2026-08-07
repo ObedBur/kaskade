@@ -32,7 +32,7 @@ async function bootstrap() {
     }
     const isAllowed = baseOrigins.some(o => origin.startsWith(o)) ||
       origin.includes('vercel.app') ||
-      origin.includes('kaskade') ||
+      origin.includes('cascadheure') ||
       origin.startsWith('http://localhost') ||
       origin.startsWith('http://127.0.0.1') ||
       origin.startsWith('capacitor://') ||
@@ -73,6 +73,6 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port, '0.0.0.0');
-  Logger.log(`🚀 Application running on port ${port}`, 'Bootstrap'); 
+  Logger.log(`🚀 Application running on port ${port}`, 'Bootstrap');
 }
 void bootstrap();

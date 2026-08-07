@@ -77,7 +77,7 @@ export default function LoginForm() {
             transition={{ delay: 0.2 }}
             className="text-chocolat/85 text-xs font-sans leading-relaxed"
           >
-            Identifiez-vous pour accéder à votre espace sécurisé Kaskade.
+            Identifiez-vous pour accéder à votre espace sécurisé Cascadheure.
           </motion.p>
         </header>
 
@@ -99,7 +99,7 @@ export default function LoginForm() {
                 className={`w-full min-h-[44px] py-3 px-4 bg-white/50 backdrop-blur-sm border border-ocre/10 rounded-[4px] text-sm text-chocolat placeholder:text-chocolat/20 focus:ring-1 focus:ring-ocre/20 focus:border-ocre/40 transition-all outline-none ${
                   errors.email ? "border-red-500 bg-red-50/10" : ""
                 }`}
-                placeholder="kaskade@gmail.com"
+                placeholder="cascadheure@gmail.com"
                 type="email"
                 disabled={isLoading}
               />

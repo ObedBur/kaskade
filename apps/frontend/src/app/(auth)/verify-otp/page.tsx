@@ -10,7 +10,7 @@ export default function VerifyOtpPage() {
         {/* Simplified Auth Header for OTP */}
         <header className="fixed top-0 left-0 p-6 md:p-12 z-50 bg-off-white/80 backdrop-blur-md w-full md:w-auto md:bg-transparent md:backdrop-blur-none">
           <Link href="/">
-            <h1 className="text-chocolat font-black tracking-tighter text-2xl uppercase">Kaskade</h1>
+            <h1 className="text-chocolat font-black tracking-tighter text-2xl uppercase">cascadheure</h1>
           </Link>
         </header>
 
@@ -29,9 +29,9 @@ export default function VerifyOtpPage() {
       {/* Right Visual Monolith */}
       <aside className="hidden lg:block w-5/12 relative overflow-hidden bg-[#f0ede9]">
         <div className="absolute inset-0 bg-gradient-to-r from-off-white to-transparent z-10 w-48"></div>
-        
-        <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkmOjdIZ1-eRywZU5GkSm0Lzc4hVN7DW-5rlzpGukkQbjqU61VF_bgUKd7ZAlCk9Z7_VXSIe0mo2aIiZ4lCX4CxeKtqb8xuD5VDrMB9EBpzQkt02tmgw8l5lOrlohBqUYPFr6fYlDgoiHuTzwnCNv43wnLA3Ky2ZOn2qOAHjlEoo2xM8n38xiQbxGvJWWB090S5A_13tbFfKAN5KMwmyHo05GnL4myF18Ffcedo6Lim0Xsp2bcDTo_atNjZEQ-6nqgNXSSnvsWnVA" 
+
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkmOjdIZ1-eRywZU5GkSm0Lzc4hVN7DW-5rlzpGukkQbjqU61VF_bgUKd7ZAlCk9Z7_VXSIe0mo2aIiZ4lCX4CxeKtqb8xuD5VDrMB9EBpzQkt02tmgw8l5lOrlohBqUYPFr6fYlDgoiHuTzwnCNv43wnLA3Ky2ZOn2qOAHjlEoo2xM8n38xiQbxGvJWWB090S5A_13tbFfKAN5KMwmyHo05GnL4myF18Ffcedo6Lim0Xsp2bcDTo_atNjZEQ-6nqgNXSSnvsWnVA"
           alt="Architectural landscape"
           className="w-full h-full object-cover grayscale opacity-60 hover:scale-105 transition-transform duration-[30s]"
         />

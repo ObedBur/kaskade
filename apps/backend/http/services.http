@@ -1,5 +1,5 @@
 ### ============================================================
-### KASKADE - Module Services (Catalogue)
+### cascadheure - Module Services (Catalogue)
 ### Workflow : ADMIN crée/gère → CLIENT/PROVIDER consultent
 ### ============================================================
 ### Prérequis : auth.http exécuté pour obtenir les tokens
@@ -16,7 +16,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "kaskade@gmail.com",
+  "email": "cascadheure@gmail.com",
   "password": "password123"
 }
 

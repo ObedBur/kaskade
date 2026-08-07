@@ -16,7 +16,7 @@ export class CloudinaryService {
   /**
    * Upload un buffer vers Cloudinary et retourne l'URL publique HTTPS.
    * @param buffer - Le buffer du fichier (depuis Multer memoryStorage)
-   * @param folder - Dossier Cloudinary cible (ex: 'kaskade/avatars')
+   * @param folder - Dossier Cloudinary cible (ex: 'cascadheure/avatars')
    * @param publicId - (optionnel) Identifiant public personnalisé
    */
   async uploadBuffer(

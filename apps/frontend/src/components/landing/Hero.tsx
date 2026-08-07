@@ -43,7 +43,7 @@ export default function Hero() {
                             transition={{ duration: 1.5, ease: "easeInOut" }}
                             className="w-full h-full object-cover"
                             src={HERO_IMAGES[index]}
-                            alt={`Kaskade Talent ${index + 1}`}
+                            alt={`Cascadheure Talent ${index + 1}`}
                         />
                     </AnimatePresence>
 

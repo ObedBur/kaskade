@@ -7,11 +7,11 @@ import { Plus, Minus } from "lucide-react";
 const faqs = [
   {
     question: "Comment fonctionne la garantie de paiement ?",
-    answer: "Votre paiement est divisé en deux parties : un acompte initial et un solde final. L'acompte valide la réservation mais reste sécurisé par Kaskade. Le solde n'est versé à l'expert qu'une fois la prestation terminée et validée par vos soins."
+    answer: "Votre paiement est divisé en deux parties : un acompte initial et un solde final. L'acompte valide la réservation mais reste sécurisé par Cascadheure. Le solde n'est versé à l'expert qu'une fois la prestation terminée et validée par vos soins."
   },
   {
     question: "Les professionnels sont-ils réellement vérifiés ?",
-    answer: "Absolument. Chaque expert Kaskade passe par un processus de vérification strict incluant la vérification d'identité, l'analyse des compétences professionnelles, et un entretien individuel pour garantir nos standards de qualité."
+    answer: "Absolument. Chaque expert Cascadheure passe par un processus de vérification strict incluant la vérification d'identité, l'analyse des compétences professionnelles, et un entretien individuel pour garantir nos standards de qualité."
   },
   {
     question: "Puis-je reporter une intervention déjà planifiée ?",

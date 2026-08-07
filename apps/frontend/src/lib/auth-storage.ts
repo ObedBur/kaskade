@@ -1,9 +1,9 @@
 export const AUTH_STORAGE_KEYS = {
-  accessToken: "kaskade_access_token",
-  refreshToken: "kaskade_refresh_token",
-  user: "kaskade_user",
-  userMode: "kaskade_user_mode",
-  rememberMe: "kaskade_remember_me",
+  accessToken: "cascadheure_access_token",
+  refreshToken: "cascadheure_refresh_token",
+  user: "cascadheure_user",
+  userMode: "cascadheure_user_mode",
+  rememberMe: "cascadheure_remember_me",
 } as const;
 
 const AUTH_KEYS = Object.values(AUTH_STORAGE_KEYS);

@@ -21,8 +21,8 @@ const mockConfigService = {
   getOrThrow: jest.fn().mockReturnValue('dummy_api_key'),
   get: jest.fn((key: string) => {
     if (key === 'FRONTEND_URL') return 'http://test';
-    if (key === 'MAIL_FROM_EMAIL') return 'test@kaskade.com';
-    if (key === 'MAIL_FROM_NAME') return 'Kaskade Team';
+    if (key === 'MAIL_FROM_EMAIL') return 'test@cascadheure.com';
+    if (key === 'MAIL_FROM_NAME') return 'Cascadheure Team';
     return null;
   }),
 };
@@ -55,7 +55,7 @@ describe('MailService', () => {
       expect(res).toEqual({ messageId: '123' });
       expect(mockSendTransacEmail).toHaveBeenCalledWith(
         expect.objectContaining({
-          subject: 'Bienvenue chez Kaskade - Inscription Prestataire',
+          subject: 'Bienvenue chez Cascadheure - Inscription Prestataire',
         })
       );
     });

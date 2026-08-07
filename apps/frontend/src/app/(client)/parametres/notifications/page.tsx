@@ -79,7 +79,7 @@ const notificationRows: NotificationRow[] = [
     emailEnabled: true,
   },
   {
-    title: "Promotions / actualités Kaskade",
+    title: "Promotions / actualités Cascadheure",
     description: "Recevez nos offres spéciales et actualités.",
     icon: Megaphone,
     iconTone: "amber-soft",
@@ -121,17 +121,15 @@ function StaticToggle({
 }) {
   return (
     <div
-      className={`relative mx-auto h-7 w-12 rounded-full border ${
-        enabled
+      className={`relative mx-auto h-7 w-12 rounded-full border ${enabled
           ? "border-[color:var(--ocre)] bg-[color:var(--ocre)]"
           : "border-[color:var(--settings-border-strong)] bg-white"
-      }`}
+        }`}
       aria-hidden="true"
     >
       <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm ${
-          enabled ? "left-6" : "left-1"
-        }`}
+        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm ${enabled ? "left-6" : "left-1"
+          }`}
       />
     </div>
   );

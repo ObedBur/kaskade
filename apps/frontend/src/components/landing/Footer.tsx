@@ -27,7 +27,7 @@ export default function Footer() {
 
           {/* Brand */}
           <div className="flex flex-col items-start">
-            <h2 className="text-3xl font-black text-white mb-6 uppercase tracking-tighter">Kaskade.</h2>
+            <h2 className="text-3xl font-black text-white mb-6 uppercase tracking-tighter">Cascadheure.</h2>
             <p className="text-white/60 font-sans text-xs leading-relaxed max-w-xs pr-4">
               L'excellence à votre porte. L'infrastructure de confiance pour vos services locaux premium.
             </p>
@@ -82,7 +82,7 @@ export default function Footer() {
 
         {/* Arcture Copyright Area */}
         <div className="pt-16 border-t border-ocre/10 flex flex-col md:flex-row justify-between items-center gap-8">
-          <p className="font-sans text-white text-[10px] uppercase tracking-[0.2em]">© 2026 KASKADE SERVICES.</p>
+          <p className="font-sans text-white text-[10px] uppercase tracking-[0.2em]">© 2026 CASCADHEURE SERVICES.</p>
           <div className="flex gap-8">
             <a href="#" className="font-sans text-white hover:text-ocre transition-colors text-[10px] uppercase tracking-[0.2em]">INSTAGRAM</a>
             <a href="#" className="font-sans text-white hover:text-ocre transition-colors text-[10px] uppercase tracking-[0.2em]">LINKEDIN</a>

@@ -32,7 +32,7 @@ export default function AuthHero() {
 
         <div className="mt-8 max-w-xs border-l-2 border-ocre pl-6">
           <p className="text-chocolat/70 font-sans text-[9px] uppercase tracking-[0.15em] leading-relaxed">
-            L'intégrité architecturale rencontre la souveraineté numérique. Entrez dans les systèmes monolithiques de Kaskade.
+            L'intégrité architecturale rencontre la souveraineté numérique. Entrez dans les systèmes monolithiques de Cascadheure.
           </p>
         </div>
 

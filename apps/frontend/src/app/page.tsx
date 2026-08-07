@@ -58,7 +58,7 @@ export default function Home() {
                     </button>
                   </Link>
                   <a
-                    href="mailto:contact@kaskade.app"
+                    href="mailto:contact@cascadheure.app"
                     className="flex items-center justify-center gap-4 bg-transparent border border-ocre/30 text-ocre px-12 py-6 rounded-md font-bold hover:bg-ocre/10 transition-all uppercase tracking-[0.2em] text-[11px] w-full md:w-auto group"
                   >
                     <Phone className="w-5 h-5 group-hover:rotate-12 transition-transform" />

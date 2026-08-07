@@ -1,5 +1,5 @@
 ### ============================================================
-### KASKADE - Module Provider Application
+### cascadheure - Module Provider Application
 ### Workflow : CLIENT soumet candidature → ADMIN approve → PROVIDER
 ### ============================================================
 ### Prérequis : auth.http exécuté pour obtenir les tokens
@@ -16,7 +16,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "kaskade@gmail.com",
+  "email": "cascadheure@gmail.com",
   "password": "password123"
 }
 

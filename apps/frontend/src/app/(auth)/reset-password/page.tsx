@@ -37,7 +37,7 @@ function ResetPasswordForm() {
     }
 
     setIsLoading(true);
-    
+
     try {
       await api.post("/auth/reset-password", {
         token,
@@ -53,7 +53,7 @@ function ResetPasswordForm() {
 
   return (
     <>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white border border-[#321B13]/10 p-8 md:p-12 shadow-[0_20px_40px_rgba(50,27,19,0.03)]"
@@ -65,7 +65,7 @@ function ResetPasswordForm() {
                 <KeyRound className="w-5 h-5 text-[#BC9C6C]" />
               </div>
             </div>
-            
+
             <h2 className="text-3xl font-black text-[#321B13] tracking-tighter mb-4 text-center">
               Créer un nouveau mot de passe
             </h2>
@@ -130,30 +130,30 @@ function ResetPasswordForm() {
             </form>
           </>
         ) : (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-6"
-            >
-              <div className="w-16 h-16 bg-[#BC9C6C]/10 flex items-center justify-center mx-auto mb-6 border border-[#BC9C6C]/20">
-                <CheckCircle2 className="w-8 h-8 text-[#321B13]" />
-              </div>
-              <h3 className="text-xl font-black text-[#321B13] uppercase tracking-tight mb-4">Mot de passe réinitialisé</h3>
-              
-              <p className="text-[#321B13]/70 text-sm leading-relaxed mb-10">
-                Votre nouveau mot de passe a été configuré avec succès. Vous pouvez maintenant vous connecter à votre espace Kaskade de manière sécurisée.
-              </p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-6"
+          >
+            <div className="w-16 h-16 bg-[#BC9C6C]/10 flex items-center justify-center mx-auto mb-6 border border-[#BC9C6C]/20">
+              <CheckCircle2 className="w-8 h-8 text-[#321B13]" />
+            </div>
+            <h3 className="text-xl font-black text-[#321B13] uppercase tracking-tight mb-4">Mot de passe réinitialisé</h3>
 
-              <Link 
-                href="/login"
-                className="inline-block w-full py-4 bg-[#321B13] text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#BC9C6C] transition-colors duration-300"
-              >
-                Accéder à la connexion
-              </Link>
-            </motion.div>
+            <p className="text-[#321B13]/70 text-sm leading-relaxed mb-10">
+              Votre nouveau mot de passe a été configuré avec succès. Vous pouvez maintenant vous connecter à votre espace cascadheure de manière sécurisée.
+            </p>
+
+            <Link
+              href="/login"
+              className="inline-block w-full py-4 bg-[#321B13] text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#BC9C6C] transition-colors duration-300"
+            >
+              Accéder à la connexion
+            </Link>
+          </motion.div>
         )}
       </motion.div>
-      
+
       {!isSubmitted && (
         <div className="mt-8 text-center">
           <Link href="/login" className="inline-flex items-center gap-2 text-[#321B13]/60 hover:text-[#321B13] text-[10px] font-bold uppercase tracking-widest transition-colors">
@@ -169,18 +169,18 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center px-4 py-6 min-[480px]:px-8 selection:bg-[#BC9C6C] selection:text-white">
       <div className="w-full mx-auto max-w-md lg:max-w-[450px] min-[1440px]:max-w-[500px]">
-        
+
         {/* LOGO MINIMALISTE */}
         <div className="mb-16 text-center">
-           <Link href="/" className="inline-block group mx-auto">
-             <div className="flex flex-col items-center gap-0.5 mb-2">
-               <div className="w-6 h-1 bg-[#BC9C6C] rounded-none group-hover:w-8 transition-all duration-300"></div>
-               <div className="w-8 h-1 bg-[#321B13] rounded-none"></div>
-             </div>
-             <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
-               Kaskade<span className="text-[#BC9C6C]">.</span>
-             </h1>
-           </Link>
+          <Link href="/" className="inline-block group mx-auto">
+            <div className="flex flex-col items-center gap-0.5 mb-2">
+              <div className="w-6 h-1 bg-[#BC9C6C] rounded-none group-hover:w-8 transition-all duration-300"></div>
+              <div className="w-8 h-1 bg-[#321B13] rounded-none"></div>
+            </div>
+            <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
+              cascadheure<span className="text-[#BC9C6C]">.</span>
+            </h1>
+          </Link>
         </div>
 
         <Suspense fallback={<div className="text-center text-[#321B13]/50 text-xs uppercase tracking-widest font-bold">Chargement...</div>}>

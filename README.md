@@ -1,6 +1,6 @@
-# Kaskade
+# cascadheure
 
-**Kaskade** est une plateforme de mise en relation entre **clients** et **prestataires de services locaux** (ménage, électricité, plomberie, architecture, tech, bien-être, etc.). Elle couvre l'intégralité du cycle de vie d'une mission : inscription, demande de service, validation admin, assignation prestataire, paiement en deux temps (acompte 50 % + solde 50 %) via mobile money, et notifications en temps réel.
+**cascadheure** est une plateforme de mise en relation entre **clients** et **prestataires de services locaux** (ménage, électricité, plomberie, architecture, tech, bien-être, etc.). Elle couvre l'intégralité du cycle de vie d'une mission : inscription, demande de service, validation admin, assignation prestataire, paiement en deux temps (acompte 50 % + solde 50 %) via mobile money, et notifications en temps réel.
 
 Le projet est organisé en **monorepo** avec **Turborepo** et **pnpm workspaces**.
 
@@ -123,9 +123,9 @@ Le projet est organisé en **monorepo** avec **Turborepo** et **pnpm workspaces*
 ## Structure du projet
 
 ```
-kaskade/
+cascadheure/
 ├── apps/
-│   ├── backend/                 # API NestJS (@kaskade/backend)
+│   ├── backend/                 # API NestJS (@cascadheure/backend)
 │   │   ├── prisma/
 │   │   │   ├── schema.prisma    # Schéma de données
 │   │   │   ├── seed.ts          # Données de test
@@ -145,7 +145,7 @@ kaskade/
 │   │   ├── http/                # Fichiers .http pour REST Client
 │   │   └── docker-compose.yml   # PostgreSQL + Redis local
 │   │
-│   └── frontend/                # App Next.js (@kaskade/frontend)
+│   └── frontend/                # App Next.js (@cascadheure/frontend)
 │       ├── src/
 │       │   ├── app/             # Routes App Router
 │       │   ├── components/      # auth/, landing/, admin/
@@ -176,7 +176,7 @@ kaskade/
 ```bash
 # Cloner le dépôt
 git clone <url-du-repo>
-cd kaskade
+cd cascadheure
 
 # Installer les dépendances (à la racine)
 pnpm install
@@ -196,14 +196,14 @@ cp .env.example .env
 
 | Variable | Description | Exemple |
 |----------|-------------|---------|
-| `DATABASE_URL` | Connexion PostgreSQL | `postgresql://user:pass@localhost:5432/kaskade_db` |
+| `DATABASE_URL` | Connexion PostgreSQL | `postgresql://user:pass@localhost:5432/cascadheure_db` |
 | `PORT` | Port backend | `4000` |
 | `FRONTEND_URL` | URL(s) frontend autorisées (CORS) | `http://localhost:3000` |
 | `JWT_ACCESS_SECRET` | Secret JWT access token | Chaîne aléatoire forte |
 | `JWT_REFRESH_SECRET` | Secret JWT refresh token | Chaîne aléatoire forte |
 | `BREVO_API_KEY` | Clé API Brevo (e-mails) | — |
-| `MAIL_FROM_EMAIL` | Expéditeur e-mails | `contact@kaskade.com` |
-| `MAIL_FROM_NAME` | Nom expéditeur | `L'équipe Kaskade` |
+| `MAIL_FROM_EMAIL` | Expéditeur e-mails | `contact@cascadheure.com` |
+| `MAIL_FROM_NAME` | Nom expéditeur | `L'équipe cascadheure` |
 | `MBIYO_API_URL` | URL API Mbiyo Pay | `https://dashboard.mbiyo.africa/api/v1` |
 | `MBIYO_SECRET_KEY` | Clé API marchande Mbiyo (test ou production) | — |
 | `MBIYO_WEBHOOK_SECRET` | Secret webhook HMAC | — |
@@ -224,7 +224,7 @@ docker compose up -d
 ```
 
 Services démarrés :
-- **PostgreSQL** : `localhost:5432` (user: `admin_kaskade`, pass: `1234567890`, db: `kaskade_db`)
+- **PostgreSQL** : `localhost:5432` (user: `admin_cascadheure`, pass: `1234567890`, db: `cascadheure_db`)
 - **Redis** : `localhost:6379`
 - **Redis Commander** : `http://localhost:8081`
 
@@ -236,13 +236,13 @@ Utilisez Neon, Supabase, Render PostgreSQL, etc. et renseignez `DATABASE_URL`.
 
 ```bash
 # Générer le client Prisma
-pnpm --filter @kaskade/backend exec prisma generate
+pnpm --filter @cascadheure/backend exec prisma generate
 
 # Appliquer les migrations
-pnpm --filter @kaskade/backend exec prisma migrate dev
+pnpm --filter @cascadheure/backend exec prisma migrate dev
 
 # Peupler la base avec des comptes de test
-pnpm --filter @kaskade/backend exec prisma db seed
+pnpm --filter @cascadheure/backend exec prisma db seed
 ```
 
 ---
@@ -284,7 +284,7 @@ Après `prisma db seed`, les comptes suivants sont disponibles (mot de passe : `
 
 | Rôle | E-mail | Téléphone |
 |------|--------|-----------|
-| **ADMIN** | `kaskade@gmail.com` | `+243990000000` |
+| **ADMIN** | `cascadheure@gmail.com` | `+243990000000` |
 | **CLIENT** | `client@gmail.com` | `+243990000001` |
 | **PROVIDER** | `provider@gmail.com` | `+243990000002` |
 
@@ -500,9 +500,9 @@ REJECTED                       ACCEPTED
 ### Backend (Jest)
 
 ```bash
-pnpm --filter @kaskade/backend test
-pnpm --filter @kaskade/backend test:cov
-pnpm --filter @kaskade/backend test:e2e
+pnpm --filter @cascadheure/backend test
+pnpm --filter @cascadheure/backend test:cov
+pnpm --filter @cascadheure/backend test:e2e
 ```
 
 ### Tests manuels API (REST Client)

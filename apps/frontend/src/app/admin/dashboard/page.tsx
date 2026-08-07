@@ -331,7 +331,7 @@ export default function AdminDashboardPage() {
             </h2>
             <p className="text-white/40 text-sm font-medium leading-relaxed">
               Actuellement {stats?.users.total || 0} membres forment
-              l'écosystème Kaskade. Votre rôle d'administrateur assure la
+              l'écosystème Cascadheure. Votre rôle d'administrateur assure la
               fluidité des {stats?.requests.total || 0} missions en cours.
             </p>
           </div>

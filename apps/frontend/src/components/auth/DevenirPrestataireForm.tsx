@@ -161,7 +161,7 @@ export default function DevenirPrestataireForm() {
           className="text-4xl md:text-6xl font-serif font-black tracking-tighter text-chocolat mb-6 uppercase leading-none"
         >
           Devenir <br />
-          <span className="text-ocre italic lowercase serif capitalize">Expert Kaskade.</span>
+          <span className="text-ocre italic lowercase serif capitalize">Expert Cascadheure.</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}

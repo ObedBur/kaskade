@@ -1,5 +1,5 @@
 ### ============================================================
-### KASKADE - WORKFLOW COMPLET (7 ÉTAPES)
+### cascadheure - WORKFLOW COMPLET (7 ÉTAPES)
 ### Du dépôt de la demande à la clôture finale
 ### ============================================================
 
@@ -14,7 +14,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "kaskade@gmail.com",
+  "email": "cascadheure@gmail.com",
   "password": "password123"
 }
 

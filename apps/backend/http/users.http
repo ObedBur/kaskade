@@ -1,5 +1,5 @@
 ### ============================================================
-### KASKADE - Module Users (Gestion des Utilisateurs)
+### cascadheure - Module Users (Gestion des Utilisateurs)
 ### Routes réservées ADMIN pour la gestion CRUD des comptes
 ### ============================================================
 ### Prérequis : auth.http exécuté → adminToken disponible
@@ -16,7 +16,7 @@ POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "kaskade@gmail.com",
+  "email": "cascadheure@gmail.com",
   "password": "password123"
 }
 
