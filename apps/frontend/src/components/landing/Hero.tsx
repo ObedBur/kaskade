@@ -3,23 +3,45 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import SearchAutocomplete from "./SearchAutocomplete";
+import api from "@/lib/api";
 
-const HERO_IMAGES = [
-    "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=2087&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1600585154340-be6048805f77?q=80&w=2070&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop"
-];
+interface ServiceImage {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+const HERO_FALLBACK = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop";
 
 export default function Hero() {
     const [index, setIndex] = useState(0);
+    const [heroImages, setHeroImages] = useState<ServiceImage[]>([]);
 
     useEffect(() => {
+        const fetchHeroImages = async () => {
+            try {
+                const response = await api.get("/services");
+                const services = Array.isArray(response.data) ? response.data : [];
+                const withImages = services
+                    .filter((s: any) => s.imageUrl)
+                    .slice(0, 5) as ServiceImage[];
+                if (withImages.length > 0) {
+                    setHeroImages(withImages);
+                }
+            } catch (err) {
+                console.error("Erreur chargement images hero:", err);
+            }
+        };
+        fetchHeroImages();
+    }, []);
+
+    useEffect(() => {
+        if (heroImages.length === 0) return;
         const timer = setInterval(() => {
-            setIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+            setIndex((prev) => (prev + 1) % heroImages.length);
         }, 6000);
         return () => clearInterval(timer);
-    }, []);
+    }, [heroImages.length]);
 
     return (
         <section className="relative pt-16 lg:pt-[112px] pb-16 md:pb-24 min-h-[75vh] flex items-center bg-off-white overflow-hidden">
@@ -35,14 +57,14 @@ export default function Hero() {
                 >
                     <AnimatePresence mode="wait">
                         <motion.img
-                            key={index}
+                            key={heroImages[index]?.id || index}
                             initial={{ opacity: 0, scale: 1.1, filter: "grayscale(100%)" }}
                             animate={{ opacity: 1, scale: 1, filter: "grayscale(10%)" }}
                             exit={{ opacity: 0, scale: 1.05 }}
                             transition={{ duration: 1.5, ease: "easeInOut" }}
                             className="w-full h-full object-cover"
-                            src={HERO_IMAGES[index]}
-                            alt={`Cascadheure Talent ${index + 1}`}
+                            src={heroImages[index]?.imageUrl || HERO_FALLBACK}
+                            alt={heroImages[index]?.name || "Cascadheur"}
                         />
                     </AnimatePresence>
 
@@ -92,7 +114,7 @@ export default function Hero() {
 
                     {/* Arcture Slide indicator */}
                     <div className="mt-16 flex gap-3">
-                        {HERO_IMAGES.map((_, i) => (
+                        {heroImages.map((_, i) => (
                             <div
                                 key={i}
                                 className={`h-[2px] transition-all duration-1000 ${i === index ? 'bg-ocre w-16' : 'bg-ocre/20 w-8'}`}
