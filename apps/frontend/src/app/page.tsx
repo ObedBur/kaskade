@@ -41,29 +41,31 @@ export default function Home() {
           <Testimonials />
 
           {/* Arcture Final CTA Section */}
-          <section className="py-48 px-4 min-[480px]:px-8 min-[1440px]:px-12 bg-off-white">
-            <div className="arcture-container bg-chocolat rounded-sm p-16 md:p-32 lg:p-40 text-center text-white overflow-hidden relative shadow-[0_30px_100px_rgba(50,27,19,0.15)]">
-              <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[600px] h-[600px] bg-ocre/20 rounded-full blur-[160px] opacity-40"></div>
-              <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px] bg-ocre/10 rounded-full blur-[160px] opacity-40"></div>
+          <section className="py-24 md:py-32 px-4 min-[480px]:px-8 min-[1440px]:px-12 bg-off-white">
+            <div className="arcture-container relative z-10">
+              <div className="bg-chocolat rounded-sm p-12 md:p-16 lg:p-24 text-center text-white overflow-hidden relative shadow-[0_30px_100px_rgba(50,27,19,0.15)]">
+                <div className="absolute top-0 right-0 -mr-40 -mt-40 w-[600px] h-[600px] bg-ocre/20 rounded-full blur-[160px] opacity-40"></div>
+                <div className="absolute bottom-0 left-0 -ml-40 -mb-40 w-[600px] h-[600px] bg-ocre/10 rounded-full blur-[160px] opacity-40"></div>
 
-              <div className="relative z-10">
-                <span className="text-ocre font-bold tracking-[0.4em] text-[10px] uppercase mb-12 block">Prêt à commencer?</span>
-                <h2 className="text-off-white mb-20 max-w-5xl mx-auto leading-none uppercase">
-                  REDÉFINISSEZ <br /> <span className="text-ocre italic lowercase serif">votre quotidien.</span>
-                </h2>
-                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-10">
-                  <Link href="/devenir-prestataire" className="w-full md:w-auto">
-                    <button className="btn-arcture py-6 px-16 bg-white text-chocolat hover:bg-ocre hover:text-chocolat w-full">
-                      DEVENIR PRESTATAIRE
-                    </button>
-                  </Link>
-                  <a
-                    href="mailto:contact@cascadheure.app"
-                    className="flex items-center justify-center gap-4 bg-transparent border border-ocre/30 text-ocre px-12 py-6 rounded-md font-bold hover:bg-ocre/10 transition-all uppercase tracking-[0.2em] text-[11px] w-full md:w-auto group"
-                  >
-                    <Phone className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                    NOUS CONTACTER
-                  </a>
+                <div className="relative z-10 max-w-3xl mx-auto">
+                  <span className="text-ocre font-bold tracking-[0.4em] text-[10px] uppercase mb-8 block">Prêt à commencer ?</span>
+                  <h2 className="text-off-white mb-10 max-w-5xl mx-auto leading-tight uppercase text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter">
+                    REDÉFINISSEZ <br /> <span className="text-ocre italic lowercase serif font-normal">votre quotidien.</span>
+                  </h2>
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-8">
+                    <Link href="/devenir-prestataire" className="w-full md:w-auto">
+                      <button className="btn-arcture py-6 px-12 bg-white text-chocolat hover:bg-ocre hover:text-chocolat w-full">
+                        DEVENIR PRESTATAIRE
+                      </button>
+                    </Link>
+                    <a
+                      href="mailto:contact@cascadheure.app"
+                      className="flex items-center justify-center gap-3 bg-transparent border border-ocre/30 text-ocre px-10 py-5 rounded-md font-bold hover:bg-ocre/10 transition-all uppercase tracking-[0.2em] text-[11px] w-full md:w-auto group"
+                    >
+                      <Phone className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      NOUS CONTACTER
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
