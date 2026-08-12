@@ -6,6 +6,7 @@ import { Menu, X, Search, Bell, ChevronDown, Home, Settings, FileText } from "lu
 import { useAuth } from "@/lib/auth-context";
 import { getMediaUrl } from "@/lib/utils";
 import api from "@/lib/api";
+import SearchAutocomplete from "./SearchAutocomplete";
 
 export default function Navbar() {
   const { user, isAuthenticated, switchMode, logout } = useAuth();
@@ -36,6 +37,7 @@ export default function Navbar() {
   }, [isAuthenticated]);
 
   const navLinks = user?.role === 'ADMIN' ? [] : [
+    { name: "Accueil", href: "/", icon: Home },
     { name: "Services", href: "/services", icon: Settings },
     { name: "Mes demandes", href: "/mes-demandes", icon: FileText },
   ];
@@ -44,26 +46,16 @@ export default function Navbar() {
     <header className="fixed top-0 w-full z-50 bg-chocolat border-b border-white/5">
       <div className="arcture-container h-16 flex items-center justify-between">
 
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex flex-col gap-0.5">
-            <div className="w-6 h-1 bg-ocre rounded-full group-hover:bg-ocre/80 transition-colors"></div>
-            <div className="w-8 h-1 bg-[#d4af37] rounded-full group-hover:bg-ocre/60 transition-colors"></div>
-            <div className="w-5 h-1 bg-ocre/40 rounded-full group-hover:bg-ocre/20 transition-colors"></div>
-          </div>
-          <span className="hidden md:block text-xl font-serif font-black text-white ml-2 tracking-tight uppercase">Cascadheure.</span>
+        <Link href="/" className="flex items-center group shrink-0 h-full">
+          <img
+            src="/white-cropped.png"
+            alt="Cascadheure"
+            className="block w-32 md:w-48 h-auto object-contain object-left"
+          />
         </Link>
 
         <div className="hidden lg:flex flex-1 max-w-xl mx-8">
-          <div className="relative w-full">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-ocre/60" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search..."
-              className="block w-full bg-black/20 border border-white/10 rounded-md py-2 pl-11 pr-4 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-ocre transition-all"
-            />
-          </div>
+          <SearchAutocomplete dark />
         </div>
 
         <div className="flex items-center gap-3 md:gap-6">
@@ -200,7 +192,7 @@ export default function Navbar() {
 
       {/* --- SECONDARY NAV BAR --- */}
       <div className="hidden lg:block border-t border-white/5 bg-chocolat">
-        <div className="max-w-[1600px] mx-auto px-8 flex items-center h-12 gap-1">
+        <div className="arcture-container flex items-center h-12 gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -221,11 +213,9 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-chocolat border-t border-white/5 py-4 shadow-2xl">
           <div className="relative mb-4 px-4">
-            <Search className="absolute left-4 top-2.5 h-4 w-4 text-ocre/50" />
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              className="w-full bg-transparent border-b border-white/10 py-2 pl-8 pr-4 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-ocre/50 transition-colors"
+            <SearchAutocomplete
+              dark
+              onSelect={() => setIsMobileMenuOpen(false)}
             />
           </div>
           <nav className="flex flex-col gap-1">

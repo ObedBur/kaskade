@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
@@ -23,24 +22,19 @@ export default function Footer() {
       <div className="absolute inset-0 bg-ocre/5 backdrop-blur-3xl -z-0 pointer-events-none"></div>
 
       <div className="arcture-container relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 md:gap-24 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 md:gap-24 mb-24">
 
           {/* Brand */}
           <div className="flex flex-col items-start">
-            <h2 className="text-3xl font-black text-white mb-6 uppercase tracking-tighter">Cascadheure.</h2>
+            <img
+              src="/white.png"
+              alt="Cascadheure"
+              className="block object-contain object-left mb-6"
+              style={{ width: "300px", height: "64px", objectPosition: "left center" }}
+            />
             <p className="text-white/60 font-sans text-xs leading-relaxed max-w-xs pr-4">
               L'excellence à votre porte. L'infrastructure de confiance pour vos services locaux premium.
             </p>
-          </div>
-
-          {/* Navigation */}
-          <div>
-            <h5 className="font-serif font-black mb-10 text-[10px] uppercase tracking-[0.4em] text-ocre opacity-80">Réseau.</h5>
-            <ul className="space-y-5 text-white/70 font-sans uppercase text-[10px] tracking-widest font-bold">
-              <li><Link className="hover:text-ocre transition-all" href="/devenir-prestataire">Devenir Expert</Link></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Nos Services</a></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Marketplace</a></li>
-            </ul>
           </div>
 
           {/* Legal */}

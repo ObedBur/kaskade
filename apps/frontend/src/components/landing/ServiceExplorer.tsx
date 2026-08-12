@@ -8,9 +8,11 @@ import {
   Calendar,
   ChevronRight,
   Loader2,
+  Check,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 import ServiceCard from "./ServiceCard";
 
@@ -25,6 +27,7 @@ export interface Service {
   imageKey?: string | null;
   workingHoursStart?: string;
   workingHoursEnd?: string;
+  quartiers?: string[];
   provider?: {
     id: string;
     fullName: string;
@@ -33,17 +36,92 @@ export interface Service {
   _count?: { reviews: number };
 }
 
-export default function ServiceExplorer() {
-  const filters = [
-    { name: "Catégorie", icon: SlidersHorizontal },
-    { name: "Budget", icon: Calculator },
-    { name: "Disponibilité", icon: Calendar },
-    { name: "Localisation", icon: MapPin },
-  ];
+const BUDGET_OPTIONS = [
+  { label: "Tous les budgets", min: 0, max: Infinity },
+  { label: "Moins de 100 $", min: 0, max: 100 },
+  { label: "100 $ - 300 $", min: 100, max: 300 },
+  { label: "300 $ - 500 $", min: 300, max: 500 },
+  { label: "Plus de 500 $", min: 500, max: Infinity },
+];
 
+const AVAILABILITY_OPTIONS = [
+  { label: "Toutes disponibilités", key: "ALL" },
+  { label: "Matin (avant 12h)", key: "MORNING" },
+  { label: "Après-midi (12h - 18h)", key: "AFTERNOON" },
+  { label: "Soirée (après 18h)", key: "EVENING" },
+];
+
+function getAvailabilityKey(start?: string): string {
+  if (!start) return "ALL";
+  const hour = parseInt(start.split(":")[0] || "0", 10);
+  if (hour < 12) return "MORNING";
+  if (hour < 18) return "AFTERNOON";
+  return "EVENING";
+}
+
+export default function ServiceExplorer() {
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [category, setCategory] = useState<string>("");
+  const [budget, setBudget] = useState(0);
+  const [availability, setAvailability] = useState("ALL");
+  const [location, setLocation] = useState("");
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const query = searchParams.get("query");
+    if (query) setSearchQuery(query);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setActiveFilter(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const categories = [...new Set(services.map((s) => s.category))].sort();
+  const locations = [
+    ...new Set(services.flatMap((s) => s.quartiers ?? [])),
+  ].filter(Boolean).sort();
+
+  const filteredServices = services.filter((s) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q && !(
+      s.name.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q) ||
+      s.description.toLowerCase().includes(q)
+    )) return false;
+
+    if (category && s.category !== category) return false;
+
+    const budgetOpt = BUDGET_OPTIONS[budget];
+    if (budgetOpt && !(s.price >= budgetOpt.min && s.price < budgetOpt.max)) return false;
+
+    if (availability !== "ALL" && getAvailabilityKey(s.workingHoursStart) !== availability) return false;
+
+    if (location && !(s.quartiers ?? []).includes(location)) return false;
+
+    return true;
+  });
+
+  const hasActiveFilters =
+    category !== "" || budget > 0 || availability !== "ALL" || location !== "";
+
+  const clearFilters = () => {
+    setCategory("");
+    setBudget(0);
+    setAvailability("ALL");
+    setLocation("");
+  };
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -106,6 +184,8 @@ export default function ServiceExplorer() {
               <Search className="w-6 h-6 text-ocre mr-4" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Quel service recherchez-vous ?"
                 className="w-full bg-transparent border-none focus:ring-0 text-chocolat font-bold text-sm uppercase tracking-widest placeholder:text-chocolat/30"
               />
@@ -114,26 +194,139 @@ export default function ServiceExplorer() {
             <button className="bg-chocolat text-white px-12 py-5 sm:py-6 rounded-[2rem] font-black text-sm uppercase tracking-widest hover:bg-ocre hover:text-chocolat transition-all duration-300 shadow-lg shadow-chocolat/20 active:scale-95 group">
               RECHERCHER
               <ChevronRight className="w-4 h-4 inline-block ml-2 transition-transform group-hover:translate-x-1" />
-            </button>
-          </motion.div>
+            </button>          </motion.div>
 
-          {/* FILTRES (Chips style minimal) */}
-          <div className="flex flex-wrap items-center gap-4">
-            {filters.map((filter, i) => (
-              <motion.button
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="flex items-center gap-3 px-6 py-4 bg-white border border-ocre/10 rounded-full hover:border-ocre hover:bg-off-white transition-all group shadow-sm"
-              >
-                <filter.icon className="w-4 h-4 text-chocolat group-hover:text-ocre transition-colors" />
-                <span className="text-[11px] font-black text-chocolat uppercase tracking-widest">
-                  {filter.name}
-                </span>
-              </motion.button>
-            ))}
+          {/* FILTRES (Chips style minimal + dropdowns responsives) */}
+          <div ref={filterRef} className="relative">
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              {/* Catégorie */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveFilter(activeFilter === "category" ? null : "category")}
+                  className={`flex items-center gap-2.5 px-5 py-3.5 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                    category
+                      ? "bg-chocolat text-white border-chocolat"
+                      : "bg-white border-ocre/10 text-chocolat hover:border-ocre hover:bg-off-white"
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4 text-ocre" />
+                  <span className="max-w-[120px] truncate">{category || "Catégorie"}</span>
+                  <ChevronRight className={`w-3 h-3 transition-transform ${activeFilter === "category" ? "rotate-90" : ""}`} />
+                </button>
+                {activeFilter === "category" && (
+                  <div className="absolute left-0 top-full mt-3 w-60 max-w-[calc(100vw-3rem)] bg-white border border-ocre/10 rounded-2xl shadow-2xl shadow-chocolat/10 overflow-hidden z-30">
+                    {categories.length > 0 ? (
+                      <div className="max-h-60 overflow-y-auto">
+                        <button onClick={() => { setCategory(""); setActiveFilter(null); }} className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs font-bold uppercase tracking-widest transition-colors ${!category ? "text-ocre bg-ocre/5" : "text-chocolat/70 hover:bg-white/50"}`}>
+                          Toutes les catégories {!category && <Check className="w-4 h-4 text-ocre" />}
+                        </button>
+                        {categories.map((c) => (
+                          <button key={c} onClick={() => { setCategory(c); setActiveFilter(null); }} className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs font-bold uppercase tracking-widest transition-colors ${category === c ? "text-ocre bg-ocre/5" : "text-chocolat/70 hover:bg-white/50"}`}>
+                            {c} {category === c && <Check className="w-4 h-4 text-ocre" />}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="px-5 py-4 text-xs text-chocolat/50">Aucune catégorie</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Budget */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveFilter(activeFilter === "budget" ? null : "budget")}
+                  className={`flex items-center gap-2.5 px-5 py-3.5 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                    budget > 0
+                      ? "bg-chocolat text-white border-chocolat"
+                      : "bg-white border-ocre/10 text-chocolat hover:border-ocre hover:bg-off-white"
+                  }`}
+                >
+                  <Calculator className="w-4 h-4 text-ocre" />
+                  <span className="max-w-[120px] truncate">{budget > 0 ? BUDGET_OPTIONS[budget].label : "Budget"}</span>
+                  <ChevronRight className={`w-3 h-3 transition-transform ${activeFilter === "budget" ? "rotate-90" : ""}`} />
+                </button>
+                {activeFilter === "budget" && (
+                  <div className="absolute left-0 top-full mt-3 w-60 max-w-[calc(100vw-3rem)] bg-white border border-ocre/10 rounded-2xl shadow-2xl shadow-chocolat/10 overflow-hidden z-30">
+                    {BUDGET_OPTIONS.map((opt, i) => (
+                      <button key={opt.label} onClick={() => { setBudget(i); setActiveFilter(null); }} className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs font-bold uppercase tracking-widest transition-colors ${budget === i ? "text-ocre bg-ocre/5" : "text-chocolat/70 hover:bg-white/50"}`}>
+                        {opt.label} {budget === i && <Check className="w-4 h-4 text-ocre" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Disponibilité */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveFilter(activeFilter === "availability" ? null : "availability")}
+                  className={`flex items-center gap-2.5 px-5 py-3.5 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                    availability !== "ALL"
+                      ? "bg-chocolat text-white border-chocolat"
+                      : "bg-white border-ocre/10 text-chocolat hover:border-ocre hover:bg-off-white"
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 text-ocre" />
+                  <span className="max-w-[160px] truncate">{availability !== "ALL" ? AVAILABILITY_OPTIONS.find(o => o.key === availability)?.label : "Disponibilité"}</span>
+                  <ChevronRight className={`w-3 h-3 transition-transform ${activeFilter === "availability" ? "rotate-90" : ""}`} />
+                </button>
+                {activeFilter === "availability" && (
+                  <div className="absolute left-0 top-full mt-3 w-60 max-w-[calc(100vw-3rem)] bg-white border border-ocre/10 rounded-2xl shadow-2xl shadow-chocolat/10 overflow-hidden z-30">
+                    {AVAILABILITY_OPTIONS.map((opt) => (
+                      <button key={opt.key} onClick={() => { setAvailability(opt.key); setActiveFilter(null); }} className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs font-bold uppercase tracking-widest transition-colors ${availability === opt.key ? "text-ocre bg-ocre/5" : "text-chocolat/70 hover:bg-white/50"}`}>
+                        {opt.label} {availability === opt.key && <Check className="w-4 h-4 text-ocre" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Localisation */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveFilter(activeFilter === "location" ? null : "location")}
+                  className={`flex items-center gap-2.5 px-5 py-3.5 rounded-full border text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                    location
+                      ? "bg-chocolat text-white border-chocolat"
+                      : "bg-white border-ocre/10 text-chocolat hover:border-ocre hover:bg-off-white"
+                  }`}
+                >
+                  <MapPin className="w-4 h-4 text-ocre" />
+                  <span className="max-w-[120px] truncate">{location || "Localisation"}</span>
+                  <ChevronRight className={`w-3 h-3 transition-transform ${activeFilter === "location" ? "rotate-90" : ""}`} />
+                </button>
+                {activeFilter === "location" && (
+                  <div className="absolute left-0 top-full mt-3 w-60 max-w-[calc(100vw-3rem)] bg-white border border-ocre/10 rounded-2xl shadow-2xl shadow-chocolat/10 overflow-hidden z-30">
+                    {locations.length > 0 ? (
+                      <div className="max-h-60 overflow-y-auto">
+                        <button onClick={() => { setLocation(""); setActiveFilter(null); }} className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs font-bold uppercase tracking-widest transition-colors ${!location ? "text-ocre bg-ocre/5" : "text-chocolat/70 hover:bg-white/50"}`}>
+                          Toutes les zones {!location && <Check className="w-4 h-4 text-ocre" />}
+                        </button>
+                        {locations.map((loc) => (
+                          <button key={loc} onClick={() => { setLocation(loc); setActiveFilter(null); }} className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs font-bold uppercase tracking-widest transition-colors ${location === loc ? "text-ocre bg-ocre/5" : "text-chocolat/70 hover:bg-white/50"}`}>
+                            {loc} {location === loc && <Check className="w-4 h-4 text-ocre" />}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="px-5 py-4 text-xs text-chocolat/50">Aucune zone disponible</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Réinitialiser */}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-3.5 text-[11px] font-black uppercase tracking-widest text-ocre hover:text-chocolat border border-ocre/30 rounded-full hover:bg-ocre/5 transition-all"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -161,9 +354,24 @@ export default function ServiceExplorer() {
               Aucun service disponible pour le moment.
             </p>
           </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="mt-16 md:mt-20 flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <p className="text-chocolat/50 font-bold">
+              Aucun résultat pour les critères sélectionnés.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                clearFilters();
+              }}
+              className="text-ocre text-sm font-black uppercase tracking-widest border-b border-ocre"
+            >
+              Effacer la recherche et les filtres
+            </button>
+          </div>
         ) : (
           <div className="mt-12 md:mt-20 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
-            {services.map((service) => (
+            {filteredServices.map((service) => (
               <ServiceCard key={service.id} service={service} />
             ))}
           </div>

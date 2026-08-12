@@ -21,9 +21,23 @@ export class ServicesService {
     const services = await this.prisma.service.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
+      include: {
+        providers: { select: { quartier: true } },
+      },
     });
 
-    return services.map((service) => this.withImageUrl(service));
+    return services.map((service) =>
+      this.withImageUrl({
+        ...service,
+        quartiers: [
+          ...new Set(
+            service.providers
+              .map((p) => p.quartier.trim())
+              .filter((q) => q.length > 0),
+          ),
+        ],
+      }),
+    );
   }
 
   async findAllForAdmin() {

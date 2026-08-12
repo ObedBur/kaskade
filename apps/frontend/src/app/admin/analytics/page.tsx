@@ -14,6 +14,11 @@ export default function AdminAnalyticsPage() {
   const [cities, setCities] = useState<CityData[]>([]);
   const [metrics, setMetrics] = useState<any>({});
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredCities = cities.filter((c) =>
+    c.city.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -52,7 +57,9 @@ export default function AdminAnalyticsPage() {
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
             type="text" 
-            placeholder="Rechercher une métrique ou une ville..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher une ville..." 
             className="w-full bg-white border border-slate-100 rounded-full py-5 px-14 text-sm focus:outline-none focus:ring-4 focus:ring-[#FF6B00]/5 transition-all"
           />
         </div>
@@ -87,9 +94,9 @@ export default function AdminAnalyticsPage() {
               <h3 className="text-2xl font-black mb-1">Volume par Ville</h3>
               <p className="text-slate-400 text-sm font-medium mb-12">Répartition géographique de l'activité</p>
               
-              {cities.length > 0 ? (
+              {filteredCities.length > 0 ? (
                 <div className="space-y-6">
-                 {cities.map((city, i) => (
+                 {filteredCities.map((city, i) => (
                    <div key={i}>
                      <div className="flex justify-between text-xs font-bold mb-3">
                        <span className="text-[#321B13]">{city.city}</span>
@@ -109,7 +116,7 @@ export default function AdminAnalyticsPage() {
                 </div>
               ) : (
                 <div className="py-20 text-center text-slate-300 font-bold uppercase tracking-widest textxs">
-                   Aucune donnée disponible
+                   {searchQuery.trim() ? "Aucune ville trouvée" : "Aucune donnée disponible"}
                 </div>
               )}
            </div>
