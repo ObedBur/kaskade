@@ -175,7 +175,7 @@ model Notification {
   userId    String
   title     String
   message   String   @db.Text
-  type      String   // Ex: AUTH_WELCOME, PROVIDER_APPLY, REQUEST_CREATED...
+  type      String   
   isRead    Boolean  @default(false)
   
   // Relations optionnelles vers les ressources
