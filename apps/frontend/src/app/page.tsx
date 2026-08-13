@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Navbar from "../components/landing/Navbar";
 import Hero from "../components/landing/Hero";
@@ -34,9 +34,14 @@ export default function Home() {
         >
           <Navbar />
 
-          <Hero />
+          <Suspense fallback={<div className="min-h-[75vh] flex items-center justify-center bg-off-white"><div className="w-10 h-10 animate-spin text-ocre border-4 border-ocre/20 border-t-ocre rounded-full" /></div>}>
+            <Hero />
+          </Suspense>
+          
 
-          <ServiceExplorer />
+          <Suspense fallback={<div className="min-h-[75vh] flex items-center justify-center bg-[#F5F3ED]"><div className="w-10 h-10 animate-spin text-ocre border-4 border-ocre/20 border-t-ocre rounded-full" /></div>}>
+            <ServiceExplorer />
+          </Suspense>
 
           <Testimonials />
 

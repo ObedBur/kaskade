@@ -4,6 +4,7 @@ import Navbar from "@/components/landing/Navbar";
 import ServiceExplorer from "@/components/landing/ServiceExplorer";
 import Footer from "@/components/landing/Footer";
 import { motion } from "framer-motion";
+import { Suspense } from "react";
 
 export default function ServicesPage() {
   return (
@@ -19,7 +20,9 @@ export default function ServicesPage() {
            animate={{ opacity: 1 }}
            transition={{ duration: 0.8 }}
          >
-           <ServiceExplorer />
+           <Suspense fallback={<div className="flex justify-center items-center py-24"><div className="w-10 h-10 animate-spin text-ocre border-4 border-ocre/20 border-t-ocre rounded-full" /></div>}>
+             <ServiceExplorer />
+           </Suspense>
          </motion.div>
       </div>
 
