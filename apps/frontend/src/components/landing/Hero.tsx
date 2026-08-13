@@ -47,7 +47,7 @@ export default function Hero() {
         <section className="relative pt-16 lg:pt-[112px] pb-16 md:pb-24 min-h-[75vh] flex items-center bg-off-white overflow-hidden">
 
             {/* Arcture Visual Monolith Slider (Right relative to content) */}
-            <div className="absolute right-0 top-0 w-full lg:w-[60%] h-full z-0 overflow-hidden pointer-events-none">
+            <div className="absolute right-0 top-16 lg:top-[112px] bottom-0 w-full lg:w-[60%] z-0 overflow-hidden pointer-events-none">
                 <div
                     className="relative w-full h-full"
                     style={{
@@ -62,7 +62,7 @@ export default function Hero() {
                             animate={{ opacity: 1, scale: 1, filter: "grayscale(10%)" }}
                             exit={{ opacity: 0, scale: 1.05 }}
                             transition={{ duration: 1.5, ease: "easeInOut" }}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-[center_20%]"
                             src={heroImages[index]?.imageUrl || HERO_FALLBACK}
                             alt={heroImages[index]?.name || "Cascadheur"}
                         />
