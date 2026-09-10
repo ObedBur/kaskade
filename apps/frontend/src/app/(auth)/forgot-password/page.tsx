@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
+import AuthHeader from "@/components/auth/AuthHeader";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -29,22 +30,9 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center px-4 py-6 min-[480px]:px-8 selection:bg-[#BC9C6C] selection:text-white">
+    <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center px-4 py-24 min-[480px]:px-8 selection:bg-[#BC9C6C] selection:text-white">
+      <AuthHeader />
       <div className="w-full mx-auto max-w-md lg:max-w-[450px] min-[1440px]:max-w-[500px]">
-
-        {/* LOGO MINIMALISTE */}
-        <div className="mb-16 text-center">
-          <Link href="/" className="inline-block group mx-auto">
-            <div className="flex flex-col items-center gap-0.5 mb-2">
-              <div className="w-6 h-1 bg-[#BC9C6C] rounded-none group-hover:w-8 transition-all duration-300"></div>
-              <div className="w-8 h-1 bg-[#321B13] rounded-none"></div>
-            </div>
-            <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
-              cascadheure<span className="text-[#BC9C6C]">.</span>
-            </h1>
-          </Link>
-        </div>
-
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

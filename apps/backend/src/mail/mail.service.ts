@@ -13,8 +13,18 @@ export class MailService {
     });
   }
 
-  async sendVerificationEmail(email: string, fullName: string, otp: string, role: string) {
-    const roleName = role === 'PROVIDER' ? 'Prestataire' : (role === 'ADMIN' ? 'Administrateur' : 'Client');
+  async sendVerificationEmail(
+    email: string,
+    fullName: string,
+    otp: string,
+    role: string,
+  ) {
+    const roleName =
+      role === 'PROVIDER'
+        ? 'Prestataire'
+        : role === 'ADMIN'
+          ? 'Administrateur'
+          : 'Client';
     try {
       const result = await this.client.transactionalEmails.sendTransacEmail({
         subject: `Bienvenue chez Cascadheure - Inscription ${roleName}`,
@@ -47,13 +57,22 @@ export class MailService {
       this.logger.log(`E-mail de vérification envoyé à ${email}`);
       return result;
     } catch (error) {
-      this.logger.error(`Erreur lors de l'envoi de l'e-mail à ${email}:`, error);
+      this.logger.error(
+        `Erreur lors de l'envoi de l'e-mail à ${email}:`,
+        error,
+      );
       throw error;
     }
   }
 
   async sendPasswordResetEmail(email: string, fullName: string, token: string) {
-    const resetUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/reset-password?token=${token}`;
+    const frontendUrl =
+      this.configService
+        .get<string>('FRONTEND_URL')
+        ?.split(',')[0]
+        ?.trim()
+        .replace(/\/+$/, '') || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     try {
       await this.client.transactionalEmails.sendTransacEmail({
@@ -85,7 +104,10 @@ export class MailService {
       });
       this.logger.log(`E-mail de réinitialisation envoyé à ${email}`);
     } catch (error) {
-      this.logger.error(`Erreur lors de l'envoi du reset e-mail à ${email}:`, error);
+      this.logger.error(
+        `Erreur lors de l'envoi du reset e-mail à ${email}:`,
+        error,
+      );
       throw error;
     }
   }

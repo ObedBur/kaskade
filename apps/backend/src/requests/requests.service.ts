@@ -268,7 +268,7 @@ export class RequestsService {
   }
 
   async getPooledAvailability(serviceId: string) {
-    let service = await this.prisma.service.findUnique({
+    const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
       include: {
         providers: {
@@ -311,7 +311,10 @@ export class RequestsService {
             },
             {
               metier: {
-                contains: service.category.substring(0, Math.min(4, service.category.length)),
+                contains: service.category.substring(
+                  0,
+                  Math.min(4, service.category.length),
+                ),
                 mode: 'insensitive',
               },
             },
@@ -326,20 +329,22 @@ export class RequestsService {
         },
       });
 
-      const extraProviders = (await this.prisma.user.findMany({
-        where: {
-          role: Role.PROVIDER,
-          isActive: true,
-          NOT: { id: { in: fallbackProviders.map((p) => p.id) } },
-        },
-        select: {
-          id: true,
-          fullName: true,
-          isActive: true,
-          role: true,
-          metier: true,
-        },
-      })).filter((p) => {
+      const extraProviders = (
+        await this.prisma.user.findMany({
+          where: {
+            role: Role.PROVIDER,
+            isActive: true,
+            NOT: { id: { in: fallbackProviders.map((p) => p.id) } },
+          },
+          select: {
+            id: true,
+            fullName: true,
+            isActive: true,
+            role: true,
+            metier: true,
+          },
+        })
+      ).filter((p) => {
         if (!p.metier) return false;
         const m = p.metier.toLowerCase().trim();
         return (
@@ -448,7 +453,7 @@ export class RequestsService {
     ];
 
     const weeks: any[] = [];
-    let currentDay = new Date(today);
+    const currentDay = new Date(today);
     let weekNumber = 1;
 
     const minBookingTime = new Date();

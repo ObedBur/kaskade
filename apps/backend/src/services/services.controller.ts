@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
@@ -24,6 +25,12 @@ export class ServicesController {
   @Get()
   findAll() {
     return this.servicesService.findAll();
+  }
+
+  @Public()
+  @Get('search')
+  search(@Query('q') q: string, @Query('limit') limit?: number) {
+    return this.servicesService.search(q, limit ? Number(limit) : 8);
   }
 
   @Public()

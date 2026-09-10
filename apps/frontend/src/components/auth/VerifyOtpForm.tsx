@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -12,20 +12,33 @@ export default function VerifyOtpForm() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const lastAutoVerifiedOtpRef = useRef<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email');
   const { isLoading: isAuthLoading } = useAuthGuard();
 
+  const updateOtp = (value: string, startIndex: number) => {
+    const digits = value.replace(/\D/g, '').slice(0, 6 - startIndex);
+    if (!digits) return;
+
+    const nextOtp = [...otp];
+    digits.split('').forEach((digit, offset) => {
+      nextOtp[startIndex + offset] = digit;
+    });
+    setOtp(nextOtp);
+
+    const nextFocusIndex = Math.min(startIndex + digits.length, 5);
+    inputRefs.current[nextFocusIndex]?.focus();
+  };
+
   const handleChange = (element: HTMLInputElement, index: number) => {
-    if (isNaN(Number(element.value))) return false;
-
-    setOtp([...otp.map((d, idx) => (idx === index ? element.value : d))]);
-
-    // Focus next input
-    if (element.value !== '' && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+    if (!element.value) {
+      setOtp(otp.map((digit, currentIndex) => currentIndex === index ? '' : digit));
+      return;
     }
+
+    updateOtp(element.value, index);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
@@ -34,14 +47,8 @@ export default function VerifyOtpForm() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpValue = otp.join('');
-    if (otpValue.length < 6) {
-      toast.error("Veuillez entrer le code complet.");
-      return;
-    }
-
+  const verifyOtp = useCallback(async (otpValue: string) => {
+    if (otpValue.length !== 6 || isLoading) return;
     setIsLoading(true);
     try {
       await api.post('/auth/verify-otp', {
@@ -55,7 +62,19 @@ export default function VerifyOtpForm() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [email, isLoading, router]);
+
+  useEffect(() => {
+    const otpValue = otp.join('');
+    if (otpValue.length < 6) {
+      lastAutoVerifiedOtpRef.current = null;
+      return;
+    }
+    if (lastAutoVerifiedOtpRef.current === otpValue) return;
+
+    lastAutoVerifiedOtpRef.current = otpValue;
+    void verifyOtp(otpValue);
+  }, [otp, verifyOtp]);
 
   const handleResend = async () => {
     if (!email) {
@@ -89,7 +108,7 @@ export default function VerifyOtpForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 md:space-y-12">
+      <div className="space-y-8 md:space-y-12">
         <div className="flex gap-1 min-[480px]:gap-2 sm:gap-4 justify-between">
           {otp.map((data, index) => (
             <input
@@ -98,11 +117,18 @@ export default function VerifyOtpForm() {
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={1}
+              autoComplete={index === 0 ? "one-time-code" : "off"}
               autoFocus={index === 0}
               ref={(el) => { inputRefs.current[index] = el; }}
               value={data}
               onChange={(e) => handleChange(e.target, index)}
+              onPaste={(e) => {
+                e.preventDefault();
+                updateOtp(e.clipboardData.getData('text'), index);
+              }}
               onKeyDown={(e) => handleKeyDown(e, index)}
+              disabled={isLoading}
+              aria-label={`Chiffre ${index + 1} du code de vérification`}
               className="w-full h-12 sm:h-16 lg:h-20 text-center text-xl md:text-3xl font-light bg-white rounded-lg md:rounded-xl border border-chocolat/10 text-chocolat focus:ring-2 focus:ring-ocre/30 focus:border-ocre/50 transition-all outline-none"
               placeholder="·"
             />
@@ -110,13 +136,9 @@ export default function VerifyOtpForm() {
         </div>
 
         <div className="flex flex-col gap-8">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-5 px-8 rounded-xl bg-ocre text-chocolat font-bold text-sm uppercase tracking-widest hover:bg-chocolat hover:text-ocre transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            {isLoading ? 'Vérification...' : 'Vérifier'}
-          </button>
+          <p className="text-center text-[10px] font-bold uppercase tracking-[0.15em] text-chocolat/50" aria-live="polite">
+            {isLoading ? 'Vérification du code…' : 'La vérification démarre automatiquement après le 6e chiffre.'}
+          </p>
 
           <div className="flex justify-between items-center">
             <button
@@ -134,7 +156,7 @@ export default function VerifyOtpForm() {
             </Link>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

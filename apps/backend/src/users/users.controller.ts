@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, HttpCode, HttpStatus, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -18,7 +30,9 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   @Roles(Role.ADMIN)
   async create(@Body() createUserDto: CreateUserDto) {
-    this.logger.log(`Requête ADMIN : Création d'utilisateur (${createUserDto.email})`);
+    this.logger.log(
+      `Requête ADMIN : Création d'utilisateur (${createUserDto.email})`,
+    );
     return this.usersService.create(createUserDto);
   }
 

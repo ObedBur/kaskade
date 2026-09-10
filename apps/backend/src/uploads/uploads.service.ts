@@ -5,7 +5,7 @@ import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
 
-  constructor(private readonly cloudinaryService: CloudinaryService) { }
+  constructor(private readonly cloudinaryService: CloudinaryService) {}
 
   /**
    * Sauvegarde un avatar sur Cloudinary et retourne l'URL HTTPS publique.

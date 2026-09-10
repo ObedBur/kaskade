@@ -29,7 +29,7 @@ const mockConfigService = {
 
 describe('MailService', () => {
   let service: MailService;
-  
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,19 +51,25 @@ describe('MailService', () => {
   describe('sendVerificationEmail', () => {
     it('sends email successfully', async () => {
       mockSendTransacEmail.mockResolvedValue({ messageId: '123' });
-      const res = await service.sendVerificationEmail('a@b.com', 'Test', '1234', 'PROVIDER');
+      const res = await service.sendVerificationEmail(
+        'a@b.com',
+        'Test',
+        '1234',
+        'PROVIDER',
+      );
       expect(res).toEqual({ messageId: '123' });
       expect(mockSendTransacEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: 'Bienvenue chez Cascadheure - Inscription Prestataire',
-        })
+        }),
       );
     });
 
     it('throws on error', async () => {
       mockSendTransacEmail.mockRejectedValue(new Error('fail'));
-      await expect(service.sendVerificationEmail('a@b.com', 'Test', '1234', 'CLIENT'))
-        .rejects.toThrow('fail');
+      await expect(
+        service.sendVerificationEmail('a@b.com', 'Test', '1234', 'CLIENT'),
+      ).rejects.toThrow('fail');
     });
   });
 
@@ -74,10 +80,33 @@ describe('MailService', () => {
       expect(mockSendTransacEmail).toHaveBeenCalled();
     });
 
+    it('uses the first configured frontend URL for the reset link', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'FRONTEND_URL') {
+          return 'https://production.example.com, https://preview.example.com';
+        }
+        if (key === 'MAIL_FROM_EMAIL') return 'test@cascadheure.com';
+        if (key === 'MAIL_FROM_NAME') return 'Cascadheure Team';
+        return null;
+      });
+      mockSendTransacEmail.mockResolvedValue({ messageId: '456' });
+
+      await service.sendPasswordResetEmail('a@b.com', 'Test', 'token');
+
+      expect(mockSendTransacEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          htmlContent: expect.stringContaining(
+            'https://production.example.com/reset-password?token=token',
+          ),
+        }),
+      );
+    });
+
     it('throws on error', async () => {
       mockSendTransacEmail.mockRejectedValue(new Error('fail'));
-      await expect(service.sendPasswordResetEmail('a@b.com', 'Test', 'token'))
-        .rejects.toThrow('fail');
+      await expect(
+        service.sendPasswordResetEmail('a@b.com', 'Test', 'token'),
+      ).rejects.toThrow('fail');
     });
   });
 });

@@ -37,25 +37,44 @@ describe('ProviderController', () => {
   it('findAvailableRequests', async () => {
     mockProvidersService.findAvailableRequests.mockResolvedValue([]);
     await expect(controller.findAvailableRequests('pid')).resolves.toEqual([]);
-    expect(mockProvidersService.findAvailableRequests).toHaveBeenCalledWith('pid');
+    expect(mockProvidersService.findAvailableRequests).toHaveBeenCalledWith(
+      'pid',
+    );
   });
 
   it('acceptRequest', async () => {
     mockProvidersService.acceptRequest.mockResolvedValue({ id: 'reqId' });
-    await expect(controller.acceptRequest('reqId', 'pid')).resolves.toEqual({ id: 'reqId' });
-    expect(mockProvidersService.acceptRequest).toHaveBeenCalledWith('reqId', 'pid');
+    await expect(controller.acceptRequest('reqId', 'pid')).resolves.toEqual({
+      id: 'reqId',
+    });
+    expect(mockProvidersService.acceptRequest).toHaveBeenCalledWith(
+      'reqId',
+      'pid',
+    );
   });
 
   it('rejectRequest', async () => {
-    mockProvidersService.rejectRequest.mockResolvedValue({ message: 'ignored' });
-    await expect(controller.rejectRequest('reqId', 'pid')).resolves.toEqual({ message: 'ignored' });
-    expect(mockProvidersService.rejectRequest).toHaveBeenCalledWith('reqId', 'pid');
+    mockProvidersService.rejectRequest.mockResolvedValue({
+      message: 'ignored',
+    });
+    await expect(controller.rejectRequest('reqId', 'pid')).resolves.toEqual({
+      message: 'ignored',
+    });
+    expect(mockProvidersService.rejectRequest).toHaveBeenCalledWith(
+      'reqId',
+      'pid',
+    );
   });
 
   it('completeRequest', async () => {
     mockProvidersService.completeRequest.mockResolvedValue({ id: 'reqId' });
-    await expect(controller.completeRequest('reqId', 'pid')).resolves.toEqual({ id: 'reqId' });
-    expect(mockProvidersService.completeRequest).toHaveBeenCalledWith('reqId', 'pid');
+    await expect(controller.completeRequest('reqId', 'pid')).resolves.toEqual({
+      id: 'reqId',
+    });
+    expect(mockProvidersService.completeRequest).toHaveBeenCalledWith(
+      'reqId',
+      'pid',
+    );
   });
 
   it('getProfile', async () => {
@@ -66,8 +85,14 @@ describe('ProviderController', () => {
 
   it('updateProfile', async () => {
     const dto: UpdateProviderProfileDto = { metier: 'Plombier' };
-    mockProvidersService.updateProfile.mockResolvedValue({ id: 'pid', metier: 'Plombier' });
-    await expect(controller.updateProfile('pid', dto)).resolves.toEqual({ id: 'pid', metier: 'Plombier' });
+    mockProvidersService.updateProfile.mockResolvedValue({
+      id: 'pid',
+      metier: 'Plombier',
+    });
+    await expect(controller.updateProfile('pid', dto)).resolves.toEqual({
+      id: 'pid',
+      metier: 'Plombier',
+    });
     expect(mockProvidersService.updateProfile).toHaveBeenCalledWith('pid', dto);
   });
 });

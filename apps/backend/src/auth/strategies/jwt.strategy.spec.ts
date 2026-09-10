@@ -39,7 +39,11 @@ describe('JwtStrategy', () => {
       const user = { id: '1', email: 'test@test.com' };
       mockUsersService.findOne.mockResolvedValue(user);
 
-      const result = await strategy.validate({ sub: '1', email: 'test@test.com', role: 'CLIENT' });
+      const result = await strategy.validate({
+        sub: '1',
+        email: 'test@test.com',
+        role: 'CLIENT',
+      });
 
       expect(mockUsersService.findOne).toHaveBeenCalledWith('1');
       expect(result).toEqual(user);
@@ -49,7 +53,11 @@ describe('JwtStrategy', () => {
       mockUsersService.findOne.mockResolvedValue(null);
 
       await expect(
-        strategy.validate({ sub: 'invalid_id', email: 'test@test.com', role: 'CLIENT' })
+        strategy.validate({
+          sub: 'invalid_id',
+          email: 'test@test.com',
+          role: 'CLIENT',
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

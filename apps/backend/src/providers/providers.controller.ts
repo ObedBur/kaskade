@@ -17,7 +17,9 @@ export class ProvidersController {
     @CurrentUser('id') userId: string,
     @Body() applyProviderDto: ApplyProviderDto,
   ) {
-    this.logger.log(`USER : Candidature prestataire soumise par l'utilisateur ID: ${userId}`);
+    this.logger.log(
+      `USER : Candidature prestataire soumise par l'utilisateur ID: ${userId}`,
+    );
     return this.providersService.apply(userId, applyProviderDto);
   }
 

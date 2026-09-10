@@ -2,32 +2,28 @@
 
 import { motion } from "framer-motion";
 import { Star, Quote } from "lucide-react";
-import Image from "next/image";
 
 const testimonials = [
   {
     id: 1,
-    name: "Sophie M.",
-    role: "Propriétaire",
-    content: "Une plateforme exceptionnelle. J'ai trouvé un plombier qualifié en moins de 10 minutes. La sécurisation du paiement via Cascadheure m'a totalement rassurée.",
+    name: "Grâce Kalume",
+    role: "Résidente de Goma",
+    content: "J'ai pu trouver un professionnel pour une intervention à domicile près de chez moi.",
     rating: 5,
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop"
   },
   {
     id: 2,
-    name: "Marc D.",
-    role: "Gérant de restaurant",
-    content: "L'interface est d'une fluidité remarquable. Le système d'abonnement me permet de gérer l'entretien de mes locaux sans aucun stress hebdomadaire.",
+    name: "Junior Mbuyi",
+    role: "Restaurateur à Goma",
+    content: "Les informations du service sont claires et me permettent de préparer ma demande rapidement.",
     rating: 5,
-    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=200&auto=format&fit=crop"
   },
   {
     id: 3,
-    name: "Élodie P.",
-    role: "Architecte d'intérieur",
-    content: "En tant que prestataire, Cascadheure a révolutionné ma façon de trouver des clients premium. La garantie de paiement est un avantage inestimable.",
+    name: "Aline Bahati",
+    role: "Prestataire partenaire",
+    content: "La présentation des demandes est simple à consulter depuis mon téléphone.",
     rating: 5,
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop"
   }
 ];
 
@@ -67,7 +63,7 @@ export default function Testimonials() {
             transition={{ delay: 0.2 }}
             className="text-chocolat/60 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto"
           >
-            Ce que disent ceux qui ont redéfini leur quotidien avec l'écosystème Cascadheure.
+            Des retours de la communauté locale, sans portraits de profils artificiels.
           </motion.p>
         </div>
 
@@ -94,16 +90,7 @@ export default function Testimonials() {
                 "{testimonial.content}"
               </p>
 
-              <div className="flex items-center gap-4 mt-auto">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-off-white shadow-sm">
-                  <Image 
-                    src={testimonial.image} 
-                    alt={testimonial.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
+              <div className="mt-auto border-t border-ocre/10 pt-5">
                 <div>
                   <h4 className="text-chocolat font-black uppercase tracking-widest text-sm mb-1">{testimonial.name}</h4>
                   <p className="text-ocre font-bold uppercase tracking-[0.2em] text-[9px]">{testimonial.role}</p>

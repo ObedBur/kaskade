@@ -23,7 +23,7 @@ const applySchema = z.object({
 
 type ApplyValues = z.infer<typeof applySchema>;
 
-export default function DevenirPrestataireForm() {
+export default function DevenirPrestataireForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -114,9 +114,7 @@ export default function DevenirPrestataireForm() {
       await api.post('/providers/apply', data);
       toast.success("Candidature soumise avec succès !");
       setIsSubmitted(true);
-      setTimeout(() => {
-        router.push('/');
-      }, 5000);
+      onSubmitted?.();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Erreur lors de la soumission de la candidature.");
     } finally {
@@ -129,7 +127,7 @@ export default function DevenirPrestataireForm() {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white p-10 md:p-16 text-center border border-ocre/20 shadow-2xl relative overflow-hidden"
+        className="w-full rounded-[2rem] bg-white p-10 text-center border border-ocre/20 shadow-2xl relative overflow-hidden md:p-16"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-ocre/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
         <div className="relative z-10 flex flex-col items-center">
@@ -137,8 +135,11 @@ export default function DevenirPrestataireForm() {
             <CheckCircle className="w-10 h-10 text-ocre" />
           </div>
           <h3 className="text-3xl font-serif font-black text-chocolat mb-6 uppercase tracking-tighter">Dossier Reçu.</h3>
-          <p className="text-chocolat/70 text-sm leading-relaxed max-w-sm mb-10">
-            Votre candidature a été soumise avec succès. Veuillez patienter pendant qu'un administrateur examine votre profil. Une fois approuvé, vos accès prestataires seront activés automatiquement.
+          <p className="text-chocolat/70 text-sm leading-relaxed max-w-md mb-5">
+            Votre candidature est bien enregistrée. Un administrateur va examiner votre profil avant d’activer vos accès prestataire.
+          </p>
+          <p className="text-chocolat/45 text-xs leading-relaxed max-w-md mb-10">
+            Vous pouvez retourner à l’accueil en toute sécurité : le suivi de votre candidature est sauvegardé.
           </p>
           <button
             onClick={() => router.push('/')}

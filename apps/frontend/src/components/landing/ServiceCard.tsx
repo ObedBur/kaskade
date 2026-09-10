@@ -16,8 +16,17 @@ import MobileMoneyPaymentModal, {
   PaymentCurrency,
 } from "@/components/payments/MobileMoneyPaymentModal";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80";
+const FALLBACK_IMAGES: Record<string, string> = {
+  TECH: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=90",
+  TRANSPORT: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=90",
+  RESTAURATION: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=90",
+  CONSTRUCTION: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=90",
+  "MAINTENANCE BÂTIMENT": "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1200&q=90",
+  "AIDE À DOMICILE": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=90",
+  "ÉVÉNEMENTIEL": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=90",
+};
+
+const FALLBACK_IMAGE = FALLBACK_IMAGES.TECH;
 
 const getServiceImageUrl = (service: Service) => {
   if (service.imageUrl && service.imageUrl.trim() && service.imageUrl !== "null") {
@@ -26,7 +35,7 @@ const getServiceImageUrl = (service: Service) => {
   if (service.imageKey && service.imageKey.trim() && service.imageKey !== "null") {
     return service.imageKey.startsWith("http") ? service.imageKey : `/uploads/services/${service.imageKey}`;
   }
-  return FALLBACK_IMAGE;
+  return FALLBACK_IMAGES[service.category] || FALLBACK_IMAGE;
 };
 
 // Types partagés
@@ -76,12 +85,14 @@ function ServiceDetailsModal({
         className="bg-white rounded-[24px] sm:rounded-[32px] w-full max-w-2xl overflow-hidden shadow-2xl my-auto max-h-[95vh] flex flex-col"
       >
         {/* Header Image */}
-        <div className="relative h-48 sm:h-72 w-full shrink-0">
+        <div className="relative h-52 sm:h-80 md:h-[22rem] w-full shrink-0">
           <Image
             src={getServiceImageUrl(service)}
             alt={service.name}
             fill
-            className="object-cover"
+            sizes="(max-width: 640px) 100vw, 672px"
+            quality={95}
+            className="object-cover object-[center_30%]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-chocolat/90 via-chocolat/30 to-transparent" />
           <button
@@ -189,7 +200,11 @@ export default function ServiceCardBento({ service }: { service: Service }) {
   const [showPooledCalendar, setShowPooledCalendar] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [schedulePlan, setSchedulePlan] = useState<SchedulePlan | null>(null);
+  const [imageHasError, setImageHasError] = useState(false);
   const { user, isAuthenticated } = useAuth();
+  const imageUrl = imageHasError
+    ? FALLBACK_IMAGES[service.category] || FALLBACK_IMAGE
+    : getServiceImageUrl(service);
 
   const createBookingRequest = async (plan: SchedulePlan) => {
     const res = await api.post("/requests", {
@@ -414,10 +429,13 @@ export default function ServiceCardBento({ service }: { service: Service }) {
         {/* Zone Image */}
         <div className="relative h-32 sm:h-48 w-full overflow-hidden shrink-0">
           <Image
-            src={getServiceImageUrl(service)}
+            src={imageUrl}
             alt={service.name}
             fill
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            quality={90}
+            onError={() => setImageHasError(true)}
+            className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
           />
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-chocolat/40 to-transparent" />

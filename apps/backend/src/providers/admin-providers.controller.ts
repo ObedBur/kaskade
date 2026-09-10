@@ -38,11 +38,10 @@ export class AdminProvidersController {
 
   // Approuver une candidature
   @Patch('applications/:id/approve')
-  approve(
-    @Param('id') id: string,
-    @Body() body: { serviceId: string }
-  ) {
-    this.logger.log(`ADMIN : Approbation de la candidature prestataire ID: ${id} avec le service ID: ${body.serviceId}`);
+  approve(@Param('id') id: string, @Body() body: { serviceId: string }) {
+    this.logger.log(
+      `ADMIN : Approbation de la candidature prestataire ID: ${id} avec le service ID: ${body.serviceId}`,
+    );
     return this.providersService.approve(id, body.serviceId);
   }
 

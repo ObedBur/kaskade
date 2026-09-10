@@ -571,7 +571,6 @@ export class PaymentsService {
       case 409:
         return new ConflictException(`${action} ${message}`);
       case 429:
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
         return new HttpException(`${action} ${message}`, 429);
       case 401:
       case 403:

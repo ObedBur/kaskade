@@ -3,19 +3,16 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function AuthHeader() {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-off-white/80 backdrop-blur-md text-chocolat border-b border-ocre/10 z-[100]">
-      <div className="flex justify-between items-center w-full px-8 md:px-20 py-6">
-        <Link href="/">
-          <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
-             Cascadheure<span className="text-[#BC9C6C]">.</span>
-          </h1>
-        </Link>
+    <header className="fixed top-0 left-0 z-[100] w-full border-b border-white/5 bg-chocolat">
+      <div className="arcture-container flex h-16 items-center justify-between">
+        <BrandLogo />
         <nav className="flex items-center space-x-4 md:space-x-8">
           <Link 
             href={isLoginPage ? '/register' : '/login'} 

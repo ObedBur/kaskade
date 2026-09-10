@@ -23,21 +23,23 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!requiredRoles) {
       return true;
     }
     const { user } = context.switchToHttp().getRequest();
-    
+
     const hasRole = requiredRoles.some((role) => user.role === role);
-    
+
     if (!hasRole) {
-      throw new ForbiddenException("Vous n'avez pas les droits nécessaires pour accéder à cette ressource.");
+      throw new ForbiddenException(
+        "Vous n'avez pas les droits nécessaires pour accéder à cette ressource.",
+      );
     }
-    
+
     return true;
   }
 }

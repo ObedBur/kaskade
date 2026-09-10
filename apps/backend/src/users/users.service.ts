@@ -15,7 +15,9 @@ export class UsersService {
       where: { email: createUserDto.email },
     });
     if (existing) {
-      this.logger.warn(`Tentative de création avec un email déjà utilisé: ${createUserDto.email}`);
+      this.logger.warn(
+        `Tentative de création avec un email déjà utilisé: ${createUserDto.email}`,
+      );
       throw new ConflictException('Email déjà utilisé');
     }
 
@@ -28,7 +30,9 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`Nouvel utilisateur créé: ${user.email} (ID: ${user.id}, Rôle: ${user.role})`);
+    this.logger.log(
+      `Nouvel utilisateur créé: ${user.email} (ID: ${user.id}, Rôle: ${user.role})`,
+    );
     return user;
   }
 

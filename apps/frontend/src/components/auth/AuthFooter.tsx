@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function AuthFooter() {
   return (
@@ -6,8 +7,8 @@ export default function AuthFooter() {
       <div className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>© 2024 CASCADHEURE SYSTEME ARCHICTECTURE</div>
         <div className="flex space-x-10">
-          <a className="hover:text-ocre transition-all duration-300" href="#">Confidentialité</a>
-          <a className="hover:text-ocre transition-all duration-300" href="#">Conditions</a>
+          <Link className="hover:text-ocre transition-all duration-300" href="/confidentialite">Confidentialité</Link>
+          <Link className="hover:text-ocre transition-all duration-300" href="/conditions">Conditions</Link>
           <a className="hover:text-ocre transition-all duration-300" href="#">Contact</a>
         </div>
       </div>

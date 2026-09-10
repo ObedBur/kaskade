@@ -44,7 +44,7 @@ export default function Hero() {
     }, [heroImages.length]);
 
     return (
-        <section className="relative pt-16 lg:pt-[112px] pb-16 md:pb-24 min-h-[75vh] flex items-center bg-off-white overflow-hidden">
+        <section className="relative flex min-h-[680px] items-start overflow-hidden bg-off-white pb-12 pt-24 sm:min-h-[75vh] sm:items-center sm:pb-16 lg:pt-[112px] md:pb-24">
 
             {/* Arcture Visual Monolith Slider (Right relative to content) */}
             <div className="absolute right-0 top-16 lg:top-[112px] bottom-0 w-full lg:w-[60%] z-0 overflow-hidden pointer-events-none">
@@ -71,6 +71,7 @@ export default function Hero() {
                     {/* Architectural Overlay Pattern (Luxe) */}
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none z-10"></div>
                 </div>
+                <div className="absolute inset-0 bg-off-white/45 sm:bg-off-white/20 lg:bg-transparent" />
             </div>
 
             {/* Arcture Grid Layout */}
@@ -82,8 +83,8 @@ export default function Hero() {
                         transition={{ duration: 0.8 }}
                     >
                         {/* H1 follows Gotham Bold Arcture Scale */}
-                        <h1 className="mb-8 md:mb-12 text-chocolat uppercase leading-none">
-                            TROUVEZ VOTRE SERVICE <br />
+                        <h1 className="mb-6 break-words text-4xl leading-[0.95] text-chocolat sm:mb-8 sm:text-5xl md:mb-12 md:text-7xl uppercase">
+                            TROUVEZ <span className="sm:hidden"><br /></span>VOTRE SERVICE <br />
                             <span className="text-ocre italic lowercase serif">
                                 près de chez vous
                             </span>
@@ -94,7 +95,7 @@ export default function Hero() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
-                        className="text-chocolat/85 max-w-[600px] mb-12 md:mb-16 border-l border-ocre pl-6 md:pl-8"
+                        className="mb-8 max-w-[260px] border-l border-ocre pl-4 text-sm leading-relaxed text-chocolat/85 sm:mb-12 sm:max-w-[600px] sm:pl-6 md:mb-16 md:pl-8 md:text-base"
                     >
                         Trouvez facilement des services locaux fiables, sélectionnés pour leur qualité
                     </motion.p>
@@ -113,11 +114,11 @@ export default function Hero() {
                     </motion.div>
 
                     {/* Arcture Slide indicator */}
-                    <div className="mt-16 flex gap-3">
+                    <div className="mt-10 flex gap-2 sm:mt-16 sm:gap-3">
                         {heroImages.map((_, i) => (
                             <div
                                 key={i}
-                                className={`h-[2px] transition-all duration-1000 ${i === index ? 'bg-ocre w-16' : 'bg-ocre/20 w-8'}`}
+                                className={`h-[2px] transition-all duration-1000 ${i === index ? 'bg-ocre w-10 sm:w-16' : 'bg-ocre/20 w-5 sm:w-8'}`}
                             ></div>
                         ))}
                     </div>

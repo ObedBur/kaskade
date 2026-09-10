@@ -33,13 +33,17 @@ describe('ProvidersController', () => {
   it('apply should call service apply', async () => {
     const dto: ApplyProviderDto = { motivation: 'I want to work' };
     mockProvidersService.apply.mockResolvedValue({ id: 'app-id' });
-    await expect(controller.apply('u-id', dto)).resolves.toEqual({ id: 'app-id' });
+    await expect(controller.apply('u-id', dto)).resolves.toEqual({
+      id: 'app-id',
+    });
     expect(mockProvidersService.apply).toHaveBeenCalledWith('u-id', dto);
   });
 
   it('myApplication should call service findMyApplication', async () => {
     mockProvidersService.findMyApplication.mockResolvedValue({ id: 'app-id' });
-    await expect(controller.myApplication('u-id')).resolves.toEqual({ id: 'app-id' });
+    await expect(controller.myApplication('u-id')).resolves.toEqual({
+      id: 'app-id',
+    });
     expect(mockProvidersService.findMyApplication).toHaveBeenCalledWith('u-id');
   });
 });

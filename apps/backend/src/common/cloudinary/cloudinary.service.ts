@@ -48,7 +48,9 @@ export class CloudinaryService {
             reject(new Error('Cloudinary: aucun résultat retourné'));
             return;
           }
-          this.logger.log(`Image uploadée sur Cloudinary: ${result.secure_url}`);
+          this.logger.log(
+            `Image uploadée sur Cloudinary: ${result.secure_url}`,
+          );
           resolve({ url: result.secure_url, publicId: result.public_id });
         },
       );
@@ -80,7 +82,9 @@ export class CloudinaryService {
       await cloudinary.uploader.destroy(publicId);
       this.logger.log(`Image Cloudinary supprimée: ${publicId}`);
     } catch (err: any) {
-      this.logger.warn(`Impossible de supprimer l'image Cloudinary: ${err.message}`);
+      this.logger.warn(
+        `Impossible de supprimer l'image Cloudinary: ${err.message}`,
+      );
     }
   }
 }

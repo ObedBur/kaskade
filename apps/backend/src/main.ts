@@ -17,20 +17,26 @@ async function bootstrap() {
   });
 
   // 3. Sécurité et CORS
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-  }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   const frontendUrlStr = process.env.FRONTEND_URL;
   const baseOrigins = frontendUrlStr
-    ? frontendUrlStr.split(',').map(url => url.trim().replace(/\/$/, ''))
+    ? frontendUrlStr.split(',').map((url) => url.trim().replace(/\/$/, ''))
     : [];
 
-  const allowedOriginsCallback = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  const allowedOriginsCallback = (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void,
+  ) => {
     if (!origin) {
       return callback(null, true);
     }
-    const isAllowed = baseOrigins.some(o => origin.startsWith(o)) ||
+    const isAllowed =
+      baseOrigins.some((o) => origin.startsWith(o)) ||
       origin.includes('vercel.app') ||
       origin.includes('cascadheure') ||
       origin.startsWith('http://localhost') ||

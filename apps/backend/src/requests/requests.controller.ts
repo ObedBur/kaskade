@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -15,14 +25,16 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 export class RequestsController {
   private readonly logger = new Logger(RequestsController.name);
 
-  constructor(private readonly requestsService: RequestsService) { }
+  constructor(private readonly requestsService: RequestsService) {}
 
   @Post()
   create(
     @CurrentUser('id') clientId: string,
     @Body() createRequestDto: CreateRequestDto,
   ) {
-    this.logger.log(`CLIENT : Création d'une nouvelle demande par l'utilisateur ID: ${clientId}`);
+    this.logger.log(
+      `CLIENT : Création d'une nouvelle demande par l'utilisateur ID: ${clientId}`,
+    );
     return this.requestsService.create(clientId, createRequestDto);
   }
 
@@ -61,5 +73,4 @@ export class RequestsController {
   remove(@Param('id') id: string, @CurrentUser('id') clientId: string) {
     return this.requestsService.removeForClient(id, clientId);
   }
-
 }

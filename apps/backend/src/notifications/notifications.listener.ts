@@ -13,7 +13,7 @@ export class NotificationsListener {
     private readonly notificationsService: NotificationsService,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   private async getAdmins() {
     return this.prisma.user.findMany({ where: { role: 'ADMIN' } });
@@ -28,21 +28,25 @@ export class NotificationsListener {
     serviceId?: string;
     providerAppId?: string;
   }) {
-    const notification = await this.notificationsService.createNotification(data);
+    const notification =
+      await this.notificationsService.createNotification(data);
     this.notificationsGateway.sendToUser(data.userId, notification);
     return notification;
   }
 
-  private async createManyAndPush(data: Array<{
-    userId: string;
-    title: string;
-    message: string;
-    type: NotificationType;
-    requestId?: string;
-    serviceId?: string;
-    providerAppId?: string;
-  }>) {
-    const notifications = await this.notificationsService.createManyNotifications(data);
+  private async createManyAndPush(
+    data: Array<{
+      userId: string;
+      title: string;
+      message: string;
+      type: NotificationType;
+      requestId?: string;
+      serviceId?: string;
+      providerAppId?: string;
+    }>,
+  ) {
+    const notifications =
+      await this.notificationsService.createManyNotifications(data);
 
     for (const notification of notifications) {
       this.notificationsGateway.sendToUser(notification.userId, notification);
@@ -56,22 +60,32 @@ export class NotificationsListener {
       await this.createAndPush({
         userId: payload.userId,
         title: 'Bienvenue chez Cascadheure !',
-        message: 'Nous sommes ravis de vous compter parmi nous. Découvrez nos services dès maintenant.',
+        message:
+          'Nous sommes ravis de vous compter parmi nous. Découvrez nos services dès maintenant.',
         type: NotificationType.AUTH_WELCOME,
       });
-      this.logger.log(`Notification envoyée (Bienvenue) au user ${payload.userId}`);
+      this.logger.log(
+        `Notification envoyée (Bienvenue) au user ${payload.userId}`,
+      );
     } catch (error) {
-      this.logger.error(`Erreur notification auth.registered: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification auth.registered: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('provider.applied')
-  async handleProviderApplied(payload: { userId: string; applicationId: string }) {
+  async handleProviderApplied(payload: {
+    userId: string;
+    applicationId: string;
+  }) {
     try {
       await this.createAndPush({
         userId: payload.userId,
         title: 'Candidature reçue',
-        message: 'Nous avons bien reçu votre demande. L\'équipe Cascadheure vous contactera prochainement.',
+        message:
+          "Nous avons bien reçu votre demande. L'équipe Cascadheure vous contactera prochainement.",
         type: NotificationType.PROVIDER_APPLY_RECEIVED,
         providerAppId: payload.applicationId,
       });
@@ -86,12 +100,19 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {
-      this.logger.error(`Erreur notification provider.applied: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification provider.applied: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('provider.application.resolved')
-  async handleProviderApplicationResolved(payload: { userId: string; status: 'APPROVED' | 'REJECTED'; applicationId: string }) {
+  async handleProviderApplicationResolved(payload: {
+    userId: string;
+    status: 'APPROVED' | 'REJECTED';
+    applicationId: string;
+  }) {
     try {
       const isApproved = payload.status === 'APPROVED';
       await this.createAndPush({
@@ -99,22 +120,28 @@ export class NotificationsListener {
         title: isApproved ? 'Candidature Acceptée !' : 'Candidature Refusée',
         message: isApproved
           ? 'Félicitations, vous êtes maintenant Prestataire chez Cascadheure.'
-          : 'Malheureusement, votre demande pour devenir prestataire n\'a pas été retenue pour le moment.',
+          : "Malheureusement, votre demande pour devenir prestataire n'a pas été retenue pour le moment.",
         type: NotificationType.PROVIDER_APPLY_RESOLVED,
         providerAppId: payload.applicationId,
       });
     } catch (error) {
-      this.logger.error(`Erreur notification provider.application.resolved: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification provider.application.resolved: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('service.created')
-  async handleServiceCreated(payload: { serviceId: string; serviceName: string }) {
+  async handleServiceCreated(payload: {
+    serviceId: string;
+    serviceName: string;
+  }) {
     try {
       const users = await this.prisma.user.findMany({
         where: {
-          role: { in: ['PROVIDER', 'CLIENT'] }
-        }
+          role: { in: ['PROVIDER', 'CLIENT'] },
+        },
       });
       const notifications = users.map((user) => ({
         userId: user.id,
@@ -128,20 +155,26 @@ export class NotificationsListener {
         await this.createManyAndPush(notifications);
       }
     } catch (error) {
-      this.logger.error(`Erreur notification service.created: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification service.created: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('service.updated')
-  async handleServiceUpdated(payload: { serviceId: string; serviceName: string }) {
+  async handleServiceUpdated(payload: {
+    serviceId: string;
+    serviceName: string;
+  }) {
     try {
       const users = await this.prisma.user.findMany({
-        where: { role: 'PROVIDER' }
+        where: { role: 'PROVIDER' },
       });
 
       const notifications = users.map((user) => ({
         userId: user.id,
-        title: 'Mise à jour d\'un service',
+        title: "Mise à jour d'un service",
         message: `Le service "${payload.serviceName}" a été mis à jour dans le catalogue.`,
         type: NotificationType.SERVICE_UPDATED,
         serviceId: payload.serviceId,
@@ -151,15 +184,21 @@ export class NotificationsListener {
         await this.createManyAndPush(notifications);
       }
     } catch (error) {
-      this.logger.error(`Erreur notification service.updated: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification service.updated: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('service.deleted')
-  async handleServiceDeleted(payload: { serviceId: string; serviceName: string }) {
+  async handleServiceDeleted(payload: {
+    serviceId: string;
+    serviceName: string;
+  }) {
     try {
       const users = await this.prisma.user.findMany({
-        where: { role: 'PROVIDER' }
+        where: { role: 'PROVIDER' },
       });
 
       const notifications = users.map((user) => ({
@@ -173,11 +212,12 @@ export class NotificationsListener {
         await this.createManyAndPush(notifications);
       }
     } catch (error) {
-      this.logger.error(`Erreur notification service.deleted: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification service.deleted: ${error.message}`,
+        error.stack,
+      );
     }
   }
-
-
 
   @OnEvent('request.created')
   async handleRequestCreated(payload: { requestId: string; clientId: string }) {
@@ -185,7 +225,8 @@ export class NotificationsListener {
       await this.createAndPush({
         userId: payload.clientId,
         title: 'Paiement reçu',
-        message: 'Votre acompte a été validé. Un administrateur examine votre demande pour l\'assigner à un expert.',
+        message:
+          "Votre acompte a été validé. Un administrateur examine votre demande pour l'assigner à un expert.",
         type: NotificationType.REQUEST_CREATED,
         requestId: payload.requestId,
       });
@@ -200,22 +241,30 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
 
-      this.logger.log(`Notifications envoyées pour la nouvelle demande PAYÉE ${payload.requestId}`);
+      this.logger.log(
+        `Notifications envoyées pour la nouvelle demande PAYÉE ${payload.requestId}`,
+      );
     } catch (error) {
-      this.logger.error(`Erreur notification request.created: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.created: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('request.approved')
-  async handleRequestApproved(payload: { requestId: string; serviceId: string }) {
+  async handleRequestApproved(payload: {
+    requestId: string;
+    serviceId: string;
+  }) {
     try {
       const service = await this.prisma.service.findUnique({
         where: { id: payload.serviceId },
         include: {
           providers: {
-            where: { isActive: true }
-          }
-        }
+            where: { isActive: true },
+          },
+        },
       });
 
       if (!service) return;
@@ -223,7 +272,9 @@ export class NotificationsListener {
       let providersToNotify = service.providers;
 
       if (providersToNotify.length === 0) {
-        this.logger.log(`Aucun prestataire lié au service ${service.name}. Recherche par métier (fallback)...`);
+        this.logger.log(
+          `Aucun prestataire lié au service ${service.name}. Recherche par métier (fallback)...`,
+        );
         const serviceNameNorm = service.name.toLowerCase().trim();
         const serviceCategoryNorm = service.category.toLowerCase().trim();
         const minMatchLen = Math.min(4, service.name.length);
@@ -233,19 +284,34 @@ export class NotificationsListener {
             role: 'PROVIDER',
             isActive: true,
             OR: [
-              { metier: { contains: service.name.substring(0, minMatchLen), mode: 'insensitive' } },
-              { metier: { contains: service.category.substring(0, Math.min(4, service.category.length)), mode: 'insensitive' } },
+              {
+                metier: {
+                  contains: service.name.substring(0, minMatchLen),
+                  mode: 'insensitive',
+                },
+              },
+              {
+                metier: {
+                  contains: service.category.substring(
+                    0,
+                    Math.min(4, service.category.length),
+                  ),
+                  mode: 'insensitive',
+                },
+              },
             ],
           },
         });
 
-        const secondPass = (await this.prisma.user.findMany({
-          where: {
-            role: 'PROVIDER',
-            isActive: true,
-            NOT: { id: { in: firstPass.map((p) => p.id) } },
-          },
-        })).filter((p) => {
+        const secondPass = (
+          await this.prisma.user.findMany({
+            where: {
+              role: 'PROVIDER',
+              isActive: true,
+              NOT: { id: { in: firstPass.map((p) => p.id) } },
+            },
+          })
+        ).filter((p) => {
           if (!p.metier) return false;
           const m = p.metier.toLowerCase().trim();
           return (
@@ -269,31 +335,45 @@ export class NotificationsListener {
 
       if (notifications.length > 0) {
         await this.createManyAndPush(notifications);
-        this.logger.log(`${notifications.length} prestataire(s) notifié(s) pour la demande ${payload.requestId}`);
+        this.logger.log(
+          `${notifications.length} prestataire(s) notifié(s) pour la demande ${payload.requestId}`,
+        );
       }
     } catch (error) {
-      this.logger.error(`Erreur notification request.approved: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.approved: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
-
   @OnEvent('request.admin_rejected')
-  async handleRequestAdminRejected(payload: { requestId: string; clientId: string }) {
+  async handleRequestAdminRejected(payload: {
+    requestId: string;
+    clientId: string;
+  }) {
     try {
       await this.createAndPush({
         userId: payload.clientId,
         title: 'Demande refusée',
-        message: 'Votre demande de service a été examinée et n\'a pas été retenue par notre équipe.',
+        message:
+          "Votre demande de service a été examinée et n'a pas été retenue par notre équipe.",
         type: NotificationType.REQUEST_ADMIN_REJECTED,
         requestId: payload.requestId,
       });
     } catch (error) {
-      this.logger.error(`Erreur notification request.admin_rejected: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.admin_rejected: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('request.cancelled')
-  async handleRequestCancelled(payload: { requestId: string; clientId: string }) {
+  async handleRequestCancelled(payload: {
+    requestId: string;
+    clientId: string;
+  }) {
     try {
       const admins = await this.getAdmins();
       const notifications = admins.map((admin) => ({
@@ -305,12 +385,19 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {
-      this.logger.error(`Erreur notification request.cancelled: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.cancelled: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('request.accepted')
-  async handleRequestAccepted(payload: { requestId: string; clientId: string; providerId: string }) {
+  async handleRequestAccepted(payload: {
+    requestId: string;
+    clientId: string;
+    providerId: string;
+  }) {
     try {
       await this.createAndPush({
         userId: payload.clientId,
@@ -330,12 +417,18 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {
-      this.logger.error(`Erreur notification request.accepted: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.accepted: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('request.rejected')
-  async handleRequestRejected(payload: { requestId: string; providerId: string }) {
+  async handleRequestRejected(payload: {
+    requestId: string;
+    providerId: string;
+  }) {
     try {
       const admins = await this.getAdmins();
       const notifications = admins.map((admin) => ({
@@ -347,7 +440,10 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {
-      this.logger.error(`Erreur notification request.rejected: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.rejected: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -360,10 +456,10 @@ export class NotificationsListener {
           provider: true,
           service: {
             include: {
-              providers: { where: { isActive: true } }
-            }
-          }
-        }
+              providers: { where: { isActive: true } },
+            },
+          },
+        },
       });
 
       if (!request) return;
@@ -372,17 +468,19 @@ export class NotificationsListener {
         await this.createAndPush({
           userId: request.providerId,
           title: 'Acompte reçu - Mission active',
-          message: 'Le client a payé l\'acompte. Vous pouvez commencer la mission dès maintenant.',
+          message:
+            "Le client a payé l'acompte. Vous pouvez commencer la mission dès maintenant.",
           type: NotificationType.PAYMENT_DEPOSIT_CONFIRMED,
           requestId: payload.requestId,
         });
       } else {
-
         const service = request.service;
         let providersToNotify = service.providers;
 
         if (providersToNotify.length === 0) {
-          this.logger.log(`Paiement reçu pour ${service.name}. Recherche de prestataires par métier (fallback)...`);
+          this.logger.log(
+            `Paiement reçu pour ${service.name}. Recherche de prestataires par métier (fallback)...`,
+          );
           const serviceNameNorm = service.name.toLowerCase().trim();
           const serviceCategoryNorm = service.category.toLowerCase().trim();
           const minMatchLen = Math.min(4, service.name.length);
@@ -392,19 +490,34 @@ export class NotificationsListener {
               role: 'PROVIDER',
               isActive: true,
               OR: [
-                { metier: { contains: service.name.substring(0, minMatchLen), mode: 'insensitive' } },
-                { metier: { contains: service.category.substring(0, Math.min(4, service.category.length)), mode: 'insensitive' } },
+                {
+                  metier: {
+                    contains: service.name.substring(0, minMatchLen),
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  metier: {
+                    contains: service.category.substring(
+                      0,
+                      Math.min(4, service.category.length),
+                    ),
+                    mode: 'insensitive',
+                  },
+                },
               ],
             },
           });
 
-          const secondPass = (await this.prisma.user.findMany({
-            where: {
-              role: 'PROVIDER',
-              isActive: true,
-              NOT: { id: { in: firstPass.map((p) => p.id) } },
-            },
-          })).filter((p) => {
+          const secondPass = (
+            await this.prisma.user.findMany({
+              where: {
+                role: 'PROVIDER',
+                isActive: true,
+                NOT: { id: { in: firstPass.map((p) => p.id) } },
+              },
+            })
+          ).filter((p) => {
             if (!p.metier) return false;
             const m = p.metier.toLowerCase().trim();
             return (
@@ -428,7 +541,9 @@ export class NotificationsListener {
 
         if (notifications.length > 0) {
           await this.createManyAndPush(notifications);
-          this.logger.log(`${notifications.length} prestataire(s) notifié(s) du paiement de l'acompte pour ${payload.requestId}`);
+          this.logger.log(
+            `${notifications.length} prestataire(s) notifié(s) du paiement de l'acompte pour ${payload.requestId}`,
+          );
         }
       }
 
@@ -442,12 +557,18 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(adminNotifications);
     } catch (error) {
-      this.logger.error(`Erreur notification payment.deposit_confirmed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification payment.deposit_confirmed: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   @OnEvent('request.completed')
-  async handleRequestCompleted(payload: { requestId: string; providerId: string }) {
+  async handleRequestCompleted(payload: {
+    requestId: string;
+    providerId: string;
+  }) {
     try {
       const request = await this.prisma.request.findUnique({
         where: { id: payload.requestId },
@@ -457,11 +578,11 @@ export class NotificationsListener {
       await this.createAndPush({
         userId: request.clientId,
         title: 'Mission terminée - En attente du solde',
-        message: 'Le prestataire a terminé sa mission. Merci de procéder au paiement final de 50%.',
+        message:
+          'Le prestataire a terminé sa mission. Merci de procéder au paiement final de 50%.',
         type: NotificationType.REQUEST_AWAITING_FINAL,
         requestId: payload.requestId,
       });
-
 
       const admins = await this.getAdmins();
       const notifications = admins.map((admin) => ({
@@ -473,7 +594,10 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {
-      this.logger.error(`Erreur notification request.completed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification request.completed: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -486,15 +610,14 @@ export class NotificationsListener {
 
       if (!request) return;
 
-
       await this.createAndPush({
         userId: request.clientId,
         title: 'Paiement final confirmé',
-        message: 'Merci pour votre confiance. La mission est officiellement clôturée.',
+        message:
+          'Merci pour votre confiance. La mission est officiellement clôturée.',
         type: NotificationType.PAYMENT_FINAL_CONFIRMED,
         requestId: payload.requestId,
       });
-
 
       if (request.providerId) {
         await this.createAndPush({
@@ -506,7 +629,6 @@ export class NotificationsListener {
         });
       }
 
-
       const admins = await this.getAdmins();
       const notifications = admins.map((admin) => ({
         userId: admin.id,
@@ -517,7 +639,10 @@ export class NotificationsListener {
       }));
       await this.createManyAndPush(notifications);
     } catch (error) {
-      this.logger.error(`Erreur notification payment.final_confirmed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur notification payment.final_confirmed: ${error.message}`,
+        error.stack,
+      );
     }
   }
 }

@@ -36,7 +36,13 @@ describe('UsersController', () => {
 
   describe('create', () => {
     it('should create a user returning 201 (indirectly via return value and metadata)', async () => {
-      const dto = { email: 'new@test.com', password: 'pwd', fullName: 'Test', phone: '123', quartier: 'qt' };
+      const dto = {
+        email: 'new@test.com',
+        password: 'pwd',
+        fullName: 'Test',
+        phone: '123',
+        quartier: 'qt',
+      };
       const expectedOutput = { id: '1', ...dto };
       mockUsersService.create.mockResolvedValue(expectedOutput);
 
@@ -48,11 +54,13 @@ describe('UsersController', () => {
 
   describe('findAll', () => {
     it('should return an array of users for admin', async () => {
-      const expectedUsers = [{ id: '1', email: 'admin@test.com', fullName: 'Admin' }];
+      const expectedUsers = [
+        { id: '1', email: 'admin@test.com', fullName: 'Admin' },
+      ];
       mockUsersService.findAll.mockResolvedValue(expectedUsers);
 
       const result = await controller.findAll();
-      
+
       expect(result).toEqual(expectedUsers);
       expect(mockUsersService.findAll).toHaveBeenCalledTimes(1);
     });
@@ -71,8 +79,12 @@ describe('UsersController', () => {
     it('should throw NotFoundException (404) if user is not found', async () => {
       mockUsersService.findOneSafe.mockResolvedValue(null);
 
-      await expect(controller.findOne('non-existing-id')).rejects.toThrow(NotFoundException);
-      expect(mockUsersService.findOneSafe).toHaveBeenCalledWith('non-existing-id');
+      await expect(controller.findOne('non-existing-id')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockUsersService.findOneSafe).toHaveBeenCalledWith(
+        'non-existing-id',
+      );
     });
   });
 
@@ -94,9 +106,13 @@ describe('UsersController', () => {
       mockUsersService.findOneSafe.mockResolvedValue(null);
 
       const dto = { fullName: 'Updated' };
-      await expect(controller.update('non-existing-id', dto)).rejects.toThrow(NotFoundException);
-      
-      expect(mockUsersService.findOneSafe).toHaveBeenCalledWith('non-existing-id');
+      await expect(controller.update('non-existing-id', dto)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockUsersService.findOneSafe).toHaveBeenCalledWith(
+        'non-existing-id',
+      );
       expect(mockUsersService.update).not.toHaveBeenCalled();
     });
   });

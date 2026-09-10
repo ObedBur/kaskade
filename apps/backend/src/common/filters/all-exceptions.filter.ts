@@ -27,9 +27,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         typeof res === 'string'
           ? res
           : (res as { message: string | string[] }).message;
-    } else if (
-      exception instanceof Prisma.PrismaClientKnownRequestError
-    ) {
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       switch (exception.code) {
         case 'P2002':
           status = HttpStatus.CONFLICT;

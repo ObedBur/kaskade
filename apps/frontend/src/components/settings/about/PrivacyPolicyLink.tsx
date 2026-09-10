@@ -5,20 +5,19 @@ import { ExternalLink } from "lucide-react";
 export default function PrivacyPolicyLink() {
   return (
     <Link
-      href="#"
+      href="/confidentialite"
       className="flex items-center justify-between gap-4 rounded-2xl border border-[color:var(--settings-border)] bg-white px-5 py-5 transition-colors hover:bg-[var(--settings-hover)]"
     >
       <div className="min-w-0">
         <p className="text-sm font-semibold text-[var(--chocolat)]">Politique de confidentialité</p>
         <p className="mt-1 text-xs leading-6 text-[var(--chocolat-muted)]">
-          Le document détaillant la collecte, l'utilisation et la conservation des données est en
-          cours de finalisation.
+          Consultez les règles de collecte, d'utilisation et de protection de vos données.
         </p>
       </div>
 
       <div className="flex items-center gap-3">
         <span className="rounded-full bg-[#F5EBDD] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ocre)]">
-          Document en cours
+          Disponible
         </span>
         <ExternalLink className="h-4 w-4 shrink-0 text-[var(--chocolat-muted)]" />
       </div>

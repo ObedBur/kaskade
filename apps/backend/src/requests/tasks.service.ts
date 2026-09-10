@@ -10,7 +10,7 @@ export class RequestsTasksService {
 
   constructor(
     private prisma: PrismaService,
-    private eventEmitter: EventEmitter2
+    private eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -34,7 +34,9 @@ export class RequestsTasksService {
 
     if (expiredRequests.length === 0) return;
 
-    this.logger.log(`${expiredRequests.length} demande(s) expirée(s) trouvée(s).`);
+    this.logger.log(
+      `${expiredRequests.length} demande(s) expirée(s) trouvée(s).`,
+    );
 
     for (const req of expiredRequests) {
       await this.prisma.request.update({

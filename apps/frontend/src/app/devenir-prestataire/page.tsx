@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import DevenirPrestataireForm from '@/components/auth/DevenirPrestataireForm';
@@ -10,6 +10,7 @@ import { useRequireAuth } from '@/lib/use-require-auth';
 export default function DevenirPrestatairePage() {
   // Seul un CLIENT peut postuler. Si déjà PROVIDER, on redirige vers le dashboard.
   const { user, isLoading } = useRequireAuth(undefined, ['CLIENT'], '/dashboard');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (isLoading || !user) return null;
 
@@ -24,15 +25,15 @@ export default function DevenirPrestatairePage() {
       <Navbar />
 
       <section className="relative z-10 pt-32 pb-24 md:pt-48 md:pb-48 px-4 min-[480px]:px-8 min-[1440px]:p-12">
-        <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+        <div className={`mx-auto ${isSubmitted ? "max-w-2xl" : "max-w-[1440px] grid grid-cols-1 lg:grid-cols-12 gap-16 items-start"}`}>
           
           {/* Colonne de gauche : Titre & Info */}
-          <div className="lg:col-span-7">
-             <DevenirPrestataireForm />
+          <div className={isSubmitted ? "w-full" : "lg:col-span-7"}>
+             <DevenirPrestataireForm onSubmitted={() => setIsSubmitted(true)} />
           </div>
 
           {/* Colonne de droite : Avantages & Image (Masquée sur mobile) */}
-          <div className="hidden lg:block lg:col-span-5 space-y-16 mt-12 lg:mt-32">
+          {!isSubmitted && <div className="hidden lg:block lg:col-span-5 space-y-16 mt-12 lg:mt-32">
              <motion.div 
                initial={{ opacity: 0, x: 20 }}
                animate={{ opacity: 1, x: 0 }}
@@ -74,7 +75,7 @@ export default function DevenirPrestatairePage() {
                 />
                 <div className="absolute inset-0 border-[20px] border-white/10 m-6"></div>
              </motion.div>
-          </div>
+          </div>}
         </div>
       </section>
 

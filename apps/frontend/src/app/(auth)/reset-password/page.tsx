@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useRef, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, KeyRound, AlertCircle, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
+import AuthHeader from "@/components/auth/AuthHeader";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -16,22 +17,29 @@ function ResetPasswordForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    // Certains navigateurs affichent un mot de passe auto-rempli sans déclencher
+    // onChange. Lire l'input garantit que la valeur envoyée est celle affichée.
+    const submittedPassword = passwordInputRef.current?.value ?? password;
+    const submittedConfirmPassword =
+      confirmPasswordInputRef.current?.value ?? confirmPassword;
 
     if (!token) {
       setError("Le lien de réinitialisation est invalide ou manquant.");
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (submittedPassword !== submittedConfirmPassword) {
       setError("Les mots de passe ne correspondent pas.");
       return;
     }
 
-    if (password.length < 8) {
+    if (submittedPassword.length < 8) {
       setError("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
@@ -41,7 +49,7 @@ function ResetPasswordForm() {
     try {
       await api.post("/auth/reset-password", {
         token,
-        newPassword: password
+        newPassword: submittedPassword
       });
       setIsSubmitted(true);
     } catch (err: any) {
@@ -94,7 +102,10 @@ function ResetPasswordForm() {
                 </label>
                 <input
                   id="password"
+                  ref={passwordInputRef}
+                  name="new-password"
                   type="password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -110,7 +121,10 @@ function ResetPasswordForm() {
                 </label>
                 <input
                   id="confirmPassword"
+                  ref={confirmPasswordInputRef}
+                  name="confirm-new-password"
                   type="password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -122,7 +136,7 @@ function ResetPasswordForm() {
 
               <button
                 type="submit"
-                disabled={isLoading || !password || !confirmPassword || !token}
+                disabled={isLoading || !token}
                 className="w-full py-4 bg-[#BC9C6C] text-white text-[10px] uppercase font-black tracking-[0.2em] hover:bg-[#321B13] transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
               >
                 {isLoading ? "Enregistrement..." : "Mettre à jour"}
@@ -167,22 +181,9 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center px-4 py-6 min-[480px]:px-8 selection:bg-[#BC9C6C] selection:text-white">
+    <div className="min-h-screen bg-[#FCFBF7] flex items-center justify-center px-4 py-24 min-[480px]:px-8 selection:bg-[#BC9C6C] selection:text-white">
+      <AuthHeader />
       <div className="w-full mx-auto max-w-md lg:max-w-[450px] min-[1440px]:max-w-[500px]">
-
-        {/* LOGO MINIMALISTE */}
-        <div className="mb-16 text-center">
-          <Link href="/" className="inline-block group mx-auto">
-            <div className="flex flex-col items-center gap-0.5 mb-2">
-              <div className="w-6 h-1 bg-[#BC9C6C] rounded-none group-hover:w-8 transition-all duration-300"></div>
-              <div className="w-8 h-1 bg-[#321B13] rounded-none"></div>
-            </div>
-            <h1 className="text-xl font-black tracking-tighter text-[#321B13] uppercase">
-              cascadheure<span className="text-[#BC9C6C]">.</span>
-            </h1>
-          </Link>
-        </div>
-
         <Suspense fallback={<div className="text-center text-[#321B13]/50 text-xs uppercase tracking-widest font-bold">Chargement...</div>}>
           <ResetPasswordForm />
         </Suspense>

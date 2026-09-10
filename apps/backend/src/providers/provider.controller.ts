@@ -45,7 +45,9 @@ export class ProviderController {
     @Param('id') requestId: string,
     @CurrentUser('id') providerId: string,
   ) {
-    this.logger.log(`PROVIDER : Mission ${requestId} acceptée par le prestataire ID: ${providerId}`);
+    this.logger.log(
+      `PROVIDER : Mission ${requestId} acceptée par le prestataire ID: ${providerId}`,
+    );
     return this.providersService.acceptRequest(requestId, providerId);
   }
 
@@ -62,7 +64,9 @@ export class ProviderController {
     @Param('id') requestId: string,
     @CurrentUser('id') providerId: string,
   ) {
-    this.logger.log(`PROVIDER : Mission ${requestId} marquée comme TERMINÉE par le prestataire ID: ${providerId}`);
+    this.logger.log(
+      `PROVIDER : Mission ${requestId} marquée comme TERMINÉE par le prestataire ID: ${providerId}`,
+    );
     return this.providersService.completeRequest(requestId, providerId);
   }
 

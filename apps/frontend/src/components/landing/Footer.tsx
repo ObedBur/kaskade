@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import Link from "next/link";
 
 export default function Footer() {
   const footerRef = useRef<HTMLElement>(null);
@@ -41,9 +42,9 @@ export default function Footer() {
           <div>
             <h5 className="font-serif font-black mb-10 text-[10px] uppercase tracking-[0.4em] text-ocre opacity-80">Juridique.</h5>
             <ul className="space-y-5 text-white/70 font-sans uppercase text-[10px] tracking-widest font-bold">
-              <li><a className="hover:text-ocre transition-all" href="#">Confidentialité</a></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Conditions</a></li>
-              <li><a className="hover:text-ocre transition-all" href="#">Sécurité</a></li>
+              <li><Link className="hover:text-ocre transition-all" href="/confidentialite">Confidentialité</Link></li>
+              <li><Link className="hover:text-ocre transition-all" href="/conditions">Conditions</Link></li>
+              <li><Link className="hover:text-ocre transition-all" href="/securite">Sécurité</Link></li>
             </ul>
           </div>
 

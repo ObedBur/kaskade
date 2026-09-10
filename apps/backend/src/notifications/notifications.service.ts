@@ -31,14 +31,16 @@ export class NotificationsService {
         providerAppId: data.providerAppId,
       },
     });
-    this.logger.log(`Notification créée pour l'utilisateur ${data.userId}: ${data.title} (${data.type})`);
+    this.logger.log(
+      `Notification créée pour l'utilisateur ${data.userId}: ${data.title} (${data.type})`,
+    );
     return notification;
   }
 
   // Création massive avec support des relations — retourne les objets créés (avec IDs)
   async createManyNotifications(data: CreateNotificationPayload[]) {
     const notifications = await Promise.all(
-      data.map(d =>
+      data.map((d) =>
         this.prisma.notification.create({
           data: {
             userId: d.userId,
@@ -57,7 +59,10 @@ export class NotificationsService {
   }
 
   // Lister les notifications d'un utilisateur avec relations et pagination
-  async findAllForUser(userId: string, options?: { page: number; limit: number }) {
+  async findAllForUser(
+    userId: string,
+    options?: { page: number; limit: number },
+  ) {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;

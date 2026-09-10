@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getMediaUrl } from "@/lib/utils";
 import api from "@/lib/api";
 import SearchAutocomplete from "./SearchAutocomplete";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function Navbar() {
   const { user, isAuthenticated, switchMode, logout } = useAuth();
@@ -46,13 +47,7 @@ export default function Navbar() {
     <header className="fixed top-0 w-full z-50 bg-chocolat border-b border-white/5">
       <div className="arcture-container h-16 flex items-center justify-between">
 
-        <Link href="/" className="flex items-center group shrink-0 h-full">
-          <img
-            src="/white-cropped.png"
-            alt="Cascadheure"
-            className="block w-32 md:w-48 h-auto object-contain object-left"
-          />
-        </Link>
+        <BrandLogo />
 
         <div className="hidden lg:flex flex-1 max-w-xl mx-8">
           <SearchAutocomplete dark />

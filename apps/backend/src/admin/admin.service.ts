@@ -38,24 +38,29 @@ export class AdminService {
       }),
     ]);
 
-    // Categories mock calculation as Prisma groupBy doesn't directly support 
+    // Categories mock calculation as Prisma groupBy doesn't directly support
     // joining relations on count, so we get total services
     const services = await this.prisma.service.findMany({
-      select: { category: true }
+      select: { category: true },
     });
-    
-    const categoryCounts = services.reduce((acc, curr) => {
-      acc[curr.category] = (acc[curr.category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+
+    const categoryCounts = services.reduce(
+      (acc, curr) => {
+        acc[curr.category] = (acc[curr.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const totalServices = services.length || 1;
-    const colors = ["#FF6B00", "#BC9C6C", "#321B13", "#4A5568"];
-    const categories = Object.keys(categoryCounts).map((cat, i) => ({
-      label: cat,
-      value: `${Math.round((categoryCounts[cat] / totalServices) * 100)}%`,
-      color: colors[i % colors.length]
-    })).slice(0, 3);
+    const colors = ['#FF6B00', '#BC9C6C', '#321B13', '#4A5568'];
+    const categories = Object.keys(categoryCounts)
+      .map((cat, i) => ({
+        label: cat,
+        value: `${Math.round((categoryCounts[cat] / totalServices) * 100)}%`,
+        color: colors[i % colors.length],
+      }))
+      .slice(0, 3);
 
     const stats = [
       {
@@ -89,8 +94,12 @@ export class AdminService {
       name: req.provider?.fullName || 'En attente',
       email: req.client.email,
       type: req.service.name,
-      status: req.status === 'COMPLETED' ? 'VÉRIFIÉ' : 
-              req.status === 'REJECTED' ? 'SUSPENDU' : 'EN ATTENTE',
+      status:
+        req.status === 'COMPLETED'
+          ? 'VÉRIFIÉ'
+          : req.status === 'REJECTED'
+            ? 'SUSPENDU'
+            : 'EN ATTENTE',
       amount: req.price ? `$${req.price}` : '$0.00',
     }));
 
@@ -118,7 +127,10 @@ export class AdminService {
         month: 'short',
         year: 'numeric',
       }),
-      tasks: user.role === 'PROVIDER' ? user._count.providerRequests : user._count.clientRequests,
+      tasks:
+        user.role === 'PROVIDER'
+          ? user._count.providerRequests
+          : user._count.clientRequests,
       rating: 5.0,
     }));
 
@@ -139,9 +151,14 @@ export class AdminService {
       client: req.client.fullName,
       service: req.service.name,
       amount: req.price ? `$${req.price.toLocaleString()}` : '$0.00',
-      status: req.status === 'COMPLETED' ? 'TERMINÉ' : 
-              req.status === 'PENDING' ? 'EN ATTENTE' : 
-              req.status === 'REJECTED' ? 'REJETÉ' : 'VÉRIFIÉ',
+      status:
+        req.status === 'COMPLETED'
+          ? 'TERMINÉ'
+          : req.status === 'PENDING'
+            ? 'EN ATTENTE'
+            : req.status === 'REJECTED'
+              ? 'REJETÉ'
+              : 'VÉRIFIÉ',
       date: new Date(req.createdAt).toLocaleDateString('fr-FR', {
         day: 'numeric',
         month: 'short',
@@ -170,10 +187,30 @@ export class AdminService {
 
     const revSum = totalRevenue._sum?.price || 0;
     const stats = [
-      { label: 'Solde Total', value: `$${revSum.toLocaleString()}`, trend: '+12%', color: '#FF6B00' },
-      { label: 'En Séquestre', value: `$${(escrow._sum?.price || 0).toLocaleString()}`, trend: '+4%', color: '#BC9C6C' },
-      { label: 'Payé Prestataires', value: `$${(revSum * 0.8).toLocaleString()}`, trend: '+8%', color: '#321B13' },
-      { label: 'Commissions', value: `$${(revSum * 0.2).toLocaleString()}`, trend: '+15%', color: '#FF6B00' },
+      {
+        label: 'Solde Total',
+        value: `$${revSum.toLocaleString()}`,
+        trend: '+12%',
+        color: '#FF6B00',
+      },
+      {
+        label: 'En Séquestre',
+        value: `$${(escrow._sum?.price || 0).toLocaleString()}`,
+        trend: '+4%',
+        color: '#BC9C6C',
+      },
+      {
+        label: 'Payé Prestataires',
+        value: `$${(revSum * 0.8).toLocaleString()}`,
+        trend: '+8%',
+        color: '#321B13',
+      },
+      {
+        label: 'Commissions',
+        value: `$${(revSum * 0.2).toLocaleString()}`,
+        trend: '+15%',
+        color: '#FF6B00',
+      },
     ];
 
     const transactions = requestsData.map((req) => ({
@@ -192,41 +229,50 @@ export class AdminService {
   }
 
   async getAnalytics() {
-    const usersData = await this.prisma.user.findMany({ select: { quartier: true } });
-    
-    const cityCounts = usersData.reduce((acc, curr) => {
-      const city = curr.quartier || "Goma";
-      acc[city] = (acc[city] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const usersData = await this.prisma.user.findMany({
+      select: { quartier: true },
+    });
+
+    const cityCounts = usersData.reduce(
+      (acc, curr) => {
+        const city = curr.quartier || 'Goma';
+        acc[city] = (acc[city] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const totalUsers = usersData.length || 1;
-    const colors = ["#FF6B00", "#BC9C6C", "#321B13"];
-    
-    const cities = Object.keys(cityCounts).map((city, i) => ({
-      city,
-      percentage: Math.round((cityCounts[city] / totalUsers) * 100),
-      color: colors[i % colors.length]
-    })).sort((a, b) => b.percentage - a.percentage);
+    const colors = ['#FF6B00', '#BC9C6C', '#321B13'];
 
-    const topCity = cities[0] ? `${cities[0].city} (${cities[0].percentage}%)` : "Aucune";
+    const cities = Object.keys(cityCounts)
+      .map((city, i) => ({
+        city,
+        percentage: Math.round((cityCounts[city] / totalUsers) * 100),
+        color: colors[i % colors.length],
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+
+    const topCity = cities[0]
+      ? `${cities[0].city} (${cities[0].percentage}%)`
+      : 'Aucune';
 
     return {
       cities,
       metrics: {
-        growth: "+12.4%",
-        conversion: "3.2%",
+        growth: '+12.4%',
+        conversion: '3.2%',
         topCity,
-      }
+      },
     };
   }
 
   getSettings() {
     return {
       settings: {
-        interfaceMode: "light",
-        notifications: true
-      }
+        interfaceMode: 'light',
+        notifications: true,
+      },
     };
   }
 
@@ -270,8 +316,11 @@ export class AdminService {
       const q = u.quartier || 'Inconnu';
       quartierCounts[q] = (quartierCounts[q] || 0) + 1;
     }
-    const topQuartier = Object.entries(quartierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '---';
-    const conversionRate = totalUsers > 0 ? Math.round((totalRequests / totalUsers) * 100) : 0;
+    const topQuartier =
+      Object.entries(quartierCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      '---';
+    const conversionRate =
+      totalUsers > 0 ? Math.round((totalRequests / totalUsers) * 100) : 0;
 
     return {
       users: {

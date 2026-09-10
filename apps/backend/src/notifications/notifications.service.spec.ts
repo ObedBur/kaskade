@@ -39,7 +39,12 @@ describe('NotificationsService', () => {
 
   describe('createNotification', () => {
     it('should create a notification', async () => {
-      const data = { userId: 'u1', title: 't', message: 'm', type: NotificationType.AUTH_WELCOME };
+      const data = {
+        userId: 'u1',
+        title: 't',
+        message: 'm',
+        type: NotificationType.AUTH_WELCOME,
+      };
       const expected = { id: '1', ...data };
       prisma.notification.create.mockResolvedValue(expected);
       const res = await service.createNotification(data);
@@ -60,7 +65,14 @@ describe('NotificationsService', () => {
 
   describe('createManyNotifications', () => {
     it('should create many notifications individually and return them', async () => {
-      const data = [{ userId: 'u1', title: 't', message: 'm', type: NotificationType.AUTH_WELCOME }];
+      const data = [
+        {
+          userId: 'u1',
+          title: 't',
+          message: 'm',
+          type: NotificationType.AUTH_WELCOME,
+        },
+      ];
       const created = { id: 'n1', ...data[0] };
       prisma.notification.create.mockResolvedValue(created);
       const res = await service.createManyNotifications(data);
@@ -74,7 +86,13 @@ describe('NotificationsService', () => {
       prisma.notification.findMany.mockResolvedValue([]);
       prisma.notification.count.mockResolvedValue(0);
       const res = await service.findAllForUser('u1');
-      expect(res).toEqual({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+      expect(res).toEqual({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      });
       expect(prisma.notification.findMany).toHaveBeenCalledWith({
         where: { userId: 'u1' },
         include: { request: true, service: true, providerApp: true },
@@ -88,16 +106,23 @@ describe('NotificationsService', () => {
   describe('markAsRead', () => {
     it('throws NotFoundException if not found', async () => {
       prisma.notification.findUnique.mockResolvedValue(null);
-      await expect(service.markAsRead('n1', 'u1')).rejects.toThrow(NotFoundException);
+      await expect(service.markAsRead('n1', 'u1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws NotFoundException if user mismatch', async () => {
       prisma.notification.findUnique.mockResolvedValue({ userId: 'other' });
-      await expect(service.markAsRead('n1', 'u1')).rejects.toThrow(NotFoundException);
+      await expect(service.markAsRead('n1', 'u1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('updates and returns notification', async () => {
-      prisma.notification.findUnique.mockResolvedValue({ id: 'n1', userId: 'u1' });
+      prisma.notification.findUnique.mockResolvedValue({
+        id: 'n1',
+        userId: 'u1',
+      });
       prisma.notification.update.mockResolvedValue({ id: 'n1', isRead: true });
       const res = await service.markAsRead('n1', 'u1');
       expect(res).toEqual({ id: 'n1', isRead: true });

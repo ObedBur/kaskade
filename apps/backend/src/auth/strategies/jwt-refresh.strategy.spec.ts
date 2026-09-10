@@ -40,7 +40,10 @@ describe('JwtRefreshStrategy', () => {
       const result = strategy.validate(req, payload);
 
       expect(req.get).toHaveBeenCalledWith('Authorization');
-      expect(result).toEqual({ ...payload, refreshToken: 'test_refresh_token_string' });
+      expect(result).toEqual({
+        ...payload,
+        refreshToken: 'test_refresh_token_string',
+      });
     });
 
     it('should throw UnauthorizedException if Authorization header is missing', () => {
@@ -50,7 +53,9 @@ describe('JwtRefreshStrategy', () => {
 
       const payload = { sub: '1', email: 'test@test.com', role: 'CLIENT' };
 
-      expect(() => strategy.validate(req, payload)).toThrow(UnauthorizedException);
+      expect(() => strategy.validate(req, payload)).toThrow(
+        UnauthorizedException,
+      );
       expect(req.get).toHaveBeenCalledWith('Authorization');
     });
   });

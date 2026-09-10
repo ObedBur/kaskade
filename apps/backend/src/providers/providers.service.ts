@@ -137,7 +137,9 @@ export class ProvidersService {
     }
 
     if (!serviceId) {
-      throw new BadRequestException('Vous devez assigner un métier (service) pour approuver le prestataire.');
+      throw new BadRequestException(
+        'Vous devez assigner un métier (service) pour approuver le prestataire.',
+      );
     }
 
     // Vérifier que le service existe
@@ -145,7 +147,9 @@ export class ProvidersService {
       where: { id: serviceId },
     });
     if (!service) {
-      throw new NotFoundException('Le métier (service) sélectionné est introuvable.');
+      throw new NotFoundException(
+        'Le métier (service) sélectionné est introuvable.',
+      );
     }
 
     const updatedApp = await this.prisma.providerApplication.update({
@@ -155,13 +159,13 @@ export class ProvidersService {
 
     await this.prisma.user.update({
       where: { id: application.userId },
-      data: { 
+      data: {
         role: Role.PROVIDER,
         isActive: true,
         status: Status.DISPONIBLE,
         services: {
-          connect: { id: serviceId }
-        }
+          connect: { id: serviceId },
+        },
       },
     });
 
@@ -198,34 +202,51 @@ export class ProvidersService {
       application.user.metier || '',
       application.user.experience || '',
       application.user.bio || '',
-      application.motivation || ''
-    ].join(' ').toLowerCase();
+      application.motivation || '',
+    ]
+      .join(' ')
+      .toLowerCase();
 
     // Fonction utilitaire pour normaliser
-    const normalize = (str: string) => 
-      str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const normalize = (str: string) =>
+      str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
 
     const normalizedProfileText = normalize(profileText);
-    const metierUser = application.user.metier ? normalize(application.user.metier) : '';
+    const metierUser = application.user.metier
+      ? normalize(application.user.metier)
+      : '';
 
-    const suggestions = services.map(service => {
+    const suggestions = services.map((service) => {
       let score = 0;
       const serviceName = normalize(service.name);
       const serviceCategory = normalize(service.category);
-      
+
       // Forte correspondance sur le nom du métier exact
-      if (metierUser && (metierUser.includes(serviceName) || serviceName.includes(metierUser))) {
+      if (
+        metierUser &&
+        (metierUser.includes(serviceName) || serviceName.includes(metierUser))
+      ) {
         score += 60;
       }
-      
+
       // Correspondance sur la catégorie
-      if (metierUser && (metierUser.includes(serviceCategory) || serviceCategory.includes(metierUser))) {
+      if (
+        metierUser &&
+        (metierUser.includes(serviceCategory) ||
+          serviceCategory.includes(metierUser))
+      ) {
         score += 30;
       }
 
       // Analyse des mots-clés dans tout le profil
-      const serviceWords = [...serviceName.split(' '), ...serviceCategory.split(' ')].filter(w => w.length > 3);
-      serviceWords.forEach(word => {
+      const serviceWords = [
+        ...serviceName.split(' '),
+        ...serviceCategory.split(' '),
+      ].filter((w) => w.length > 3);
+      serviceWords.forEach((word) => {
         if (normalizedProfileText.includes(word)) {
           score += 15; // Chaque mot trouvé dans le profil donne des points
         }
@@ -234,21 +255,19 @@ export class ProvidersService {
       // Calcul d'un pourcentage (plafonné à 99%)
       // On s'assure qu'un score de 75+ donne un très bon %
       const rawPercentage = Math.min(99, Math.round((score / 80) * 100));
-      
+
       // Si le score est très bas, on met un minimum pour ne pas avoir 0% (esthétique)
       const percentage = Math.max(15, rawPercentage);
 
       return {
         ...withServiceImageUrl(service),
         matchPercentage: percentage,
-        score
+        score,
       };
     });
 
     // Trier par score décroissant et retourner le top 10
-    return suggestions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    return suggestions.sort((a, b) => b.score - a.score).slice(0, 10);
   }
 
   async reject(applicationId: string) {
@@ -404,9 +423,7 @@ export class ProvidersService {
         email: user.email,
         metier: user.metier,
       },
-      assignedServices: user.services.map((s: any) =>
-        this.withImageUrl(s),
-      ),
+      assignedServices: user.services.map((s: any) => this.withImageUrl(s)),
       availableServices: allServices
         .filter((s: any) => !assignedIds.has(s.id))
         .map((s: any) => this.withImageUrl(s)),
@@ -436,13 +453,36 @@ export class ProvidersService {
             service: {
               OR: [
                 // Le métier contient le nom du service (ex: "coiffeur" → "coiff")
-                { category: { contains: user.metier, mode: 'insensitive' as const } },
-                { name: { contains: user.metier, mode: 'insensitive' as const } },
+                {
+                  category: {
+                    contains: user.metier,
+                    mode: 'insensitive' as const,
+                  },
+                },
+                {
+                  name: { contains: user.metier, mode: 'insensitive' as const },
+                },
                 // Le nom du service contient le métier (ex: "Coiffure" contient "coiff")
                 ...(user.metier.length >= 4
                   ? [
-                      { category: { contains: user.metier.substring(0, Math.min(6, user.metier.length)), mode: 'insensitive' as const } },
-                      { name: { contains: user.metier.substring(0, Math.min(6, user.metier.length)), mode: 'insensitive' as const } },
+                      {
+                        category: {
+                          contains: user.metier.substring(
+                            0,
+                            Math.min(6, user.metier.length),
+                          ),
+                          mode: 'insensitive' as const,
+                        },
+                      },
+                      {
+                        name: {
+                          contains: user.metier.substring(
+                            0,
+                            Math.min(6, user.metier.length),
+                          ),
+                          mode: 'insensitive' as const,
+                        },
+                      },
                     ]
                   : []),
               ],
@@ -452,7 +492,9 @@ export class ProvidersService {
       : [];
 
     const orConditions = [
-      ...(assignedServiceIds.length > 0 ? [{ serviceId: { in: assignedServiceIds } }] : []),
+      ...(assignedServiceIds.length > 0
+        ? [{ serviceId: { in: assignedServiceIds } }]
+        : []),
       ...metierConditions,
     ];
 
@@ -655,7 +697,9 @@ export class ProvidersService {
     const { password, refreshToken, ...profile } = user;
     return {
       ...profile,
-      services: profile.services?.map((service) => withServiceImageUrl(service)),
+      services: profile.services?.map((service) =>
+        withServiceImageUrl(service),
+      ),
     };
   }
   async updateProfile(

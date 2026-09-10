@@ -37,10 +37,15 @@ describe('PaymentsController', () => {
   });
 
   it('initiateFinalPayment delegates to service', async () => {
-    mockPaymentsService.initiateFinalPayment.mockResolvedValue({ paymentId: 'p1' });
+    mockPaymentsService.initiateFinalPayment.mockResolvedValue({
+      paymentId: 'p1',
+    });
     const dto = { requestId: 'r1' } as any;
     const res = await controller.initiateFinalPayment(dto, 'c1');
     expect(res).toEqual({ paymentId: 'p1' });
-    expect(mockPaymentsService.initiateFinalPayment).toHaveBeenCalledWith(dto, 'c1');
+    expect(mockPaymentsService.initiateFinalPayment).toHaveBeenCalledWith(
+      dto,
+      'c1',
+    );
   });
 });

@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { X, MapPin, ArrowRight, Info, Phone, Home } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
+
+const GOMA_QUARTIERS = [
+    "Himbi",
+    "Kyeshero",
+    "Virunga",
+    "Karisimbi",
+    "Katindo",
+    "Mabanga",
+    "Les Volcans",
+];
 
 interface AddressFormProps {
     onClose: () => void;
@@ -11,10 +22,25 @@ interface AddressFormProps {
 }
 
 export default function AddressForm({ onClose, onConfirm }: AddressFormProps) {
+    const { user } = useAuth();
     const [quartier, setQuartier] = useState("");
     const [repere, setRepere] = useState("");
     const [whatsapp, setWhatsapp] = useState("");
     const [description, setDescription] = useState("");
+
+    // Les données de compte sont chargées de façon asynchrone : préremplir
+    // le formulaire dès qu'elles deviennent disponibles.
+    useEffect(() => {
+        if (user?.quartier) setQuartier(user.quartier);
+        if (user?.phone) setWhatsapp(user.phone);
+    }, [user?.phone, user?.quartier]);
+
+    const quartiers = useMemo(() => {
+        if (user?.quartier && !GOMA_QUARTIERS.includes(user.quartier)) {
+            return [user.quartier, ...GOMA_QUARTIERS];
+        }
+        return GOMA_QUARTIERS;
+    }, [user?.quartier]);
 
     const handleSubmit = () => {
         if (!quartier.trim()) {
@@ -85,19 +111,20 @@ export default function AddressForm({ onClose, onConfirm }: AddressFormProps) {
                                 Votre Quartier
                             </p>
                         </div>
+                        {user?.quartier ? (
+                            <p className="text-[10px] font-medium text-chocolat/45">
+                                Prérempli depuis votre profil — modifiable pour cette intervention.
+                            </p>
+                        ) : null}
                         <select 
                             value={quartier}
                             onChange={(e) => setQuartier(e.target.value)}
                             className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-ocre transition-all"
                         >
                             <option value="">Sélectionner un quartier</option>
-                            <option value="Himbi">Himbi</option>
-                            <option value="Kyeshero">Kyeshero</option>
-                            <option value="Virunga">Virunga</option>
-                            <option value="Karisimbi">Karisimbi</option>
-                            <option value="Katindo">Katindo</option>
-                            <option value="Mabanga">Mabanga</option>
-                            <option value="Les Volcans">Les Volcans</option>
+                            {quartiers.map((quartierOption) => (
+                                <option key={quartierOption} value={quartierOption}>{quartierOption}</option>
+                            ))}
                             <option value="Autre">Autre quartier...</option>
                         </select>
                     </div>
@@ -127,9 +154,16 @@ export default function AddressForm({ onClose, onConfirm }: AddressFormProps) {
                                 Numéro WhatsApp (optionnel)
                             </p>
                         </div>
+                        {user?.phone ? (
+                            <p className="text-[10px] font-medium text-chocolat/45">
+                                Numéro enregistré dans votre profil — modifiable si besoin.
+                            </p>
+                        ) : null}
                         <input 
                             type="text"
                             placeholder="Ex: +243 9..."
+                            inputMode="tel"
+                            autoComplete="tel"
                             value={whatsapp}
                             onChange={(e) => setWhatsapp(e.target.value)}
                             className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl py-4 px-6 text-sm font-bold focus:outline-none focus:border-ocre transition-all"
