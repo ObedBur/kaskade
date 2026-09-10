@@ -29,20 +29,20 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://cascadheure.com"),
   title: {
-    default: "Cascadheure.com | L'Innovation Digitale",
+    default: "Cascadheure | Services vérifiés à Goma",
     template: "%s | Cascadheure.com",
   },
-  description: "Plateforme immersive et solutions digitales de nouvelle génération.",
+  description: "Trouvez à Goma des prestataires de services vérifiés : maison, maintenance, transport, restauration et services du quotidien.",
   applicationName: "Cascadheure",
   authors: [{ name: "Cascadheure Team", url: "https://cascadheure.com" }],
-  keywords: ["Digital", "Creative", "Agency", "Web3", "UI/UX"],
+  keywords: ["services à Goma", "prestataires Goma", "Cascadheure", "artisans Goma", "réservation de services"],
   creator: "Cascadheure Team",
   openGraph: {
     type: "website",
     locale: "fr_FR",
     url: "https://cascadheure.com",
     title: "Cascadheure.com",
-    description: "L'avenir du design numérique commence ici.",
+    description: "La plateforme de confiance pour trouver des prestataires de services vérifiés à Goma.",
     siteName: "Cascadheure.com",
     images: [
       {
@@ -92,4 +92,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+}
